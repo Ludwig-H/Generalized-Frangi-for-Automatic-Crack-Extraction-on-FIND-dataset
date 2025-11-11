@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "frangi-fusion"
+version = "0.1.0"
+description = "Generalized Frangi with multi-modal fusion on FIND (sparse HDBSCAN, MST k-centers)."
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "ICPR 2026 Lyon Team" }]
+requires-python = ">=3.9"
+dependencies = [
+  "numpy",
+  "scipy",
+  "scikit-image",
+  "matplotlib",
+  "joblib",
+  "tqdm",
+  "tqdm-joblib",
+  "hdbscan",
+  "networkx",
+  "gdown",
+  "tifffile",
+  "imageio",
+  "pandas",
+  "Pillow",
+  "pot"
+]
+
+[project.urls]
+homepage = "https://example.com/icpr2026-frangi-fusion-find"
+repository = "https://example.com/icpr2026-frangi-fusion-find.git"
+
+[project.scripts]
+frangi-find-batch = "frangi_fusion.cli:main"
