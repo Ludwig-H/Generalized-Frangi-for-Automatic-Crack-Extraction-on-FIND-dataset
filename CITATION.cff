@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+title: "Generalized Frangi with Multi‑modal Fusion on FIND"
+message: "If you use this code, please cite the corresponding work."
+authors:
+  - family-names: "Hauseux"
+    given-names: "Louis"
+  - family-names: "Antoine"
+    given-names: "Raphaël"
+  - family-names: "Foucher"
+    given-names: "Philippe"
+  - family-names: "Charbonnier"
+    given-names: "Pierre"
+  - family-names: "Zerubia"
+    given-names: "Josiane"
+date-released: 2025-11-11
+license: "MIT"
+keywords: [Frangi, Hessian, multi-modal fusion, FIND, HDBSCAN, MST, k-centers, cracks]
