@@ -31,7 +31,7 @@ def build_frangi_similarity_graph(fused_hessians: List[Dict[str,np.ndarray]],
 
     resp = np.max([np.abs(e2) for e2 in e2s], axis=0)
     if candidate_mask is None:
-        thr = np.quantile(resp, 0.95)
+        thr = np.quantile(resp, 0.5) # CHANGEMENT 0.95
         candidate_mask = resp >= thr
     coords = np.argwhere(candidate_mask)
     if coords.size == 0:
