@@ -58,13 +58,13 @@ def build_frangi_similarity_graph(fused_hessians: List[Dict[str,np.ndarray]],
         s1 = _sim_elong(l1a,l2a,l1b,l2b,beta)
         s2 = _sim_strength(l2a,l2b,c)
         s3 = _sim_angle(ta,tb,ctheta)
-        return  (s1*s2*s3) # * valid.astype(float) # CHANGEMENT
+        return  (s1*s2*s3) * valid.astype(float) # CHANGEMENT
 
     sims_scales = [sim_at_scale(i) for i in range(len(e2s))]
     sims = np.max(np.vstack(sims_scales), axis=0)
     row = pairs[:,0]; col = pairs[:,1]; data = sims
     S = coo_matrix((data,(row,col)), shape=(N,N))
-    S = S + S.T
+    S = (S + S.T)/2
     S = S.tocsr()
     neighbors = [[] for _ in range(N)]
     cooS = S.tocoo()
