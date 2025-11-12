@@ -60,8 +60,23 @@ def build_frangi_similarity_graph(fused_hessians: List[Dict[str,np.ndarray]],
         s3 = _sim_angle(ta,tb,ctheta)
         return  (s1*s2*s3) * valid.astype(float) # CHANGEMENT
 
-    sims_scales = [sim_at_scale(i) for i in range(len(e2s))]
-    sims = np.max(np.vstack(sims_scales), axis=0)
+    threshold_choice_orientation = 0.9
+    sims_scales_neg = [sim_at_scale(i) for i in range(len(e2s))]
+    sims_neg = np.max(np.vstack(sims_scales_neg), axis=0)
+    quantile_neg = np.quantile(sims_neg, threshold_choice_orientation)
+
+    dark_ridges = ~dark_ridges
+    sims_scales_pos = [sim_at_scale(i) for i in range(len(e2s))]
+    sims_pos = np.max(np.vstack(sims_scales_pos), axis=0)
+    quantile_pos = np.quantile(sims_pos, threshold_choice_orientation)
+
+    if quantile_pos > quantile_neg :
+        sims = sims_pos
+        print("Second choice: dark_ridges =", dark_ridges)
+    else :
+        sims = sims_neg
+        print("First choice: dark_ridges =", ~dark_ridges)
+                                      
     row = pairs[:,0]; col = pairs[:,1]; data = sims
     S = coo_matrix((data,(row,col)), shape=(N,N))
     S = (S + S.T)/2
