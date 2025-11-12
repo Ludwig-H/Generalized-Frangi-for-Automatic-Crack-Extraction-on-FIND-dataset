@@ -21,6 +21,7 @@ def _sim_angle(thet_a, thet_b, ctheta: float):
 def build_frangi_similarity_graph(fused_hessians: List[Dict[str,np.ndarray]],
                                   beta: float, c: float, ctheta: float, R: int,
                                   candidate_mask: Optional[np.ndarray] = None,
+                                  threshold_mask: Optional[float] = None,
                                   dark_ridges: bool = True
                                   ) -> Tuple[np.ndarray, List[List[int]], csr_matrix]:
     # pick scale-wise maxima by |λ2n|
@@ -31,7 +32,9 @@ def build_frangi_similarity_graph(fused_hessians: List[Dict[str,np.ndarray]],
 
     resp = np.max([np.abs(e2) for e2 in e2s], axis=0)
     if candidate_mask is None:
-        thr = np.quantile(resp, 0.5) # CHANGEMENT 0.95
+        if not threshold_mask:
+            threshold_mask = 0.5 # CHANGEMENT 0.95
+        thr = np.quantile(resp, threshold_mask) 
         candidate_mask = resp >= thr
     coords = np.argwhere(candidate_mask)
     if coords.size == 0:
