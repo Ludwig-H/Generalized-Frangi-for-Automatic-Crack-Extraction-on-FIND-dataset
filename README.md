@@ -1,4 +1,4 @@
-# Generalized Frangi with Multi‑modal Fusion on FIND
+# Generalized Frangi with Multi‑modal Fusion on FIND fault benchmark
 
 This repository implements a *generalized Frangi* pipeline with **multi‑modal fusion** and an evaluation on the **FIND** benchmark.
 It creates a **Frangi similarity graph** on pixels, and its higher-order equivalent on triangles ($K=2$), runs our sparse-version of **HDBSCAN**  on a **sparse distance graph**, computes a $K$-**MST** inside each cluster,
