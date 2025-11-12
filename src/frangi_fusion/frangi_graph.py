@@ -72,10 +72,10 @@ def build_frangi_similarity_graph(fused_hessians: List[Dict[str,np.ndarray]],
 
     if quantile_pos > quantile_neg :
         sims = sims_pos
-        print("Second choice: dark_ridges =", dark_ridges)
+        print("Quantiles:", quantile_neg, "/", quantile_pos, ". Second choice: dark_ridges =", dark_ridges)
     else :
         sims = sims_neg
-        print("First choice: dark_ridges =", ~dark_ridges)
+        print("Quantiles:", quantile_neg, "/", quantile_pos, ". First choice: dark_ridges =", ~dark_ridges)
                                       
     row = pairs[:,0]; col = pairs[:,1]; data = sims
     S = coo_matrix((data,(row,col)), shape=(N,N))
