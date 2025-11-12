@@ -51,11 +51,11 @@ def build_frangi_similarity_graph(fused_hessians: List[Dict[str,np.ndarray]],
         l1a, l2a = e1[r0,c0], e2[r0,c0]
         l1b, l2b = e1[r1,c1], e2[r1,c1]
         ta, tb = th[r0,c0], th[r1,c1]
-        valid = True # CHANGEMENT : (l2a >= 0) & (l2b >= 0) if dark_ridges else (l2a <= 0) & (l2b <= 0)
+        valid = (l2a >= 0) & (l2b >= 0) if dark_ridges else (l2a <= 0) & (l2b <= 0)
         s1 = _sim_elong(l1a,l2a,l1b,l2b,beta)
         s2 = _sim_strength(l2a,l2b,c)
         s3 = _sim_angle(ta,tb,ctheta)
-        return valid.astype(float) * (s1*s2*s3)
+        return  (s1*s2*s3) # * valid.astype(float) # CHANGEMENT
 
     sims_scales = [sim_at_scale(i) for i in range(len(e2s))]
     sims = np.max(np.vstack(sims_scales), axis=0)
