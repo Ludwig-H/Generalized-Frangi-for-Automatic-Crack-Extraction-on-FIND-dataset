@@ -65,16 +65,17 @@ def build_frangi_similarity_graph(fused_hessians: List[Dict[str,np.ndarray]],
         sims[~valid] = 0.0
         return sims
 
+    threshold_quant_dark = 0.95
     # Passe 1: hypothèse initiale (dark_ridges)
     sims_scales_a = [sim_at_scale(i, dark_ridges) for i in range(len(e2s))]
     sims_a = np.max(np.vstack(sims_scales_a), axis=0)
-    q_a = np.quantile(sims_a, 0.95)
+    q_a = np.quantile(sims_a, threshold_quant_dark)
 
     # Passe 2: hypothèse contraire
     dark_alt = (not dark_ridges)
     sims_scales_b = [sim_at_scale(i, dark_alt) for i in range(len(e2s))]
     sims_b = np.max(np.vstack(sims_scales_b), axis=0)
-    q_b = np.quantile(sims_b, 0.95)
+    q_b = np.quantile(sims_b, threshold_quant_dark)
 
     if q_b > q_a:
         sims = sims_b
