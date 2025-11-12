@@ -60,7 +60,7 @@ def build_frangi_similarity_graph(fused_hessians: List[Dict[str,np.ndarray]],
         s3 = _sim_angle(ta,tb,ctheta)
         return  (s1*s2*s3) * valid.astype(float) # CHANGEMENT
 
-    threshold_choice_orientation = 0.9
+    threshold_choice_orientation = 0.95
     sims_scales_neg = [sim_at_scale(i) for i in range(len(e2s))]
     sims_neg = np.max(np.vstack(sims_scales_neg), axis=0)
     quantile_neg = np.quantile(sims_neg, threshold_choice_orientation)
