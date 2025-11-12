@@ -32,7 +32,7 @@ def build_frangi_similarity_graph(fused_hessians: List[Dict[str,np.ndarray]],
 
     resp = np.max([np.abs(e2) for e2 in e2s], axis=0)
     if candidate_mask is None:
-        if not threshold_mask:
+        if threshold_mask is None:
             threshold_mask = 0.5 # CHANGEMENT 0.95
         thr = np.quantile(resp, threshold_mask) 
         candidate_mask = resp >= thr
@@ -47,35 +47,42 @@ def build_frangi_similarity_graph(fused_hessians: List[Dict[str,np.ndarray]],
     if pairs.size == 0:
         return coords, [[] for _ in range(N)], csr_matrix((N,N))
 
-    def sim_at_scale(sidx: int) -> np.ndarray:
+    def sim_at_scale(sidx: int, dark_flag: bool) -> np.ndarray:
         e1 = e1s[sidx]; e2 = e2s[sidx]; th = thetas[sidx]
-        r0,c0 = coords[pairs[:,0],0], coords[pairs[:,0],1]
-        r1,c1 = coords[pairs[:,1],0], coords[pairs[:,1],1]
-        l1a, l2a = e1[r0,c0], e2[r0,c0]
-        l1b, l2b = e1[r1,c1], e2[r1,c1]
-        ta, tb = th[r0,c0], th[r1,c1]
-        valid = (l2a >= 0) & (l2b >= 0) if dark_ridges else (l2a <= 0) & (l2b <= 0)
-        s1 = _sim_elong(l1a,l2a,l1b,l2b,beta)
-        s2 = _sim_strength(l2a,l2b,c)
-        s3 = _sim_angle(ta,tb,ctheta)
-        return  (s1*s2*s3) * valid.astype(float) # CHANGEMENT
+        r0, c0 = coords[pairs[:, 0], 0], coords[pairs[:, 0], 1]
+        r1, c1 = coords[pairs[:, 1], 0], coords[pairs[:, 1], 1]
+        l1a, l2a = e1[r0, c0], e2[r0, c0]
+        l1b, l2b = e1[r1, c1], e2[r1, c1]
+        ta, tb = th[r0, c0], th[r1, c1]
 
-    threshold_choice_orientation = 0.95
-    sims_scales_neg = [sim_at_scale(i) for i in range(len(e2s))]
-    sims_neg = np.max(np.vstack(sims_scales_neg), axis=0)
-    quantile_neg = np.quantile(sims_neg, threshold_choice_orientation)
+        # masque selon le signe choisi
+        valid = (l2a >= 0) & (l2b >= 0) if dark_flag else (l2a <= 0) & (l2b <= 0)
 
-    dark_ridges = ~dark_ridges
-    sims_scales_pos = [sim_at_scale(i) for i in range(len(e2s))]
-    sims_pos = np.max(np.vstack(sims_scales_pos), axis=0)
-    quantile_pos = np.quantile(sims_pos, threshold_choice_orientation)
+        s1 = _sim_elong(l1a, l2a, l1b, l2b, beta)
+        s2 = _sim_strength(l2a, l2b, c)
+        s3 = _sim_angle(ta, tb, ctheta)
+        sims = s1 * s2 * s3
+        sims[~valid] = 0.0
+        return sims
 
-    if quantile_pos > quantile_neg :
-        sims = sims_pos
-        print("Quantiles:", quantile_neg, "/", quantile_pos, ". Second choice: dark_ridges =", dark_ridges)
-    else :
-        sims = sims_neg
-        print("Quantiles:", quantile_neg, "/", quantile_pos, ". First choice: dark_ridges =", ~dark_ridges)
+    # Passe 1: hypothèse initiale (dark_ridges)
+    sims_scales_a = [sim_at_scale(i, dark_ridges) for i in range(len(e2s))]
+    sims_a = np.max(np.vstack(sims_scales_a), axis=0)
+    q_a = np.quantile(sims_a, 0.95)
+
+    # Passe 2: hypothèse contraire
+    dark_alt = (not dark_ridges)
+    sims_scales_b = [sim_at_scale(i, dark_alt) for i in range(len(e2s))]
+    sims_b = np.max(np.vstack(sims_scales_b), axis=0)
+    q_b = np.quantile(sims_b, 0.95)
+
+    if q_b > q_a:
+        sims = sims_b
+        chosen = dark_alt
+    else:
+        sims = sims_a
+        chosen = dark_ridges
+    print(f"Quantiles: {q_a:.6f} / {q_b:.6f}. Chosen dark_ridges = {chosen}")
                                       
     row = pairs[:,0]; col = pairs[:,1]; data = sims
     S = coo_matrix((data,(row,col)), shape=(N,N))
