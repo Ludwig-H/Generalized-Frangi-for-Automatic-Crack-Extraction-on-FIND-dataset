@@ -113,16 +113,83 @@ def _extract_key(p: str) -> str:
     m = re.findall(r'\\d+', base)
     return m[-1] if m else base
 
+# def load_modalities_and_gt_by_index(struct, index: int):
+#     """
+#     Load intensity / range / fused / filtered (and optional label) for a given index.
+
+#     - Base list: 'label' if available, otherwise 'intensity'.
+#     - Key = numeric part of filename (e.g. 'im01375.tif' -> '01375') via _extract_key.
+#     - For each modality ['intensity','range','fused','filtered','label'],
+#       we pick the file whose key matches.
+#     - Images are converted to uint8 [0,255] by to_gray_uint8.
+#     - Label is binarized to {0,255}.
+#     """
+#     base_list = struct['label'] if struct.get('label') else struct.get('intensity', [])
+#     if not base_list:
+#         raise RuntimeError('No images found in FIND root (no label nor intensity).')
+
+#     index = index % len(base_list)
+#     key = _extract_key(base_list[index])
+
+#     out = {'paths': {}, 'arrays': {}}
+
+#     # Maintenant on inclut bien 'filtered'
+#     for k in ['intensity', 'range', 'fused', 'filtered', 'label']:
+#         files = struct.get(k, [])
+#         if not files:
+#             continue
+
+#         cand = [p for p in files if _extract_key(p) == key]
+#         if not cand:
+#             continue
+
+#         pth = cand[0]
+#         try:
+#             arr = _read_image(pth)
+#             out['paths'][k] = pth
+
+#             if k == 'label':
+#                 g = to_gray_uint8(arr)
+#                 out['arrays'][k] = ((g > 127).astype(np.uint8) * 255)
+#             else:
+#                 out['arrays'][k] = to_gray_uint8(arr)
+
+#         except Exception as e:
+#             # Pour debug éventuel:
+#             # print(f"Failed to read {pth} as {k}: {e}")
+#             continue
+
+#     return out
+import re
+
+def _extract_key(p: str) -> str:
+    """
+    Extract a numeric key from the filename, robust to zero-padding.
+    Example:
+      'im00215.bmp' -> '215'
+      'crack_0215_range.png' -> '215'
+    If no digits are found, fallback to lowercase basename.
+    """
+    base = os.path.basename(p)
+    m = re.findall(r'\d+', base)
+    if not m:
+        return base.lower()
+    # on convertit en int pour casser le padding, puis on revient à str
+    num = int(m[-1])
+    return str(num)
+
+
 def load_modalities_and_gt_by_index(struct, index: int):
     """
     Load intensity / range / fused / filtered (and optional label) for a given index.
 
-    - Base list: 'label' if available, otherwise 'intensity'.
-    - Key = numeric part of filename (e.g. 'im01375.tif' -> '01375') via _extract_key.
-    - For each modality ['intensity','range','fused','filtered','label'],
-      we pick the file whose key matches.
-    - Images are converted to uint8 [0,255] by to_gray_uint8.
-    - Label is binarized to {0,255}.
+    - Base list: 'label' if available (pour évaluer uniquement là où il y a GT),
+                 sinon 'intensity'.
+    - Key = numeric part of filename, normalisée (ex: 'im00215.bmp' et 'im215.png' -> '215').
+    - Pour chaque modalité ['intensity','range','fused','filtered','label'],
+      on prend le premier fichier dont la clé matche.
+    - Les images sont converties en uint8 [0,255] via to_gray_uint8.
+    - Le label est binarisé (seuil 127) en {0,255}.
     """
     base_list = struct['label'] if struct.get('label') else struct.get('intensity', [])
     if not base_list:
@@ -133,12 +200,13 @@ def load_modalities_and_gt_by_index(struct, index: int):
 
     out = {'paths': {}, 'arrays': {}}
 
-    # Maintenant on inclut bien 'filtered'
+    # On inclut bien 'filtered'
     for k in ['intensity', 'range', 'fused', 'filtered', 'label']:
         files = struct.get(k, [])
         if not files:
             continue
 
+        # chercher fichiers de cette modalité qui partagent la même clé normalisée
         cand = [p for p in files if _extract_key(p) == key]
         if not cand:
             continue
@@ -155,8 +223,7 @@ def load_modalities_and_gt_by_index(struct, index: int):
                 out['arrays'][k] = to_gray_uint8(arr)
 
         except Exception as e:
-            # Pour debug éventuel:
-            # print(f"Failed to read {pth} as {k}: {e}")
+            print(f"Failed to read {pth} as {k}: {e}")
             continue
 
     return out
