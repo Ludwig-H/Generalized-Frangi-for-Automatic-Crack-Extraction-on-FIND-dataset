@@ -57,26 +57,52 @@ def to_gray_uint8(img: np.ndarray) -> np.ndarray:
     return (g * 255).clip(0, 255).astype(np.uint8)
 
 def auto_discover_find_structure(root: str):
-    all_imgs = [p for p in glob(os.path.join(root, '**', '*.*'), recursive=True) if _is_image_file(p)]
-    buckets = {'intensity': [], 'range': [], 'fused': [], 'label': [], 'filtered': []}
+    """
+    Discover FIND-like structure:
+      - labels in 'lbl/' (or 'labels/', 'gt', etc.)
+      - modalities in 'img/' (intensity / range / fused)
+    Returns dict with keys: 'intensity', 'range', 'fused', 'label'.
+    """
+    all_imgs = [
+        p for p in glob(os.path.join(root, '**', '*.*'), recursive=True)
+        if _is_image_file(p)
+    ]
+
+    buckets = {
+        'intensity': [],
+        'range': [],
+        'fused': [],
+        'label': [],
+    }
+
     for p in all_imgs:
-        low = p.lower().replace('\\','/')
-        if any(k in low for k in ['lbs', 'label','labels','gt','groundtruth','ground_truth','mask']):
+        low = p.lower().replace('\\', '/')
+        parts = low.split('/')
+
+        # 1) Labels: dossiers lbl / labels / gt…
+        if any(part in ('lbl', 'label', 'labels', 'gt', 'groundtruth', 'ground_truth') for part in parts):
             buckets['label'].append(p)
-        elif any(k in low for k in ['fused','fusion']):
+            continue
+
+        # 2) Tout le reste : on considère que c'est du côté img/
+        #    On raffine par mots-clés dans le chemin
+        if any(k in low for k in ['fused', 'fusion']):
             buckets['fused'].append(p)
-        elif any(k in low for k in ['range','depth']):
+        elif any(k in low for k in ['range', 'depth']):
             buckets['range'].append(p)
-        elif any(k in low for k in ['intensity','gray','grayscale']):
+        else:
+            # Par défaut, on met en intensity
             buckets['intensity'].append(p)
-        elif any(k in low for k in ['filtered']):
-            buckets['filtered'].append(p)
-        # else:
-        #     buckets['intensity'].append(p)
+
     for k in buckets:
         buckets[k] = sorted(buckets[k])
-    return buckets
 
+    print("Found:",
+          f"{len(buckets['intensity'])} intensity,",
+          f"{len(buckets['range'])} range,",
+          f"{len(buckets['fused'])} fused,",
+          f"{len(buckets['label'])} labels.")
+    return buckets
 def _extract_key(p: str) -> str:
     import os, re
     base = os.path.basename(p)
