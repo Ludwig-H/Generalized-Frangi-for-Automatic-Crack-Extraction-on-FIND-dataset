@@ -114,23 +114,49 @@ def _extract_key(p: str) -> str:
     return m[-1] if m else base
 
 def load_modalities_and_gt_by_index(struct, index: int):
-    base_list = struct['label'] if struct['label'] else struct['intensity']
-    if not base_list: raise RuntimeError('No images found in FIND root.')
+    """
+    Load intensity / range / fused / filtered (and optional label) for a given index.
+
+    - Base list: 'label' if available, otherwise 'intensity'.
+    - Key = numeric part of filename (e.g. 'im01375.tif' -> '01375') via _extract_key.
+    - For each modality ['intensity','range','fused','filtered','label'],
+      we pick the file whose key matches.
+    - Images are converted to uint8 [0,255] by to_gray_uint8.
+    - Label is binarized to {0,255}.
+    """
+    base_list = struct['label'] if struct.get('label') else struct.get('intensity', [])
+    if not base_list:
+        raise RuntimeError('No images found in FIND root (no label nor intensity).')
+
     index = index % len(base_list)
     key = _extract_key(base_list[index])
-    out = {'paths':{}, 'arrays':{}}
-    for k in ['intensity','range','fused','filtered','label']:
-        cand = [p for p in struct.get(k,[]) if _extract_key(p)==key]
-        if not cand: continue
+
+    out = {'paths': {}, 'arrays': {}}
+
+    # Maintenant on inclut bien 'filtered'
+    for k in ['intensity', 'range', 'fused', 'filtered', 'label']:
+        files = struct.get(k, [])
+        if not files:
+            continue
+
+        cand = [p for p in files if _extract_key(p) == key]
+        if not cand:
+            continue
+
         pth = cand[0]
         try:
             arr = _read_image(pth)
             out['paths'][k] = pth
-            if k=='label':
+
+            if k == 'label':
                 g = to_gray_uint8(arr)
-                out['arrays'][k] = (g > 127).astype(np.uint8)*255
+                out['arrays'][k] = ((g > 127).astype(np.uint8) * 255)
             else:
                 out['arrays'][k] = to_gray_uint8(arr)
-        except Exception:
+
+        except Exception as e:
+            # Pour debug éventuel:
+            # print(f"Failed to read {pth} as {k}: {e}")
             continue
+
     return out
