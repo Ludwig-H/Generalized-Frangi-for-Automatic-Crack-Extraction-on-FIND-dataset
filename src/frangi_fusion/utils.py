@@ -73,6 +73,7 @@ def auto_discover_find_structure(root: str):
         'range': [],
         'fused': [],
         'label': [],
+        'filtered': []
     }
 
     for p in all_imgs:
@@ -90,6 +91,8 @@ def auto_discover_find_structure(root: str):
             buckets['fused'].append(p)
         elif any(k in low for k in ['range', 'depth']):
             buckets['range'].append(p)
+        elif any(k in low for k in ['filtered']):
+            buckets['filtered'].append(p)
         else:
             # Par défaut, on met en intensity
             buckets['intensity'].append(p)
@@ -101,6 +104,7 @@ def auto_discover_find_structure(root: str):
           f"{len(buckets['intensity'])} intensity,",
           f"{len(buckets['range'])} range,",
           f"{len(buckets['fused'])} fused,",
+          f"{len(buckets['filtered'])} filtered,",
           f"{len(buckets['label'])} labels.")
     return buckets
 def _extract_key(p: str) -> str:
