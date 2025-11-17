@@ -58,7 +58,7 @@ def to_gray_uint8(img: np.ndarray) -> np.ndarray:
 
 def auto_discover_find_structure(root: str):
     all_imgs = [p for p in glob(os.path.join(root, '**', '*.*'), recursive=True) if _is_image_file(p)]
-    buckets = {'intensity': [], 'range': [], 'fused': [], 'label': []}
+    buckets = {'intensity': [], 'range': [], 'fused': [], 'label': [], 'filtered': []}
     for p in all_imgs:
         low = p.lower().replace('\\','/')
         if any(k in low for k in ['lbs', 'label','labels','gt','groundtruth','ground_truth','mask']):
