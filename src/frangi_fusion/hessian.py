@@ -126,7 +126,7 @@ def fuse_hessians_per_scale(hessians_by_modality: Dict[str, List[Dict[str, np.nd
     for sidx, sigma in enumerate(sigmas):
         Hxx_raw = None; Hxy_raw = None; Hyy_raw = None
         for mod, lst in hessians_by_modality.items():
-            w = float(weights_by_modality.get(mod, 1.0))
+            w = float(weights_by_modality[mod]) #.get(mod, 1.0))
             Hd = lst[sidx]
             if Hxx_raw is None:
                 Hxx_raw = w * Hd["Hxx_raw"]; Hxy_raw = w * Hd["Hxy_raw"]; Hyy_raw = w * Hd["Hyy_raw"]
