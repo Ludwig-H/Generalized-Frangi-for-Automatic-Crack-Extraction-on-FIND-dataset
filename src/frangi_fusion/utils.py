@@ -59,7 +59,7 @@ def to_gray_uint8(img: np.ndarray) -> np.ndarray:
 def auto_discover_find_structure(root: str):
     """
     Discover FIND-like structure:
-      - labels in 'lbl/' (or 'labels/', 'gt', etc.)
+      - labels in 'lbl/' (or 'lbs', 'labels/', 'gt', etc.)
       - modalities in 'img/' (intensity / range / fused)
     Returns dict with keys: 'intensity', 'range', 'fused', 'label'.
     """
@@ -81,7 +81,7 @@ def auto_discover_find_structure(root: str):
         parts = low.split('/')
 
         # 1) Labels: dossiers lbl / labels / gt…
-        if any(part in ('lbl', 'label', 'labels', 'gt', 'groundtruth', 'ground_truth') for part in parts):
+        if any(part in ('lbl', 'lbs', 'label', 'labels', 'gt', 'groundtruth', 'ground_truth') for part in parts):
             buckets['label'].append(p)
             continue
 
