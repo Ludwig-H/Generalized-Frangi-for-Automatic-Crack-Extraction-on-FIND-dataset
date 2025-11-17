@@ -61,7 +61,7 @@ def auto_discover_find_structure(root: str):
     buckets = {'intensity': [], 'range': [], 'fused': [], 'label': []}
     for p in all_imgs:
         low = p.lower().replace('\\','/')
-        if any(k in low for k in ['label','labels','gt','groundtruth','ground_truth','mask']):
+        if any(k in low for k in ['lbs', 'label','labels','gt','groundtruth','ground_truth','mask']):
             buckets['label'].append(p)
         elif any(k in low for k in ['fused','fusion']):
             buckets['fused'].append(p)
@@ -69,8 +69,10 @@ def auto_discover_find_structure(root: str):
             buckets['range'].append(p)
         elif any(k in low for k in ['intensity','gray','grayscale']):
             buckets['intensity'].append(p)
-        else:
-            buckets['intensity'].append(p)
+        elif any(k in low for k in ['filtered']):
+            buckets['filtered'].append(p)
+        # else:
+        #     buckets['intensity'].append(p)
     for k in buckets:
         buckets[k] = sorted(buckets[k])
     return buckets
@@ -87,7 +89,7 @@ def load_modalities_and_gt_by_index(struct, index: int):
     index = index % len(base_list)
     key = _extract_key(base_list[index])
     out = {'paths':{}, 'arrays':{}}
-    for k in ['intensity','range','fused','label']:
+    for k in ['intensity','range','fused','filtered','label']:
         cand = [p for p in struct.get(k,[]) if _extract_key(p)==key]
         if not cand: continue
         pth = cand[0]
