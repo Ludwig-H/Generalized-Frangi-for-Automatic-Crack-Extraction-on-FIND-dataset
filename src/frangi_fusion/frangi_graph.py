@@ -95,9 +95,14 @@ def build_frangi_similarity_graph(fused_hessians: List[Dict[str,np.ndarray]],
         if i!=j and v>0: neighbors[i].append(j)
     return coords, neighbors, S
 
-def distances_from_similarity(S: csr_matrix) -> csr_matrix:
+def distances_from_similarity(S: csr_matrix, mode="inverse") -> csr_matrix:
     Sd = S.copy().astype(np.float64)
-    Sd.data = np.clip(1.0 - Sd.data, 0.0, 1.0)
+    if mode == "minus" :
+        Sd.data = np.clip(1.0 - Sd.data, 0.0, 1.0)
+    elif mode == "log" :
+        Sd.data = np.sqrt(-np.log(Sd.data))
+    else :
+        Sd.data = 1 / Sd.data -1
     return Sd
 
 def triangle_connectivity_graph(coords: np.ndarray, D: csr_matrix, max_triangles_per_node: int = 50) -> csr_matrix:
