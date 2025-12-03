@@ -77,13 +77,17 @@ def build_frangi_similarity_graph(fused_hessians: List[Dict[str,np.ndarray]],
     sims_b = np.max(np.vstack(sims_scales_b), axis=0)
     q_b = np.quantile(sims_b, threshold_quant_dark)
 
-    if q_b > q_a:
-        sims = sims_b
-        chosen = dark_alt
-    else:
-        sims = sims_a
-        chosen = dark_ridges
+    # if q_b > q_a:
+    #     sims = sims_b
+    #     chosen = dark_alt
+    # else:
+    #     sims = sims_a
+    #     chosen = dark_ridges
     # print(f"Quantiles: {q_a:.6f} / {q_b:.6f}. Chosen dark_ridges = {chosen}")
+    if dark_ridges :
+        sims = sims_a
+    else :
+        sims = sims_b
                                       
     row = pairs[:,0]; col = pairs[:,1]; data = sims
     S = coo_matrix((data,(row,col)), shape=(N,N))
