@@ -9,7 +9,7 @@ def csr_from_edges(n: int, edges: List[Tuple[int,int,float]]) -> csr_matrix:
     cols = [j for i,j,w in edges]
     data = [w for i,j,w in edges]
     M = coo_matrix((data,(rows,cols)), shape=(n,n)).tocsr()
-    M = M + M.T
+    M = (M + M.T)/2
     return M
 
 def largest_connected_component(M: csr_matrix):
