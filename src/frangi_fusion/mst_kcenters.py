@@ -6,8 +6,9 @@ from scipy.sparse.csgraph import minimum_spanning_tree, dijkstra
 
 def mst_on_cluster(D: csr_matrix, cluster_idx: np.ndarray) -> csr_matrix:
     sub = D[cluster_idx][:, cluster_idx]
-    sub_sym = sub + sub.T
-    mst = minimum_spanning_tree(sub_sym)
+    # D is already symmetric from frangi_graph construction, so sub is symmetric.
+    # We essentially need the undirected graph weights.
+    mst = minimum_spanning_tree(sub)
     mst = mst + mst.T
     return mst.tocsr()
 
