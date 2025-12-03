@@ -83,7 +83,7 @@ def build_frangi_similarity_graph(fused_hessians: List[Dict[str,np.ndarray]],
     else:
         sims = sims_a
         chosen = dark_ridges
-    print(f"Quantiles: {q_a:.6f} / {q_b:.6f}. Chosen dark_ridges = {chosen}")
+    # print(f"Quantiles: {q_a:.6f} / {q_b:.6f}. Chosen dark_ridges = {chosen}")
                                       
     row = pairs[:,0]; col = pairs[:,1]; data = sims
     S = coo_matrix((data,(row,col)), shape=(N,N))
