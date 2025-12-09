@@ -1,5 +1,5 @@
 import numpy as np
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Optional
 from scipy.sparse import csr_matrix
 from scipy.sparse.csgraph import minimum_spanning_tree, dijkstra, breadth_first_order
 
