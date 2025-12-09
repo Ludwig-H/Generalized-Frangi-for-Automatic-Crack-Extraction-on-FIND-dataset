@@ -76,7 +76,8 @@ def fault_graph_from_mst_and_kcenters(mst: csr_matrix, centers: List[int], weigh
     G = csr_matrix((data,(rows,cols)), shape=(n,n)); G = G + G.T
     return G
 
-def extract_backbone_centrality(mst_matrix: csr_matrix, f_threshold: float = 0.5) -> Tuple[np.ndarray, csr_matrix]:
+def extract_backbone_centrality(mst_matrix: csr_matrix, f_threshold: float = 0.5,
+                                S: Optional[csr_matrix] = None, take_similarity: bool = True) -> Tuple[np.ndarray, csr_matrix]:
     """
     Extrait le backbone d'un MST en utilisant une chute de centralité relative.
    
@@ -84,6 +85,8 @@ def extract_backbone_centrality(mst_matrix: csr_matrix, f_threshold: float = 0.5
         mst_matrix (csr_matrix): Le MST (symétrique ou triangulaire).
         f_threshold (float): Facteur de conservation (0.0 à 1.0).
                              Si C_enfant < f * C_parent, la branche est coupée.
+        S (csr_matrix): Matrice de similarité (optionnelle).
+        take_similarity (bool): Si True, pondère la betweenness par la similarité de l'arête.
                              
     Returns:
         backbone_nodes (np.array): Indices des noeuds conservés.
@@ -100,20 +103,10 @@ def extract_backbone_centrality(mst_matrix: csr_matrix, f_threshold: float = 0.5
     order, predecessors = breadth_first_order(mst_matrix, i_start=0, directed=False, return_predecessors=True)
    
     # 'predecessors' contient l'index du parent pour chaque noeud (-9999 pour la racine)
-    # On corrige la racine pour éviter les erreurs d'index
-    # predecessors[0] should remain -9999 or be handled carefully. 
-    # The original snippet said: predecessors = 0 which looks like a typo or specific logic.
-    # Actually, predecessors is an array. predecessors[0] = -9999.
-    # The snippet had "predecessors = 0" which overrides the array with an int. That must be a typo in the user prompt.
-    # Wait, the user prompt said:
-    # "predecessors = 0" -> this is definitely a bug in the provided snippet if copied verbatim.
-    # I will assume it meant `predecessors[0] = 0` or simply ignore that line as `breadth_first_order` handles it.
-    # But wait, later code: `parent = predecessors[i]`. If `predecessors` is an int, this fails.
-    # So I will remove `predecessors = 0` and trust `breadth_first_order`.
-   
+    
     # Calcul des tailles de sous-arbres (bottom-up)
     # On parcourt l'ordre inverse (des feuilles vers la racine)
-    subtree_size = np.ones(N, dtype=np.int64)
+    subtree_size = np.ones(N, dtype=np.float64) # Float for potential weighting if needed, though size is count
    
     for i in order[::-1]:
         if i != 0: # Si ce n'est pas la racine de parcours
@@ -125,6 +118,17 @@ def extract_backbone_centrality(mst_matrix: csr_matrix, f_threshold: float = 0.5
     # Calcul de la Betweenness Centrality (BC)
     # BC(u) ~ Size(u) * (N - Size(u))
     centrality = subtree_size * (N - subtree_size)
+
+    # Pondération par la similarité si demandé
+    if take_similarity and S is not None:
+        # On parcourt chaque noeud (sauf racine) et on pondère sa centralité par S[parent, i]
+        # La centralité de i correspond à l'arête (parent -> i)
+        for i in range(N):
+            parent = predecessors[i]
+            if parent >= 0 and parent < N:
+                 # S est symétrique
+                 sim_val = S[parent, i] 
+                 centrality[i] *= sim_val
    
     # --- Étape 2 : Identifier la vraie racine et filtrer (O(N)) ---
    
@@ -159,7 +163,8 @@ def extract_backbone_centrality(mst_matrix: csr_matrix, f_threshold: float = 0.5
    
     return nodes_to_keep, skeleton_graph
 
-def skeleton_from_mst_graph(mst_graph: csr_matrix, original_coords: np.ndarray, original_indices: np.ndarray) -> np.ndarray:
+def skeleton_from_mst_graph(mst_graph: csr_matrix, original_coords: np.ndarray, original_indices: np.ndarray,
+                            S: Optional[csr_matrix] = None, take_similarity: bool = True) -> np.ndarray:
     """
     Converts a skeleton graph (subset of MST) into segment list [r0, c0, r1, c1, w].
     
@@ -167,6 +172,8 @@ def skeleton_from_mst_graph(mst_graph: csr_matrix, original_coords: np.ndarray, 
         mst_graph: Adjacency matrix of the skeleton (subset of original MST).
         original_coords: Coordinates of ALL nodes in the original cluster (N, 2).
         original_indices: Indices of the kept nodes in the original cluster (M,).
+        S: Similarity matrix (original cluster scope).
+        take_similarity: If True and S provided, use S values as weights.
         
     Returns:
         segs: (K, 5) array of edges.
@@ -185,7 +192,11 @@ def skeleton_from_mst_graph(mst_graph: csr_matrix, original_coords: np.ndarray, 
             r0, c0 = original_coords[orig_u]
             r1, c1 = original_coords[orig_v]
             
-            segs.append([float(r0), float(c0), float(r1), float(c1), float(w)])
+            final_w = float(w)
+            if take_similarity and S is not None:
+                 final_w = float(S[orig_u, orig_v])
+
+            segs.append([float(r0), float(c0), float(r1), float(c1), final_w])
             
     if len(segs) == 0:
         return np.zeros((0,5), dtype=np.float32)
