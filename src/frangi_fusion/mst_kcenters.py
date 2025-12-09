@@ -1,8 +1,7 @@
-
 import numpy as np
 from typing import List, Tuple, Dict
 from scipy.sparse import csr_matrix
-from scipy.sparse.csgraph import minimum_spanning_tree, dijkstra
+from scipy.sparse.csgraph import minimum_spanning_tree, dijkstra, breadth_first_order
 
 def mst_on_cluster(D: csr_matrix, cluster_idx: np.ndarray) -> csr_matrix:
     sub = D[cluster_idx][:, cluster_idx]
@@ -76,3 +75,118 @@ def fault_graph_from_mst_and_kcenters(mst: csr_matrix, centers: List[int], weigh
     from scipy.sparse import csr_matrix
     G = csr_matrix((data,(rows,cols)), shape=(n,n)); G = G + G.T
     return G
+
+def extract_backbone_centrality(mst_matrix: csr_matrix, f_threshold: float = 0.5) -> Tuple[np.ndarray, csr_matrix]:
+    """
+    Extrait le backbone d'un MST en utilisant une chute de centralité relative.
+   
+    Args:
+        mst_matrix (csr_matrix): Le MST (symétrique ou triangulaire).
+        f_threshold (float): Facteur de conservation (0.0 à 1.0).
+                             Si C_enfant < f * C_parent, la branche est coupée.
+                             
+    Returns:
+        backbone_nodes (np.array): Indices des noeuds conservés.
+        skeleton_graph (csr_matrix): Le sous-graphe correspondant au backbone.
+    """
+    N = mst_matrix.shape[0]
+    if N == 0:
+         return np.array([]), csr_matrix((0,0))
+   
+    # --- Étape 1 : Calcul Rapide de la Centralité (O(N)) ---
+   
+    # On enracine arbitrairement en 0 pour orienter le calcul des sous-arbres
+    # breadth_first_order renvoie l'ordre de visite et les prédécesseurs
+    order, predecessors = breadth_first_order(mst_matrix, i_start=0, directed=False, return_predecessors=True)
+   
+    # 'predecessors' contient l'index du parent pour chaque noeud (-9999 pour la racine)
+    # On corrige la racine pour éviter les erreurs d'index
+    # predecessors[0] should remain -9999 or be handled carefully. 
+    # The original snippet said: predecessors = 0 which looks like a typo or specific logic.
+    # Actually, predecessors is an array. predecessors[0] = -9999.
+    # The snippet had "predecessors = 0" which overrides the array with an int. That must be a typo in the user prompt.
+    # Wait, the user prompt said:
+    # "predecessors = 0" -> this is definitely a bug in the provided snippet if copied verbatim.
+    # I will assume it meant `predecessors[0] = 0` or simply ignore that line as `breadth_first_order` handles it.
+    # But wait, later code: `parent = predecessors[i]`. If `predecessors` is an int, this fails.
+    # So I will remove `predecessors = 0` and trust `breadth_first_order`.
+   
+    # Calcul des tailles de sous-arbres (bottom-up)
+    # On parcourt l'ordre inverse (des feuilles vers la racine)
+    subtree_size = np.ones(N, dtype=np.int64)
+   
+    for i in order[::-1]:
+        if i != 0: # Si ce n'est pas la racine de parcours
+            parent = predecessors[i]
+            # Safety check, although BFS usually guarantees valid parents within the component
+            if parent >= 0 and parent < N:
+                 subtree_size[parent] += subtree_size[i]
+           
+    # Calcul de la Betweenness Centrality (BC)
+    # BC(u) ~ Size(u) * (N - Size(u))
+    centrality = subtree_size * (N - subtree_size)
+   
+    # --- Étape 2 : Identifier la vraie racine et filtrer (O(N)) ---
+   
+    # La "vraie" racine du squelette est le pixel avec la centralité max
+    real_root = int(np.argmax(centrality))
+   
+    # On relance un parcours (BFS) DEPUIS cette vraie racine pour suivre la décroissance
+    new_order, new_preds = breadth_first_order(mst_matrix, i_start=real_root, directed=False, return_predecessors=True)
+    new_preds[real_root] = real_root # Fix racine
+   
+    # Masque des noeuds à garder
+    keep_mask = np.zeros(N, dtype=bool)
+    keep_mask[real_root] = True
+   
+    # Parcours topologique (de la racine vers les feuilles)
+    for i in new_order:
+        if i == real_root:
+            continue
+           
+        parent = new_preds[i]
+       
+        if keep_mask[parent]:
+            if centrality[i] >= f_threshold * centrality[parent]:
+                keep_mask[i] = True
+               
+    # --- Étape 3 : Reconstruction du Graphe ---
+   
+    nodes_to_keep = np.where(keep_mask)[0]
+   
+    # Extraction du sous-graphe
+    skeleton_graph = mst_matrix[nodes_to_keep, :][:, nodes_to_keep]
+   
+    return nodes_to_keep, skeleton_graph
+
+def skeleton_from_mst_graph(mst_graph: csr_matrix, original_coords: np.ndarray, original_indices: np.ndarray) -> np.ndarray:
+    """
+    Converts a skeleton graph (subset of MST) into segment list [r0, c0, r1, c1, w].
+    
+    Args:
+        mst_graph: Adjacency matrix of the skeleton (subset of original MST).
+        original_coords: Coordinates of ALL nodes in the original cluster (N, 2).
+        original_indices: Indices of the kept nodes in the original cluster (M,).
+        
+    Returns:
+        segs: (K, 5) array of edges.
+    """
+    # mst_graph corresponds to nodes indexed 0..M-1. 
+    # Node k in mst_graph corresponds to original_indices[k] in the cluster.
+    # The coordinate is original_coords[original_indices[k]].
+    
+    mst_coo = mst_graph.tocoo()
+    segs = []
+    for u, v, w in zip(mst_coo.row, mst_coo.col, mst_coo.data):
+        if u < v: # process each edge once
+            orig_u = original_indices[u]
+            orig_v = original_indices[v]
+            
+            r0, c0 = original_coords[orig_u]
+            r1, c1 = original_coords[orig_v]
+            
+            segs.append([float(r0), float(c0), float(r1), float(c1), float(w)])
+            
+    if len(segs) == 0:
+        return np.zeros((0,5), dtype=np.float32)
+    return np.array(segs, dtype=np.float32)
