@@ -104,31 +104,31 @@ def extract_backbone_centrality(mst_matrix: csr_matrix, f_threshold: float = 0.5
    
     # 'predecessors' contient l'index du parent pour chaque noeud (-9999 pour la racine)
     
-    # Calcul des tailles de sous-arbres (bottom-up)
-    # On parcourt l'ordre inverse (des feuilles vers la racine)
-    subtree_size = np.ones(N, dtype=np.float64) # Float for potential weighting if needed, though size is count
+    # Init poids des noeuds
+    node_weights = np.ones(N, dtype=np.float64)
+    if take_similarity and S is not None:
+        node_weights[0] = 0.0 # Racine a poids 0 (pas d'arête parente)
+        for i in range(N):
+            if i == 0: continue
+            parent = predecessors[i]
+            if parent >= 0 and parent < N:
+                 node_weights[i] = S[parent, i]
+            else:
+                 node_weights[i] = 0.0
+    
+    # Calcul des masses de sous-arbres (bottom-up)
+    subtree_mass = node_weights.copy()
    
     for i in order[::-1]:
         if i != 0: # Si ce n'est pas la racine de parcours
             parent = predecessors[i]
-            # Safety check, although BFS usually guarantees valid parents within the component
+            # Safety check
             if parent >= 0 and parent < N:
-                 subtree_size[parent] += subtree_size[i]
+                 subtree_mass[parent] += subtree_mass[i]
            
     # Calcul de la Betweenness Centrality (BC)
-    # BC(u) ~ Size(u) * (N - Size(u))
-    centrality = subtree_size * (N - subtree_size)
-
-    # Pondération par la similarité si demandé
-    if take_similarity and S is not None:
-        # On parcourt chaque noeud (sauf racine) et on pondère sa centralité par S[parent, i]
-        # La centralité de i correspond à l'arête (parent -> i)
-        for i in range(N):
-            parent = predecessors[i]
-            if parent >= 0 and parent < N:
-                 # S est symétrique
-                 sim_val = S[parent, i] 
-                 centrality[i] *= sim_val
+    total_mass = subtree_mass[0]
+    centrality = subtree_mass * (total_mass - subtree_mass)
    
     # --- Étape 2 : Identifier la vraie racine et filtrer (O(N)) ---
    
