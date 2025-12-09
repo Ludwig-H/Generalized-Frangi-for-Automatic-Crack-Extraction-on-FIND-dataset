@@ -22,7 +22,8 @@ def build_frangi_similarity_graph(fused_hessians: List[Dict[str,np.ndarray]],
                                   beta: float, c: float, ctheta: float, R: int,
                                   candidate_mask: Optional[np.ndarray] = None,
                                   threshold_mask: Optional[float] = None,
-                                  dark_ridges: bool = True
+                                  dark_ridges: bool = True,
+                                  take_distances: bool = True
                                   ) -> Tuple[np.ndarray, List[List[int]], csr_matrix]:
     # pick scale-wise maxima by |λ2n|
     e1s = [Hd["e1n"] for Hd in fused_hessians]
@@ -88,6 +89,14 @@ def build_frangi_similarity_graph(fused_hessians: List[Dict[str,np.ndarray]],
         sims = sims_a
     else :
         sims = sims_b
+
+    if take_distances:
+        r0 = coords[pairs[:, 0], 0]
+        c0 = coords[pairs[:, 0], 1]
+        r1 = coords[pairs[:, 1], 0]
+        c1 = coords[pairs[:, 1], 1]
+        d_ij = np.sqrt((r0 - r1)**2 + (c0 - c1)**2)
+        sims = np.maximum(0, 1 - (1 - sims) * d_ij)
                                       
     row = pairs[:,0]; col = pairs[:,1]; data = sims
     S = coo_matrix((data,(row,col)), shape=(N,N))
