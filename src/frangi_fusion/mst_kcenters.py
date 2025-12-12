@@ -77,7 +77,8 @@ def fault_graph_from_mst_and_kcenters(mst: csr_matrix, centers: List[int], weigh
     return G
 
 def extract_backbone_centrality(mst_matrix: csr_matrix, f_threshold: float = 0.5,
-                                S: Optional[csr_matrix] = None, take_similarity: bool = True) -> Tuple[np.ndarray, csr_matrix]:
+                                S: Optional[csr_matrix] = None, take_similarity: bool = True,
+                                f_dynamic: bool = False) -> Tuple[np.ndarray, csr_matrix]:
     """
     Extrait le backbone d'un MST en utilisant une chute de centralité relative.
    
@@ -87,6 +88,8 @@ def extract_backbone_centrality(mst_matrix: csr_matrix, f_threshold: float = 0.5
                              Si C_enfant < f * C_parent, la branche est coupée.
         S (csr_matrix): Matrice de similarité (optionnelle).
         take_similarity (bool): Si True, pondère la betweenness par la similarité de l'arête.
+        f_dynamic (bool): Si True, le seuil s'adapte au degré du noeud parent pour favoriser les jonctions.
+                          Seuil effectif = f_threshold / (degre - 2) si degre > 2.
                              
     Returns:
         backbone_nodes (np.array): Indices des noeuds conservés.
@@ -139,6 +142,11 @@ def extract_backbone_centrality(mst_matrix: csr_matrix, f_threshold: float = 0.5
     new_order, new_preds = breadth_first_order(mst_matrix, i_start=real_root, directed=False, return_predecessors=True)
     new_preds[real_root] = real_root # Fix racine
    
+    # Pré-calcul des degrés pour le mode dynamique
+    if f_dynamic:
+        # mst_matrix est symétrique, indptr donne le nombre de voisins
+        degrees = np.diff(mst_matrix.indptr)
+
     # Masque des noeuds à garder
     keep_mask = np.zeros(N, dtype=bool)
     keep_mask[real_root] = True
@@ -151,7 +159,13 @@ def extract_backbone_centrality(mst_matrix: csr_matrix, f_threshold: float = 0.5
         parent = new_preds[i]
        
         if keep_mask[parent]:
-            if centrality[i] >= f_threshold * centrality[parent]:
+            current_f = f_threshold
+            if f_dynamic:
+                d = degrees[parent]
+                if d > 2:
+                    current_f = f_threshold / (d - 2.0)
+            
+            if centrality[i] >= current_f * centrality[parent]:
                 keep_mask[i] = True
                
     # --- Étape 3 : Reconstruction du Graphe ---
