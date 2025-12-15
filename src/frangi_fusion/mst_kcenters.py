@@ -163,7 +163,7 @@ def extract_backbone_centrality(mst_matrix: csr_matrix, f_threshold: float = 0.5
             if f_dynamic:
                 d = degrees[parent]
                 if d > 2:
-                    current_f = f_threshold / (d - 2.0)
+                    current_f = f_threshold / (d - 1.0)
             
             if centrality[i] >= current_f * centrality[parent]:
                 keep_mask[i] = True
