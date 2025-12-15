@@ -78,7 +78,7 @@ def fault_graph_from_mst_and_kcenters(mst: csr_matrix, centers: List[int], weigh
 
 def extract_backbone_centrality(mst_matrix: csr_matrix, f_threshold: float = 0.1,
                                 S: Optional[csr_matrix] = None, take_similarity: bool = True,
-                                f_dynamic: bool = False) -> Tuple[np.ndarray, csr_matrix]:
+                                f_dynamic: bool = False, min_centrality: float = 0.05) -> Tuple[np.ndarray, csr_matrix]:
     """
     Extrait le backbone d'un MST en utilisant une chute de centralité relative.
    
@@ -90,6 +90,8 @@ def extract_backbone_centrality(mst_matrix: csr_matrix, f_threshold: float = 0.1
         take_similarity (bool): Si True, pondère la betweenness par la similarité de l'arête.
         f_dynamic (bool): Si True, le seuil s'adapte au degré du noeud parent pour favoriser les jonctions.
                           Seuil effectif = f_threshold / (degre - 2) si degre > 2.
+        min_centrality (float): Seuil absolu de centralité normalisée (0.0 à 1.0).
+                                Un noeud doit avoir C(v)/Max(C) >= min_centrality pour être gardé.
                              
     Returns:
         backbone_nodes (np.array): Indices des noeuds conservés.
@@ -150,7 +152,13 @@ def extract_backbone_centrality(mst_matrix: csr_matrix, f_threshold: float = 0.1
     
     total_mass = subtree_mass[real_root]
     centrality = subtree_mass * (total_mass - subtree_mass)
-   
+
+    # --- Normalisation ---
+    max_c = centrality.max()
+    if max_c > 0:
+        centrality /= max_c
+    centrality[real_root] = 1.0
+
     # Pré-calcul des degrés pour le mode dynamique
     if f_dynamic:
         # mst_matrix est symétrique, indptr donne le nombre de voisins
@@ -174,7 +182,8 @@ def extract_backbone_centrality(mst_matrix: csr_matrix, f_threshold: float = 0.1
                 if d >= 2:
                     current_f = f_threshold / (d - 1.0)
             
-            if centrality[i] >= current_f * centrality[parent]:
+            # Condition double: Ratio Relatif ET Seuil Absolu
+            if (centrality[i] >= current_f * centrality[parent]) and (centrality[i] >= min_centrality):
                 keep_mask[i] = True
                
     # --- Étape 3 : Reconstruction du Graphe ---
