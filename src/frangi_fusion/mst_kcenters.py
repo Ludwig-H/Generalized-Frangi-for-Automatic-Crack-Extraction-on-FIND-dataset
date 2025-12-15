@@ -78,7 +78,7 @@ def fault_graph_from_mst_and_kcenters(mst: csr_matrix, centers: List[int], weigh
 
 def extract_backbone_centrality(mst_matrix: csr_matrix, f_threshold: float = 0.5,
                                 S: Optional[csr_matrix] = None, take_similarity: bool = True,
-                                f_dynamic: bool = True) -> Tuple[np.ndarray, csr_matrix]:
+                                f_dynamic: bool = False) -> Tuple[np.ndarray, csr_matrix]:
     """
     Extrait le backbone d'un MST en utilisant une chute de centralité relative.
    
