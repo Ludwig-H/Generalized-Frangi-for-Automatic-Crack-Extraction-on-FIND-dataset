@@ -76,7 +76,7 @@ def fault_graph_from_mst_and_kcenters(mst: csr_matrix, centers: List[int], weigh
     G = csr_matrix((data,(rows,cols)), shape=(n,n)); G = G + G.T
     return G
 
-def extract_backbone_centrality(mst_matrix: csr_matrix, f_threshold: float = 0.5,
+def extract_backbone_centrality(mst_matrix: csr_matrix, f_threshold: float = 0.1,
                                 S: Optional[csr_matrix] = None, take_similarity: bool = True,
                                 f_dynamic: bool = False) -> Tuple[np.ndarray, csr_matrix]:
     """
@@ -135,6 +135,21 @@ def extract_backbone_centrality(mst_matrix: csr_matrix, f_threshold: float = 0.5
     # On relance un parcours (BFS) DEPUIS cette vraie racine pour suivre la décroissance
     new_order, new_preds = breadth_first_order(mst_matrix, i_start=real_root, directed=False, return_predecessors=True)
     new_preds[real_root] = real_root # Fix racine
+
+    # --- Étape 2b : Re-calcul de la Centralité sur l'arbre ré-orienté ---
+    # C'est CRITIQUE : la centralité précédente était valide pour l'arbre enraciné en 0.
+    # Maintenant que la hiérarchie a changé (parent/enfant), il faut recalculer les masses
+    # pour que C(v) corresponde bien à la coupure définie par l'arête (parent->v).
+    
+    subtree_mass = node_weights.copy()
+    for i in new_order[::-1]:
+        if i != real_root:
+            parent = new_preds[i]
+            if parent >= 0 and parent < N:
+                subtree_mass[parent] += subtree_mass[i]
+    
+    total_mass = subtree_mass[real_root]
+    centrality = subtree_mass * (total_mass - subtree_mass)
    
     # Pré-calcul des degrés pour le mode dynamique
     if f_dynamic:
