@@ -110,21 +110,8 @@ def extract_backbone_centrality(mst_matrix: csr_matrix, f_threshold: float = 0.5
     # Init poids des noeuds
     node_weights = np.ones(N, dtype=np.float64)
     if take_similarity and S is not None:
-        # Initialisation avec le max des arêtes de similarité du noeud 0
-        # au lieu de 0.0, pour ne pas fausser la masse totale.
-        row0 = S[0, :]
-        if row0.nnz > 0:
-            node_weights[0] = row0.data.max()
-        else:
-            node_weights[0] = 0.0
-
-        for i in range(N):
-            if i == 0: continue
-            parent = predecessors[i]
-            if parent >= 0 and parent < N:
-                 node_weights[i] = S[parent, i]
-            else:
-                 node_weights[i] = 0.0
+        # Poids = Max de la similarité incidente (indépendant de l'arbre)
+        node_weights = S.max(axis=1).toarray().flatten().astype(np.float64)
     
     # Calcul des masses de sous-arbres (bottom-up)
     subtree_mass = node_weights.copy()
