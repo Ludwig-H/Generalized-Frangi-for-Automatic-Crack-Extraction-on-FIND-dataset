@@ -12,7 +12,7 @@ def _sim_elong(l1a, l2a, l1b, l2b, beta: float):
 
 def _sim_strength(l2a, l2b, c: float):
     prod = np.abs(l2a * l2b)
-    return 1.0 - np.exp(-0.5 * (prod/(c+1e-12))**2)
+    return 1.0 - np.exp(-0.5 * (np.sqrt(prod)/(c+1e-12))**2)
 
 def _sim_angle(thet_a, thet_b, ctheta: float):
     diff = np.sin(thet_a - thet_b)
