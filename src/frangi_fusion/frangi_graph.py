@@ -102,6 +102,22 @@ def build_frangi_similarity_graph(fused_hessians: List[Dict[str,np.ndarray]],
     S = coo_matrix((data,(row,col)), shape=(N,N))
     S = (S + S.T)/2
     S = S.tocsr()
+
+    # --- POST-PROCESSING : Filter nodes by max similarity ---
+    # On ne garde que les noeuds qui ont au moins une connexion "forte"
+    node_max_sim = np.array(S.max(axis=1).toarray()).flatten()
+    
+    # On réutilise le threshold_mask (ou un autre paramètre si besoin)
+    # Note: si threshold_mask est None, il a été défini plus haut à 0.5 (ou 0.95 selon modif)
+    sim_thr = np.quantile(node_max_sim, threshold_mask)
+    keep_indices = np.where(node_max_sim >= sim_thr)[0]
+
+    # Mise à jour des structures
+    coords = coords[keep_indices]
+    S = S[keep_indices, :][:, keep_indices]
+    N = coords.shape[0] # Nouveau nombre de noeuds
+    # --------------------------------------------------------
+
     neighbors = [[] for _ in range(N)]
     cooS = S.tocoo()
     for i,j,v in zip(cooS.row, cooS.col, cooS.data):
