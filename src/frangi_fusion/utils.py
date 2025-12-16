@@ -1,9 +1,58 @@
 
 import os, re, random, numpy as np
 from glob import glob
+from scipy.spatial import KDTree
+import matplotlib.pyplot as plt
+
+_CMAP_TREE_CACHE = {}
 
 def set_seed(seed: int = 42):
     random.seed(seed); np.random.seed(seed)
+
+def recover_scalar_from_cmap(img_rgb: np.ndarray, cmap_name: str = 'jet', invert: bool = False) -> np.ndarray:
+    """
+    Reconstruct scalar values (0.0 to 1.0) from an image encoded with a colormap (e.g. JET).
+    """
+    global _CMAP_TREE_CACHE
+    
+    # Ensure image is float 0..1
+    if img_rgb.dtype == np.uint8:
+        pixel_data = img_rgb.astype(np.float32) / 255.0
+    else:
+        pixel_data = img_rgb.astype(np.float32)
+        if pixel_data.max() > 1.0:
+            pixel_data /= pixel_data.max()
+
+    h, w = pixel_data.shape[:2]
+    # Keep only RGB if RGBA
+    if pixel_data.shape[2] > 3:
+        pixel_data = pixel_data[..., :3]
+    
+    flat_pixels = pixel_data.reshape(-1, 3)
+    
+    # Initialize Cache for this cmap if needed
+    if cmap_name not in _CMAP_TREE_CACHE:
+        N_SAMPLES = 2048
+        scalar_values = np.linspace(0, 1, N_SAMPLES)
+        cmap = plt.get_cmap(cmap_name)
+        # cmap returns rgba, take rgb
+        palette_rgb = cmap(scalar_values)[:, :3]
+        tree = KDTree(palette_rgb)
+        _CMAP_TREE_CACHE[cmap_name] = (tree, scalar_values)
+    
+    tree, scalar_refs = _CMAP_TREE_CACHE[cmap_name]
+    
+    # Query nearest color
+    # distance, indices
+    _, indices = tree.query(flat_pixels)
+    
+    recovered_flat = scalar_refs[indices]
+    recovered_map = recovered_flat.reshape(h, w)
+    
+    if invert:
+        recovered_map = 1.0 - recovered_map
+        
+    return recovered_map
 
 def _is_image_file(p: str) -> bool:
     return p.lower().endswith((".png",".jpg",".jpeg",".tif",".tiff",".bmp"))
@@ -107,59 +156,6 @@ def auto_discover_find_structure(root: str):
           f"{len(buckets['filtered'])} filtered,",
           f"{len(buckets['label'])} labels.")
     return buckets
-def _extract_key(p: str) -> str:
-    import os, re
-    base = os.path.basename(p)
-    m = re.findall(r'\\d+', base)
-    return m[-1] if m else base
-
-# def load_modalities_and_gt_by_index(struct, index: int):
-#     """
-#     Load intensity / range / fused / filtered (and optional label) for a given index.
-
-#     - Base list: 'label' if available, otherwise 'intensity'.
-#     - Key = numeric part of filename (e.g. 'im01375.tif' -> '01375') via _extract_key.
-#     - For each modality ['intensity','range','fused','filtered','label'],
-#       we pick the file whose key matches.
-#     - Images are converted to uint8 [0,255] by to_gray_uint8.
-#     - Label is binarized to {0,255}.
-#     """
-#     base_list = struct['label'] if struct.get('label') else struct.get('intensity', [])
-#     if not base_list:
-#         raise RuntimeError('No images found in FIND root (no label nor intensity).')
-
-#     index = index % len(base_list)
-#     key = _extract_key(base_list[index])
-
-#     out = {'paths': {}, 'arrays': {}}
-
-#     # Maintenant on inclut bien 'filtered'
-#     for k in ['intensity', 'range', 'fused', 'filtered', 'label']:
-#         files = struct.get(k, [])
-#         if not files:
-#             continue
-
-#         cand = [p for p in files if _extract_key(p) == key]
-#         if not cand:
-#             continue
-
-#         pth = cand[0]
-#         try:
-#             arr = _read_image(pth)
-#             out['paths'][k] = pth
-
-#             if k == 'label':
-#                 g = to_gray_uint8(arr)
-#                 out['arrays'][k] = ((g > 127).astype(np.uint8) * 255)
-#             else:
-#                 out['arrays'][k] = to_gray_uint8(arr)
-
-#         except Exception as e:
-#             # Pour debug éventuel:
-#             # print(f"Failed to read {pth} as {k}: {e}")
-#             continue
-
-#     return out
 import re
 
 def _extract_key(p: str) -> str:
@@ -190,6 +186,7 @@ def load_modalities_and_gt_by_index(struct, index: int):
       on prend le premier fichier dont la clé matche.
     - Les images sont converties en uint8 [0,255] via to_gray_uint8.
     - Le label est binarisé (seuil 127) en {0,255}.
+    - Pour range/filtered, si l'image est RGB, on décode la palette JET.
     """
     base_list = struct['label'] if struct.get('label') else struct.get('intensity', [])
     if not base_list:
@@ -219,6 +216,11 @@ def load_modalities_and_gt_by_index(struct, index: int):
             if k == 'label':
                 g = to_gray_uint8(arr)
                 out['arrays'][k] = ((g > 127).astype(np.uint8) * 255)
+            elif k in ['range', 'filtered'] and arr.ndim == 3 and arr.shape[2] >= 3:
+                # Decodage palette JET (supposée)
+                # invert=False => Valeurs basses (Bleu/Noir) = Creux/Fissure
+                scalar = recover_scalar_from_cmap(arr, cmap_name='jet', invert=False)
+                out['arrays'][k] = (scalar * 255).clip(0, 255).astype(np.uint8)
             else:
                 out['arrays'][k] = to_gray_uint8(arr)
 
