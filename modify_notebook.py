@@ -4,7 +4,7 @@ import os
 notebook_path = "FIND_Frangi_Fusion_Avignon_Colab.ipynb"
 
 # Code for the NEW cell to be inserted
-new_cell_code = r"""# --- Generate and Save Noisy Datasets (Optional) ---
+new_cell_code = r"""# --- *** Generate and Save Noisy Datasets (Optional) *** ---
 import os
 import numpy as np
 import matplotlib.pyplot as plt
