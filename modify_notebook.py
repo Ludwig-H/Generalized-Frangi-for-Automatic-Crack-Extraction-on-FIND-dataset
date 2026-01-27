@@ -63,50 +63,50 @@ def save_single_image_noisy(idx, struct, exp_name, level_id, lvl, speckle_var, r
     try:
         # Load Data
         dat = load_modalities_and_gt_by_index(struct, idx)
-        
+
         # Generate Noisy
         noisy_arrays = make_noisy_arrays(dat["arrays"], idx, level_id, speckle_var, range_sigma, noise_filtered_like_range=True)
-        
+
         # Format Path: Root / exp / tag / imXXXXX_modality.png
         tag = f"{lvl:.4f}".replace(".", "p")
         out_dir = os.path.join(NOISE_SAVE_ROOT, exp_name, tag)
         os.makedirs(out_dir, exist_ok=True) # Race condition handled by OS usually fine, or pre-create
-        
+
         base_name = f"im{idx+1:05d}"
-        
+
         # 1. Save Intensity (Grayscale)
         if "intensity" in noisy_arrays:
             img = noisy_arrays["intensity"]
             # Normalize for visualization 0-255
             img_norm = (img - img.min()) / (img.max() - img.min() + 1e-8)
             img_uint8 = (img_norm * 255).astype(np.uint8)
-            
+
             fname = f"{base_name}_intensity.png"
             iio.imwrite(os.path.join(out_dir, fname), img_uint8)
-            
+
         # 2. Save Range (Jet Colormap)
         if "range" in noisy_arrays:
             rng_img = noisy_arrays["range"]
             # Normalize strict 0-1 for colormap
             rng_norm = (rng_img - rng_img.min()) / (rng_img.max() - rng_img.min() + 1e-8)
-            
+
             # Apply Jet
             cmap = plt.get_cmap('jet')
             rgba_img = cmap(rng_norm) # Returns (H, W, 4) floats
             rgb_img = rgba_img[:, :, :3] # Keep RGB
-            
+
             rgb_uint8 = (rgb_img * 255).astype(np.uint8)
-            
+
             fname = f"{base_name}_range.png"
             iio.imwrite(os.path.join(out_dir, fname), rgb_uint8)
-            
+
     except Exception as e:
         print(f"Error saving idx {idx}: {e}")
 
 # --- Execution Block ---
 if save_noisy_images_on_drive:
     print(f"Generating and saving noisy images to {NOISE_SAVE_ROOT}...")
-    
+
     # Configuration (Must match benchmark)
     speckle_vars = [0.0, 0.01, 0.05, 0.10, 0.3, 0.5]
     range_sigmas = [0.0, 0.01, 0.05, 0.10, 0.3, 0.5]
@@ -115,11 +115,11 @@ if save_noisy_images_on_drive:
         ("gauss_range", range_sigmas),
         ("both", range_sigmas)
     ]
-    
+
     excluded_ids = [1, 39, 42, 133, 152, 203, 204, 206, 397, 411, 414, 415, 431, 449, 452, 457, 460, 461, 465, 469, 471, 475, 478]
     excluded_ids = [i-1 for i in excluded_ids]
     indices = [i for i in range(500) if i not in excluded_ids]
-    
+
     for exp_name, levels in experiments:
         print(f"Processing experiment: {exp_name}")
         for level_id, lvl in enumerate(levels):
@@ -127,13 +127,13 @@ if save_noisy_images_on_drive:
             if exp_name == "speckle_intensity": sp, sg = lvl, 0.0
             elif exp_name == "gauss_range": sp, sg = 0.0, lvl
             elif exp_name == "both": sp, sg = lvl, lvl
-            
+
             # Run Parallel Saving
             with tqdm_joblib(tqdm(total=len(indices), desc=f"Saving {exp_name} {lvl}")):
                 Parallel(n_jobs=8)(delayed(save_single_image_noisy)(
                     idx, struct, exp_name, level_id, lvl, sp, sg
                 ) for idx in indices)
-    
+
     print("Done saving images.")
 else:
     print("Skipping image generation (checkbox unchecked).")
