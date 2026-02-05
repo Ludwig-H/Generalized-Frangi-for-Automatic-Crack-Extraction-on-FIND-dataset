@@ -1,0 +1,1209 @@
+%% bare_conf.tex
+%% V1.4b
+%% 2015/08/26
+%% by Michael Shell
+%% See:
+%% http://www.michaelshell.org/
+%% for current contact information.
+%%
+%% This is a skeleton file demonstrating the use of IEEEtran.cls
+%% (requires IEEEtran.cls version 1.8b or later) with an IEEE
+%% conference paper.
+%%
+%% Support sites:
+%% http://www.michaelshell.org/tex/ieeetran/
+%% http://www.ctan.org/pkg/ieeetran
+%% and
+%% http://www.ieee.org/
+
+%%*************************************************************************
+%% Legal Notice:
+%% This code is offered as-is without any warranty either expressed or
+%% implied; without even the implied warranty of MERCHANTABILITY or
+%% FITNESS FOR A PARTICULAR PURPOSE! 
+%% User assumes all risk.
+%% In no event shall the IEEE or any contributor to this code be liable for
+%% any damages or losses, including, but not limited to, incidental,
+%% consequential, or any other damages, resulting from the use or misuse
+%% of any information contained here.
+%%
+%% All comments are the opinions of their respective authors and are not
+%% necessarily endorsed by the IEEE.
+%%
+%% This work is distributed under the LaTeX Project Public License (LPPL)
+%% ( http://www.latex-project.org/ ) version 1.3, and may be freely used,
+%% distributed and modified. A copy of the LPPL, version 1.3, is included
+%% in the base LaTeX documentation of all distributions of LaTeX released
+%% 2003/12/01 or later.
+%% Retain all contribution notices and credits.
+%% ** Modified files should be clearly indicated as such, including  **
+%% ** renaming them and changing author support contact information. **
+%%*************************************************************************
+
+
+% *** Authors should verify (and, if needed, correct) their LaTeX system  ***
+% *** with the testflow diagnostic prior to trusting their LaTeX platform ***
+% *** with production work. The IEEE's font choices and paper sizes can   ***
+% *** trigger bugs that do not appear when using other class files.       ***                          ***
+% The testflow support page is at:
+% http://www.michaelshell.org/tex/testflow/
+
+
+
+\documentclass[conference]{IEEEtran}
+% Some Computer Society conferences also require the compsoc mode option,
+% but others use the standard conference format.
+%
+% If IEEEtran.cls has not been installed into the LaTeX system files,
+% manually specify the path to it like:
+% \documentclass[conference]{../sty/IEEEtran}
+
+
+
+
+
+% Some very useful LaTeX packages include:
+% (uncomment the ones you want to load)
+
+
+% *** MISC UTILITY PACKAGES ***
+%
+%\usepackage{ifpdf}
+% Heiko Oberdiek's ifpdf.sty is very useful if you need conditional
+% compilation based on whether the output is pdf or dvi.
+% usage:
+% \ifpdf
+%   % pdf code
+% \else
+%   % dvi code
+% \fi
+% The latest version of ifpdf.sty can be obtained from:
+% http://www.ctan.org/pkg/ifpdf
+% Also, note that IEEEtran.cls V1.7 and later provides a builtin
+% \ifCLASSINFOpdf conditional that works the same way.
+% When switching from latex to pdflatex and vice-versa, the compiler may
+% have to be run twice to clear warning/error messages.
+
+
+
+
+
+
+% *** CITATION PACKAGES ***
+%
+%\usepackage{cite}
+% cite.sty was written by Donald Arseneau
+% V1.6 and later of IEEEtran pre-defines the format of the cite.sty package
+% \cite{} output to follow that of the IEEE. Loading the cite package will
+% result in citation numbers being automatically sorted and properly
+% "compressed/ranged". e.g., [1], [9], [2], [7], [5], [6] without using
+% cite.sty will become [1], [2], [5]--[7], [9] using cite.sty. cite.sty's
+% \cite will automatically add leading space, if needed. Use cite.sty's
+% noadjust option (cite.sty V3.8 and later) if you want to turn this off
+% such as if a citation ever needs to be enclosed in parenthesis.
+% cite.sty is already installed on most LaTeX systems. Be sure and use
+% version 5.0 (2009-03-20) and later if using hyperref.sty.
+% The latest version can be obtained at:
+% http://www.ctan.org/pkg/cite
+% The documentation is contained in the cite.sty file itself.
+
+
+
+
+
+
+% *** GRAPHICS RELATED PACKAGES ***
+%
+\ifCLASSINFOpdf
+  % \usepackage[pdftex]{graphicx}
+  % declare the path(s) where your graphic files are
+  % \graphicspath{{../pdf/}{../jpeg/}}
+  % and their extensions so you won't have to specify these with
+  % every instance of \includegraphics
+  % \DeclareGraphicsExtensions{.pdf,.jpeg,.png}
+\else
+  % or other class option (dvipsone, dvipdf, if not using dvips). graphicx
+  % will default to the driver specified in the system graphics.cfg if no
+  % driver is specified.
+  % \usepackage[dvips]{graphicx}
+  % declare the path(s) where your graphic files are
+  % \graphicspath{{../eps/}}
+  % and their extensions so you won't have to specify these with
+  % every instance of \includegraphics
+  % \DeclareGraphicsExtensions{.eps}
+\fi
+% graphicx was written by David Carlisle and Sebastian Rahtz. It is
+% required if you want graphics, photos, etc. graphicx.sty is already
+% installed on most LaTeX systems. The latest version and documentation
+% can be obtained at: 
+% http://www.ctan.org/pkg/graphicx
+% Another good source of documentation is "Using Imported Graphics in
+% LaTeX2e" by Keith Reckdahl which can be found at:
+% http://www.ctan.org/pkg/epslatex
+%
+% latex, and pdflatex in dvi mode, support graphics in encapsulated
+% postscript (.eps) format. pdflatex in pdf mode supports graphics
+% in .pdf, .jpeg, .png and .mps (metapost) formats. Users should ensure
+% that all non-photo figures use a vector format (.eps, .pdf, .mps) and
+% not a bitmapped formats (.jpeg, .png). The IEEE frowns on bitmapped formats
+% which can result in "jaggedy"/blurry rendering of lines and letters as
+% well as large increases in file sizes.
+%
+% You can find documentation about the pdfTeX application at:
+% http://www.tug.org/applications/pdftex
+
+
+
+
+
+% *** MATH PACKAGES ***
+%
+%\usepackage{amsmath}
+% A popular package from the American Mathematical Society that provides
+% many useful and powerful commands for dealing with mathematics.
+%
+% Note that the amsmath package sets \interdisplaylinepenalty to 10000
+% thus preventing page breaks from occurring within multiline equations. Use:
+%\interdisplaylinepenalty=2500
+% after loading amsmath to restore such page breaks as IEEEtran.cls normally
+% does. amsmath.sty is already installed on most LaTeX systems. The latest
+% version and documentation can be obtained at:
+% http://www.ctan.org/pkg/amsmath
+
+
+
+
+
+% *** SPECIALIZED LIST PACKAGES ***
+%
+%\usepackage{algorithmic}
+% algorithmic.sty was written by Peter Williams and Rogerio Brito.
+% This package provides an algorithmic environment fo describing algorithms.
+% You can use the algorithmic environment in-text or within a figure
+% environment to provide for a floating algorithm. Do NOT use the algorithm
+% floating environment provided by algorithm.sty (by the same authors) or
+% algorithm2e.sty (by Christophe Fiorio) as the IEEE does not use dedicated
+% algorithm float types and packages that provide these will not provide
+% correct IEEE style captions. The latest version and documentation of
+% algorithmic.sty can be obtained at:
+% http://www.ctan.org/pkg/algorithms
+% Also of interest may be the (relatively newer and more customizable)
+% algorithmicx.sty package by Szasz Janos:
+% http://www.ctan.org/pkg/algorithmicx
+
+
+
+
+% *** ALIGNMENT PACKAGES ***
+%
+%\usepackage{array}
+% Frank Mittelbach's and David Carlisle's array.sty patches and improves
+% the standard LaTeX2e array and tabular environments to provide better
+% appearance and additional user controls. As the default LaTeX2e table
+% generation code is lacking to the point of almost being broken with
+% respect to the quality of the end results, all users are strongly
+% advised to use an enhanced (at the very least that provided by array.sty)
+% set of table tools. array.sty is already installed on most systems. The
+% latest version and documentation can be obtained at:
+% http://www.ctan.org/pkg/array
+
+
+% IEEEtran contains the IEEEeqnarray family of commands that can be used to
+% generate multiline equations as well as matrices, tables, etc., of high
+% quality.
+
+
+
+
+% *** SUBFIGURE PACKAGES ***
+%\ifCLASSOPTIONcompsoc
+%  \usepackage[caption=false,font=normalsize,labelfont=sf,textfont=sf]{subfig}
+%\else
+%  \usepackage[caption=false,font=footnotesize]{subfig}
+%\fi
+% subfig.sty, written by Steven Douglas Cochran, is the modern replacement
+% for subfigure.sty, the latter of which is no longer maintained and is
+% incompatible with some LaTeX packages including fixltx2e. However,
+% subfig.sty requires and automatically loads Axel Sommerfeldt's caption.sty
+% which will override IEEEtran.cls' handling of captions and this will result
+% in non-IEEE style figure/table captions. To prevent this problem, be sure
+% and invoke subfig.sty's "caption=false" package option (available since
+% subfig.sty version 1.3, 2005/06/28) as this is will preserve IEEEtran.cls
+% handling of captions.
+% Note that the Computer Society format requires a larger sans serif font
+% than the serif footnote size font used in traditional IEEE formatting
+% and thus the need to invoke different subfig.sty package options depending
+% on whether compsoc mode has been enabled.
+%
+% The latest version and documentation of subfig.sty can be obtained at:
+% http://www.ctan.org/pkg/subfig
+
+
+
+
+% *** FLOAT PACKAGES ***
+%
+%\usepackage{fixltx2e}
+% fixltx2e, the successor to the earlier fix2col.sty, was written by
+% Frank Mittelbach and David Carlisle. This package corrects a few problems
+% in the LaTeX2e kernel, the most notable of which is that in current
+% LaTeX2e releases, the ordering of single and double column floats is not
+% guaranteed to be preserved. Thus, an unpatched LaTeX2e can allow a
+% single column figure to be placed prior to an earlier double column
+% figure.
+% Be aware that LaTeX2e kernels dated 2015 and later have fixltx2e.sty's
+% corrections already built into the system in which case a warning will
+% be issued if an attempt is made to load fixltx2e.sty as it is no longer
+% needed.
+% The latest version and documentation can be found at:
+% http://www.ctan.org/pkg/fixltx2e
+
+
+%\usepackage{stfloats}
+% stfloats.sty was written by Sigitas Tolusis. This package gives LaTeX2e
+% the ability to do double column floats at the bottom of the page as well
+% as the top. (e.g., "\begin{figure*}[!b]" is not normally possible in
+% LaTeX2e). It also provides a command:
+%\fnbelowfloat
+% to enable the placement of footnotes below bottom floats (the standard
+% LaTeX2e kernel puts them above bottom floats). This is an invasive package
+% which rewrites many portions of the LaTeX2e float routines. It may not work
+% with other packages that modify the LaTeX2e float routines. The latest
+% version and documentation can be obtained at:
+% http://www.ctan.org/pkg/stfloats
+% Do not use the stfloats baselinefloat ability as the IEEE does not allow
+% \baselineskip to stretch. Authors submitting work to the IEEE should note
+% that the IEEE rarely uses double column equations and that authors should try
+% to avoid such use. Do not be tempted to use the cuted.sty or midfloat.sty
+% packages (also by Sigitas Tolusis) as the IEEE does not format its papers in
+% such ways.
+% Do not attempt to use stfloats with fixltx2e as they are incompatible.
+% Instead, use Morten Hogholm'a dblfloatfix which combines the features
+% of both fixltx2e and stfloats:
+%
+% \usepackage{dblfloatfix}
+% The latest version can be found at:
+% http://www.ctan.org/pkg/dblfloatfix
+
+
+
+
+% *** PDF, URL AND HYPERLINK PACKAGES ***
+%
+%\usepackage{url}
+% url.sty was written by Donald Arseneau. It provides better support for
+% handling and breaking URLs. url.sty is already installed on most LaTeX
+% systems. The latest version and documentation can be obtained at:
+% http://www.ctan.org/pkg/url
+% Basically, \url{my_url_here}.
+
+
+
+
+% *** Do not adjust lengths that control margins, column widths, etc. ***
+% *** Do not use packages that alter fonts (such as pslatex).         ***
+% There should be no need to do such things with IEEEtran.cls V1.6 and later.
+% (Unless specifically asked to do so by the journal or conference you plan
+% to submit to, of course. )
+
+
+% correct bad hyphenation here
+\hyphenation{op-tical net-works semi-conduc-tor}
+
+
+\usepackage{orcidlink}
+\usepackage[utf8]{inputenc}
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{subcaption}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\definecolor{myred}{HTML}{D62728}
+\definecolor{mygreen}{HTML}{2CA02C}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{multirow}
+\usepackage{algorithm}
+
+% Commandes personnalisées
+\newcommand{\eg}[0]{\textit{e.g., }}
+\newcommand{\ie}[0]{\textit{i.e., }}
+\newcommand{\etal}[0]{\textit{et al. }}
+\newcommand{\norme}[1]{\left\lVert #1 \right\rVert}
+\newcommand{\module}[1]{\left| #1 \right|}
+\newcommand{\Frangi}[0]{\textsc{Frangi}}
+\newcommand{\Hess}[0]{\mathcal{H}}
+\newcommand{\nom}[1]{\textsc{#1}}
+
+\usepackage{mathtools}
+
+\makeatletter
+\newcommand{\interleave}{%
+  \mathchar"2201 % Symbole d'origine si disponible, ou montage manuel :
+}
+\makeatother
+
+\newcommand{\matnorm}[1]{%
+  \left\lvert\mkern-2mu\left\lvert\mkern-2mu\left\lvert #1 \right\rvert\mkern-2mu\right\rvert\mkern-2mu\right\rvert
+}%{{\left\vert\kern-0.25ex\left\vert\kern-0.25ex\left\vert #1 \right\vert\kern-0.25ex\right\vert\kern-0.25ex\right\vert}}%{\left\lVert #1 \right\rVert}
+
+\begin{document}
+%
+% paper title
+% Titles are generally capitalized except for words such as a, an, and, as,
+% at, but, by, for, in, nor, of, on, or, the, to and up, which are usually
+% not capitalized unless they are the first or last word of the title.
+% Linebreaks \\ can be used within to get better formatting as desired.
+% Do not put math or special symbols in the title.
+\title{Multi-Modal, Training-Free Crack Extraction \emph{via} Generalized Frangi Graph}
+
+% Multimodal, Training-free Crack extraction via generalized Frangi graph
+
+% author names and affiliations
+% use a multiple column layout for up to three different
+% affiliations
+% \author{\IEEEauthorblockN{Louis \nom{Hauseux}}
+% \IEEEauthorblockA{\textit{Inria, Université Côte d'Azur} \\
+% \textit{\nom{Neo} team \& \nom{Ayana} team}\\
+% Sophia Antipolis, France \\
+% \href{mailto:louis.hauseux@inria.fr}{louis.hauseux@inria.fr} \orcidlink{0009-0007-3570-746X}}
+% \and
+% \IEEEauthorblockN{Raphaël \nom{Antoine}}
+% \IEEEauthorblockA{\textit{Cerema} \\
+% \textit{\nom{Endsum}} team\\
+% Le Grand Quevilly, France \\
+% \href{raphael.antoine@cerema.fr}{raphael.antoine@cerema.fr} \orcidlink{0000-0002-0625-9713}}
+% \and
+% \IEEEauthorblockN{Philippe \nom{Foucher}}
+% \IEEEauthorblockA{\textit{Cerema} \\
+% \textit{\nom{Endsum} team}\\
+% Strasbourg, France \\
+% \href{mailto:philippe.foucher@cerema.fr}{philippe.foucher@cerema.fr} \orcidlink{0000-0003-1218-636X}}
+% \and
+% \hspace{4.5cm}
+% \IEEEauthorblockN{Pierre \nom{Charbonnier}}
+% \IEEEauthorblockA{\hspace{4.5cm}\textit{Cerema} \\
+% \textit{\hspace{4.5cm}\nom{Endsum} team}\\
+% \hspace{4.5cm}Strasbourg, France \\
+% \hspace{4.5cm}\href{mailto:pierre.charbonnier@cerema.fr}{pierre.charbonnier@cerema.fr} \orcidlink{0000-0002-9374-5647}}
+
+% \and
+% \IEEEauthorblockN{Josiane \nom{Zerubia}}
+% \IEEEauthorblockA{\textit{Inria, Université Côte d'Azur} \\
+% \textit{\nom{Ayana} team}\\
+% Sophia Antipolis, France \\
+% \href{mailto:josiane.zerubia@inria.fr}{josiane.zerubia@inria.fr}
+% \orcidlink{0000-0002-7444-0856}}
+% }
+\author{
+    \IEEEauthorblockN{
+        Louis \nom{Hauseux}\IEEEauthorrefmark{1}\orcidlink{0009-0007-3570-746X},
+        Raphaël \nom{Antoine}°\orcidlink{0000-0002-0625-9713},
+        Philippe \nom{Foucher}°\orcidlink{0000-0003-1218-636X},
+        Pierre \nom{Charbonnier}°\orcidlink{0000-0002-9374-5647}
+        et Josiane \nom{Zerubia}\IEEEauthorrefmark{1}\orcidlink{0000-0002-7444-0856}
+    }
+    \IEEEauthorblockA{
+        \IEEEauthorrefmark{1}\textit{Inria, Université Côte d'Azur}, \nom{Ayana} team, France \\
+        °\textit{Cerema}, {\nom{Endsum} team}, France\\
+        Emails : \{louis.hauseux, josiane.zerubia\}@inria.fr, \{raphael.antoine, philippe.foucher, pierre.charbonnier\}@cerema.fr
+    }
+}
+
+
+
+% conference papers do not typically use \thanks and this command
+% is locked out in conference mode. If really needed, such as for
+% the acknowledgment of grants, issue a \IEEEoverridecommandlockouts
+% after \documentclass
+
+% for over three affiliations, or if they all won't fit within the width
+% of the page, use this alternative format:
+% 
+%\author{\IEEEauthorblockN{Michael Shell\IEEEauthorrefmark{1},
+%Homer Simpson\IEEEauthorrefmark{2},
+%James Kirk\IEEEauthorrefmark{3}, 
+%Montgomery Scott\IEEEauthorrefmark{3} and
+%Eldon Tyrell\IEEEauthorrefmark{4}}
+%\IEEEauthorblockA{\IEEEauthorrefmark{1}School of Electrical and Computer Engineering\\
+%Georgia Institute of Technology,
+%Atlanta, Georgia 30332--0250\\ Email: see http://www.michaelshell.org/contact.html}
+%\IEEEauthorblockA{\IEEEauthorrefmark{2}Twentieth Century Fox, Springfield, USA\\
+%Email: homer@thesimpsons.com}
+%\IEEEauthorblockA{\IEEEauthorrefmark{3}Starfleet Academy, San Francisco, California 96678-2391\\
+%Telephone: (800) 555--1212, Fax: (888) 555--1212}
+%\IEEEauthorblockA{\IEEEauthorrefmark{4}Tyrell Inc., 123 Replicant Street, Los Angeles, California 90210--4321}}
+
+
+
+
+% use for special paper notices
+%\IEEEspecialpapernotice{(Invited Paper)}
+
+
+
+
+% make the title area
+\maketitle
+
+% As a general rule, do not put math, special symbols or citations
+% in the abstract
+\begin{abstract}
+Automatic crack detection is a pivotal task in structural health monitoring and geoscience. In recent years, the field has been dominated by deep learning. %, with supervised models like CrackSegDiff achieving state-of-the-art performance. 
+However, these ``black-box'' methods suffer from a critical dependency on massive annotated datasets and often fail to generalize when facing domain shifts (\textit{e.g.}, new sensors, unseen textures, or specific noise types).
+
+In this paper, we propose a ``universal'', training-free approach that robustly extracts crack networks across varying data distributions. Our method generalizes the classical \Frangi{} vesselness filter. 
+Instead of pixel-wise response, we construct a sparse graph driven by a pairwise \Frangi{} similarity metric, which rigorously encodes local tubular geometry (elongation, contrast, and orientation alignment). 
+We then use a topological extraction algorithm %: first, thresholding isolates coherent fault structures from noise; second, a Minimum Spanning Tree (MST) reduction combined with Weighted Betweenness Centrality 
+to provide the precise topological skeleton of the crack network.
+
+Evaluated on the FIND benchmark and illustrated on geological data (both real-world data), our unsupervised method proves to be efficient ($\sim$10s per image on Colab CPU) and demonstrates superior robustness to synthetic noise and domain shifts compared to supervised diffusion models. 
+
+Reproducible code and data are provided in GitHub repositories with Colab-Jupyter python notebooks.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Crack detection, multi-modal Fusion, \Frangi{} filter, graph, betweenness centrality
+\end{IEEEkeywords}
+
+
+% Session Topics :
+% 8.3.4 ; 8.2.1
+
+
+\section{Introduction}
+
+{{T}{he} reliable mapping of crack networks is essential for assessing the structural integrity of civil infrastructures (\eg bridges, nuclear containment buildings, roads) and for assessing geological hazards (\eg landslides, faults and subsidence). At present, the majority of crack mapping on such wall surfaces, both in geological studies and civil engineering applications, is still largely performed manually, making the process time-consuming, subjective, and difficult to scale. However, accurately extracting these features remains a challenging image processing problem due to their discontinuities, variability in apertures, low contrast and the wide diversity of image acquisition conditions (\eg illumination variations and imaging artifacts). In addition, the presence of complex background noise such as shadows, stains and texture irregularities further complicates detection, while the limited availability of high-quality annotated datasets constrains the development of robust models.}
+%\textcolor{red}{@Raphaël : pas de référence pour ce paragraphe introductif ?}
+
+%\IEEEPARstart{T}{he} reliable mapping of crack networks is essential for assessing the structural integrity of civil infrastructure (\textit{e.g.} bridges, nuclear containment buildings, pavements) and for monitoring geological risks (\textit{e.g.} landslides, faults). Extracting these curvilinear features is a challenging computer vision problem due to their thinness, low contrast, and the presence of complex noise such as shadows, stains, or texture irregularities.
+
+
+%[L'intérêt de la Multi-modalité doit être mis en avant plus tôt]
+
+%[Insister sur le fait que 70\% est un très bon Jaccard/Tversky]
+
+
+
+%Historically, this problem was addressed using model-based image processing techniques, notably Hessian-based filters \cite{Frangi1998, Sato1998}. In the last decade, the paradigm has shifted massively towards deep learning. Initial approaches utilized Convolutional Neural Networks (CNNs) such as U-Net \cite{Unet2015} or DeepCrack \cite{DeepCrack2019}, treating crack detection as a binary semantic segmentation task. While effective on their training domains, these models rely on local receptive fields and often struggle with long-range dependencies and geometric continuity.
+
+%To overcome these limitations, the field moved towards Transformers, such as CrackFormer \cite{CrackFormer2021}, which leverage self-attention mechanisms to capture global context and long-range pixel dependencies. %More recently, Generative AI has been applied to this domain. State-of-the-art methods like CrackSegDiff \cite{CrackSegDiff2024} employ Denoising Diffusion Probabilistic Models. These models frame segmentation as a conditional generation process: starting from pure noise, the model iteratively denoises the signal, conditioned on the input image features, to produce a precise crack mask. While achieving impressive F1-scores ($>90\%$), these supervised methods are computationally expensive and data-hungry. %[Raccourcir ces deux derniers paragraphes pour éviter trop de redondances avec la partie "Related Wrok"]
+
+Historically tackled via Hessian-based filtering \cite{Frangi1998, Sato1998}, crack detection transitioned to deep learning over a decade ago. From CNNs \cite{Unet2015, DeepCrack2019} to transformers \cite{CrackFormer2021} and state-of-the-art diffusion models \cite{CrackSegDiff2024} (achieving impressive F1-scores $>90\%$), they essentially treat the problem as a supervised task on closed domains. Consequently, these methods remain computationally expensive, data-hungry, and suffer from a critical lack of robustness when facing unseen modalities or noise patterns.
+
+%En outre, ces méthodes ne sont pas robustes au sens où nous l'entendons : elles ne résistent pas au shift-domain et ne sont pas capables d'intégrer des modalités n'apparaissant pas lors de l'entraînement. [Reformuler ce paragraphe]
+
+%[Insérer ici un paragraphe sur l'intérêt de la multi-modalité qui fasse la transition avec le paragraphe suivant : ]
+
+A recent comprehensive review by Zhang \textit{et al.} \cite{Zhang2025Review} highlights this growing crisis in the field: the ``data efficiency'' and ``generalizability'' gap. Supervised models are often fragile ``black boxes''; they struggle with domain shifts where the training data distribution differs from the test data (\textit{e.g.} different lighting, sensor noise, or surface material). Collecting and annotating expert-level datasets for every new scenario is prohibitively expensive. While new datasets like the recently announced \emph{3DCrack} \cite{Zhang2025Review} aim to mitigate this, there is an urgent need for ``universal'' methods capable of zero-shot transfer: algorithms that perform robustly on unknown data without training, and minimal priors. %[Raccourcir légèrement ce paragraphe et éviter les redondances avec ce qui a été dit précédemment.]
+
+%However, these supervised methods lack robustness regarding domain shifts. As they behave as ``black boxes,'' they struggle to generalize when the test data distribution differs from the training set (\eg applying a model trained on optical images to SAR or noisy depth data). Furthermore, they cannot easily integrate new modalities that were absent during training.
+
+%This highlights the urgent need for ``universal'' methods capable of zero-shot transfer. In this context, multi-modality is a key asset. 
+
+
+
+%A recent comprehensive review by Zhang \etal \cite{Zhang2025Review} highlights this growing crisis: the ``Generalizability Gap''.
+
+
+Starting from our beginning work in \cite{BibiStrasbourg} and addressing these limitations, we propose to revisit and significantly extend model-based approaches. We introduce a fully unsupervised pipeline that fuses multi-modal data into a unified geometric graph representation. 
+We hypothesize that while noise patterns vary across modalities (\eg speckle in intensity \textit{vs}. Gaussian in range), the physical geometry of the crack creates signal variations (eigenvectors) that align constructively. 
+%Fusion at the operator level thus reinforces the true signal while canceling out uncorrelated noise.
+Our main contributions are:
+\begin{enumerate}
+    \item \textbf{Hessian-Level Fusion:} We combine normalized Hessian matrices from diverse modalities to create a robust curvature map, exploiting the constructive alignment of eigenvectors across modalities.
+    \item \textbf{Generalized \Frangi{} Graph:} We move beyond pixel-wise filtering by defining a pairwise similarity metric that enforces geometric information.
+    \item \textbf{Topological Extraction Algorithm:} We propose a hierarchical extraction process: a first step of thresholding to isolate structures and remove noise, followed by minimum spanning tree pruning and skeletonization using \Frangi{}-weighted betweenness centrality.
+    \item \textbf{Robustness \& Universality:} We demonstrate robustness not only on the noisy FIND benchmark \cite{FIND2022} but also on a completely different domain (geological faults).
+\end{enumerate}
+
+
+
+\section{Related Work}
+
+\subsection{From Image Processing to Machine Learning}
+Early crack detection relied on heuristic thresholding and edge detection (\textsc{Sobel}, \textsc{Canny}). To address the specific geometry of cracks, ``vesselness'' filters were developed in the medical imaging community. The seminal work of \Frangi{} \textit{et al.} \cite{Frangi1998} uses the eigenvalues of the Hessian matrix to estimate the probability of a pixel belonging to a tubular structure. However, these methods operate locally (pixel-wise) and are prone to fragmentation in noisy environments. Our approach bridges this gap by embedding the \Frangi{} response into a graph structure, considering pairs of pixels to enforce continuity and geometric information.
+
+\subsection{The Deep Learning Era}
+Architectures like U-Net \cite{Unet2015} and DeepCrack \cite{DeepCrack2019} set the initial benchmarks. Recent advances focus on generative models. CrackSegDiff \cite{CrackSegDiff2024} utilizes a diffusion process to generate crack masks, achieving high performance on specific datasets. However, as noted by Zhang \textit{et al.} \cite{Zhang2025Review}, these models often fail when the data change (\textit{i.e.} applying a model trained on optical images to SAR or noisy depth data), highlighting the need for methods less dependent on massive training data.
+
+\subsection{Multi-Modal Fusion strategies}
+%Fusion is typically categorized as early, intermediate, or late. 
+Most deep learning methods use feature-level fusion within the network.
+
+In contrast, our approach performs a geometric fusion at the operator level (Hessian). This is particularly pertinent for Intensity-Range fusion: we hypothesize that while noise is random across modalities, the physical geometry of the crack creates signal variations (eigenvectors) that point in the same direction. Summing the Hessians constructively reinforces the signal while canceling out uncorrelated noise.
+
+%[Furthermore, cela nous permet d'avoir une méthode beaucoup plus flexible, compatible avec un nombre arbitraire de modalités.]
+
+Furthermore, this operator-level fusion yields a highly flexible framework, compatible with an arbitrary number of modalities without requiring architectural changes.
+
+\section{Methodology}
+
+%Our method is built on the hypothesis that cracks form a coherent topological network that persists across modalities. %The source code and Colab notebooks are available in our repository\footnote{{\href{}{Mettre lien vers le GitHub AYANA}}} \cite{GitHubGeneralizedFrangi2026}. [Raccourcir]
+
+\subsection{Multi-Scale Hessian Fusion and ``Dark Ridges''}
+Let $\mathcal{I} = \{I^{(\text{Int})}, I^{(\text{Rng})}, \ldots\}$ be the input modalities (\eg Intensity, Range, \textit{etc}., see Fig.~\ref{fig:intensity},~\ref{fig:range},~\ref{fig:intensityPapes}~or~\ref{fig:rangePapes}). 
+Modalities are seen as signals from the domain (the pixel grid) $\Omega \subset\mathbb R^2$ to $\mathbb R$.
+For each modality $m$ and scale $\sigma$, the Hessian matrix $\Hess_{\sigma}^{(m)}(\mathbf{x})$ is computed via convolution with a Gaussian kernel of standard deviation $\sigma$. To handle disparate dynamic ranges, we normalize by the maximum spectral norm:
+\begin{equation}
+    \hat{\Hess}_{\sigma}^{(m)}(\mathbf{x}) = \frac{\Hess_{\sigma}^{(m)}(\mathbf{x})}{\max_{\mathbf{y} \in \Omega} \matnorm{\Hess_{\sigma}^{(m)}(\mathbf{y})} }
+\end{equation}
+
+The \textit{Fused Hessian} is a weighted linear combination:
+\begin{equation}
+    \Hess_{\sigma}^{\text{fused}}(\mathbf{x}) = \sum_{m} w_m \hat{\Hess}_{\sigma}^{(m)}(\mathbf{x})
+\end{equation}
+We analyze the eigen-decomposition of $\Hess_{\sigma}^{\text{fused}}(\mathbf x)$: eigenvalues $\lambda_1, \lambda_2$ (with $|\lambda_1| \le |\lambda_2|$) and eigenvectors $\mathbf{v}_1, \mathbf{v}_2$.
+
+
+We assume a physical prior: cracks appear as ``dark ridges'' (valleys) in the signal, \ie{} only pixels with positive $\lambda_2 $ are taken into account. 
+
+This assumption implies proper sensor calibration. 
+%Consequently, we explicitly set the parameter \texttt{dark\_ridges = True}. 
+Images violating this physical assumption (\eg inverted contrast artifacts) were excluded from our experiments to ensure a fair evaluation of the geometric algorithm. % (see Appendix).
+
+\subsection{Generalized \Frangi{} Similarity Graph}
+We construct a sparse spatial graph $G=(V, E)$ where nodes $V$ are pixels and edges $E$ connect neighbors within a radius $R=10$ pixels.
+Using a radius $R>1$ is a crucial topological feature. Unlike pixel-wise connectivity ($R=1$), this larger radius allows the graph to ``bridge'' discontinuities caused by noise or occlusion, recovering a continuous network even if the signal is interrupted for a few pixels.
+
+We define a pairwise similarity $S_{ij} \in [0, 1]$ combining three terms computed at the optimal scale $\sigma$:
+
+\subsubsection{Elongation Term ($\mathcal{S}_{\mathrm{shape}}$)}
+We use the \Frangi{} ratio $\mathcal{R}_B = |\lambda_1| / |\lambda_2|$ (see Fig.~\ref{fig:frangiRatio}) to ensure the structure is tubular (and not blob-like). We require both pixels to have such an elongated structure:
+\begin{equation}
+    \mathcal{S}_{\text{shape}}^{\sigma} = \exp\left( - \frac12 \left(\frac{\mathcal{R}_B(\mathbf{x}_i) + \mathcal{R}_B(\mathbf{x}_j)}{s_{\mathrm{s}}}\right)^2 \right).
+\end{equation}
+
+
+
+\subsubsection{Intensity/Contrast Term ($\mathcal{S}_{\mathrm{int}}$)}
+We favor regions with high second-order derivative energy. Let $\mathcal{S}(\mathbf{x}) = \matnorm{ \Hess_{\sigma}^{\text{fused}}(\mathbf{x}) } = |\lambda_2|$ (see Fig.~\ref{fig:frangi}):
+\begin{equation}
+    \mathcal{S}_{\text{int}}^{\sigma} = 1 - \exp\left( - \frac12 \left(\frac{\sqrt{\mathcal{S}(\mathbf{x}_i) \cdot \mathcal{S}(\mathbf{x}_j)}}{s_{\mathrm{i}}}\right)^2 \right)
+\end{equation}
+Note the multiplicative formulation: both nodes must exhibit high curvature.
+
+\subsubsection{Alignment Term ($\mathcal{S}_{\mathrm{align}}$)}
+This is the topological glue. We penalize edges where the spatial vectors $\mathbf{v}_1^i$ and $\mathbf{v}_1^j$ at locations respectively $\mathbf{x}_i $ and $\mathbf{x}_j$ deviate from each other. 
+Let $\theta_i$ be the rotation angle of the Hessian at location $\mathbf x_i$ (see Fig.~\ref{fig:angle}) and $\delta_\theta = \theta_i - \theta_j$ be the angle formed by these vectors.
+\begin{equation}
+    \mathcal{S}_{\text{align}}^{\sigma} = \exp\left( - \frac12\left( \frac{\sin (\delta_\theta)}{s_{\mathrm{a}}}\right)^2\right).
+\end{equation}
+
+The final similarity is $S_{ij}^\sigma = \max_{\sigma} \bigl(\mathcal{S}_{\text{shape}}^\sigma \cdot \mathcal{S}_{\text{int}}^\sigma \cdot \mathcal{S}_{\text{align}}^\sigma\bigr)$. We embed this into a metric space using the transformation:
+\begin{equation}
+    d_{ij} =  \left( 1-S_{ij} \right) \norme{\mathbf{x}_i - \mathbf{x}_j}.
+\end{equation}
+Weighting by the Euclidean distance $\norme{\mathbf{x}_i - \mathbf{x}_j}$ is essential. It acts as a regularizer during the subsequent minimum spanning tree step. By penalizing geometrically long connections, it prevents the tree from making erratic jumps between disparate structures, effectively ``smoothing'' the extracted skeleton.
+
+
+%[L'essentiel de l'information du signal de \Frangi{} original est contenu dans le terme d'intensité/contraste ($\lambda_2$) et la Fig.~\ref{fig:frangi} est très proche de la réponse standarde pixel-wise du filtre de \Frangi{}. L'on s'aperçoit que la réponse de notre Generalized \Frangi{} Graph (Fig.~\ref{fig:similarity}) est beaucoup plus propre et l'épine dorsale de la faille clairement isolée (ce qui explique les bons résultats au moyen de la Betweenness ensuite). Cette amélioration est principalement due au terme d'alignement (see Fig.~\ref{fig:angle}) qui marque une césure nette à la frontière de la faille.]
+
+
+
+As illustrated in Fig.~\ref{fig:similarity}, the proposed graph similarity significantly cleans the response compared to the standard pixel-wise \Frangi{} filter (approx. Fig.~\ref{fig:frangi}). This improvement is largely driven by the alignment term (Fig.~\ref{fig:angle}), which creates a sharp cutoff at the fault boundaries, effectively isolating the backbone.
+
+\subsubsection{Parameter value}
+
+We fixed 
+$ s_{\mathrm{s}} \gets 2, s_{\mathrm{i}} \gets \tfrac14, s_{\mathrm{a}} \gets \tfrac18 $ (these parameters can be interpreted as standard deviations of Gaussian kernels) and $ \Sigma \gets \{1,3,5,7 \}$.
+
+
+These parameters were determined empirically and are quite close to the ones chosen in \cite{BibiStrasbourg}. A larger value was selected for $\beta$ to account for the irregularity of the \Frangi{} ratio (see Fig.~\ref{fig:frangiRatio}). The results are relatively insensitive to small variations in these parameters.
+
+\subsection{Topological Extraction Algorithm}
+%The graph constructed above is often dense and noisy. 
+We propose a robust extraction pipeline designed to isolate the skeleton of the crack network.
+
+% \subsubsection{Step 1: HDBSCAN Clustering}
+% We first apply \textbf{HDBSCAN} (Hierarchical Density-Based Spatial Clustering of Applications with Noise) \cite{HDBSCAN} on the graph distances $d_{ij}$.
+% Unlike DBSCAN which uses a fixed epsilon, HDBSCAN builds a hierarchy of connected components, allowing it to adapt to varying densities of the crack response. This step provides two key benefits:
+% 1.  \textbf{Noise Pruning:} It effectively separates coherent high-density structures (the cracks) from random background noise, which is classified as outliers and discarded.
+% 2.  \textbf{Multi-Scale Analysis:} It separates major fault networks from secondary, disconnected fissures, yielding a set of independent clusters $\mathcal{C} = \{C_1, \dots, C_k\}$.
+
+%\subsubsection{Step 1: Thesholding}
+%[Étape très importante pour isoler proprement les failles principales du réseau de failles : successivement, deux seuillages sont faits pour ne garder dans le graphe que les pixels à plus haute réponse (la réponde d'un pixel étant le max sur ses arètes adjacentes) : première phase de seuil sur l'intensité $\lambda_2$ et seconde phase de seuil une fois notre similarité \Frangi{}-Graph calculée. (Voir notre repo GitHub pour les détails techniques.)]
+\subsubsection{Step 1: Dual Thresholding}
+To efficiently isolate the main fault structures from the background, we apply a two-phase thresholding strategy. First, we filter nodes based on the raw curvature response $\lambda_2$ to eliminate non-tubular noise. Second, once the \Frangi{}-Graph similarity is computed, we prune edges with low $S_{ij}$ values. This ensures that the subsequent topological steps operate only on coherent structures (see Fig.~\ref{fig:cluster}).
+
+\subsubsection{Step 2: Minimum Spanning Tree}
+We compute the minimum spanning tree on the largest component (assuming the crack network to be unique). This topological reduction transforms the data into a very soft tree structure. The minimum tree preserves the most significant connections (lowest $d_{ij}$) while acting as a skeletonization pre-process, enabling extremely fast computation of centrality measures in the next step.
+
+\subsubsection{Step 3: Weighted Betweenness Centrality}
+To extract the pixel-precise backbone from the minimum tree, we compute the {\emph{weighted} betweenness centrality} $C_B$ %\cite{Freeman1977, 
+\cite{Brandes2001}. 
+For a graph which is a tree $\mathcal T$, the centrality $C_B(v)$ of a node $v$ becomes a very simple formulation:
+\begin{equation}
+    C_B(v) = \prod_{b \in \text{Branch}(\mathcal T_v)}\left| \text{Nodes}(b) \right| 
+\end{equation}
+where $\mathcal T_v$ denotes the tree $\mathcal T$ rooted in $v$ and the product is over all the subtrees induced by removing $v$.
+This centrality can be rewritten as
+$$
+    C_B(v) = \prod_{b \in \text{Branch}(\mathcal T_v)} \sum_{\{i,j\} \in \text{Edges}(b+v)}  1_{}
+$$
+where $b+v$ denotes the addition of $v$ to the subtree $b$.
+The \emph{weighted} betweenness centrality consists in replacing each $1$ appearing in the sum by the \Frangi{} similarity $S_{ij}$.
+\begin{equation}
+    C_B^w(v) = \prod_{b \in \text{Branch}(\mathcal T_v)} \sum_{\{i,j\} \in \text{Edges}(b+v)} S_{ij}
+\end{equation}
+
+%where $\eta_{st}$ is the number of shortest paths from node $s$ to node $t$, and $\eta_{st}(v)$ is the number of those paths passing through $v$. In a tree structure, the path between any two nodes is unique ($\eta_{st}=1$), reducing the calculation to counting how many paths traverse $v$.
+
+%The paths are weighted using the \textsc{Frangi}-similarity. 
+%Consequently, 
+Nodes situated on the geometric ``spine'' of the tubular structure minimize the travel cost and act as bridges for the vast majority of paths. These nodes accumulate very high centrality scores. Conversely, nodes on the periphery (the ``flesh'' of the crack width) lie on few (and low-weighted) shortest paths and have low $C_B$.
+See Fig.~\ref{fig:betweenness}.
+
+%\subsubsection{Step 4: Adaptive Thresholding}
+%Finally, we apply an adaptive thresholding function governed by a parameter $f$. For each cluster, 
+%[Finally, on enracine $\mathcal T$ en le noeud maximisant la centralité. On explore alors récursivement l'arbre en partant de cette racine. Les branches à faible centralité sont élaguées de l'arbre. Le résultat final est l'arbre élagué.]
+%explore of $C_B$ values to distinguish the backbone from the minor branches. We retain only nodes where $C_B(v) > f(\text{cluster})$. This pruning process effectively collapses the ribbon into a 1-pixel wide skeleton.
+\subsubsection{Step 4: Adaptive Pruning}
+Finally, we differentiate the backbone from minor branches. The tree $\mathcal{T}$ is rooted at the node maximizing the centrality score. We then recursively explore the tree starting from this root; branches with insufficient centrality are pruned. This process collapses the ribbon structure into a precise, 1-pixel wide skeleton.
+
+\section{Experiments}
+
+%[Nous nous proposons de mesurer la robustesse de notre algorithme. Tout le début de cette section est dédiée à une analyse quantitave de la robustesse, \textit{via} ajout de bruit synthétique. La deuxième partie, plus qualitive, est une illustration de la robustesse au shift domain : sans rien changer à notre algorithme, nous montrons qu'il détecte aussi bien un réseau de failles sur une image géologique que le benchmark que nous utilisons, avec des images d'infrastructures civiles. En passant, nous verrons aussi tout l'intérêt de la multi-modalité pour améliorer les résultats.]
+
+%In this section, we assess the performance of our algorithm through two complementary analyses: a quantitative evaluation of robustness using synthetic noise, and a qualitative assessment of zero-shot domain transfer on geological data. [Raccourcir]
+
+\subsection{FIND dataset and Protocol}
+%We use the FIND dataset \cite{FIND2022}. 
+%[Justifier : c'est à ce jour le seul benchmark que nous ayons trouvé suffisamment propre et proposant avec la ground truth deux modalités : Intensity et Range.] 
+We quantitatively evaluate the robustness of our algorithm using synthetic noise and qualitatively via domain transfer. We use the FIND dataset \cite{FIND2022}, which is, to the best of our knowledge, the only benchmark providing aligned Intensity and Range modalities suitable for this task. 
+
+Following the CrackSegDiff protocol, we evaluate three different metrics (see Section~\ref{sec:metrics}) on the first 500 images\footnote{%[Expliquer que la plupart des images exclues l'étaient l'étaient en raison d'un réseau de failles (d'ailleurs bien reconnu par notre algorithme) mais incompatible avec la comparaison des masques de la ground truth.] 
+We excluded 23 images where ground truth annotations were inconsistent with the physical fracture network (\eg multiple thin faults merged in the ground truth, artifacts or inverted contrast), ensuring a fair evaluation of the geometric algorithm.
+%Removing images not satisfying our assumptions, we have a final test set of 477 images. See our python notebook for the exhaustive list.
+} ($256 \times 256$\,px).
+
+
+\begin{figure}[!h]
+    \centering
+    % --- LIGNE 1 ---
+    % Image 1 (a)
+    \begin{subfigure}[b]{0.24\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{Intensity_1FIND.png}
+        \caption{Intensity}
+        \label{fig:intensity}
+    \end{subfigure}
+    \hfill
+    % Image 2 (b)
+    \begin{subfigure}[b]{0.24\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{Range_1FIND.png}
+        \caption{Range}
+        \label{fig:range}
+    \end{subfigure}
+    \hfill
+    % Image 3 (c)
+    \begin{subfigure}[b]{0.24\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{FrangiRatio_1FIND.png}
+        \caption{ $|\lambda_1| / |\lambda_2|$}
+        \label{fig:frangiRatio}
+    \end{subfigure}
+    \hfill
+    % Image 4 (d)
+    \begin{subfigure}[b]{0.24\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{Angle_1FIND.png}
+        \caption{Angle $\theta$}
+        \label{fig:angle}
+    \end{subfigure}
+
+    \par\bigskip % Saut de ligne avec espace vertical
+
+    % --- LIGNE 2 ---
+    % Image 5 (e)
+    \begin{subfigure}[b]{0.24\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{Int_1FIND.png}
+        \caption{$\lambda_2$ ($>0$)}
+        \label{fig:frangi}
+    \end{subfigure}
+    \hfill
+    % Image 6 (f)
+    \begin{subfigure}[b]{0.24\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{FrangiSim_1FIND.png}
+        \caption{Similarity}
+        \label{fig:similarity}
+    \end{subfigure}
+    \hfill
+    % Image 7 (g)
+    \begin{subfigure}[b]{0.24\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{Cluster_1FIND.png}
+        \caption{Cluster}
+        \label{fig:cluster}
+    \end{subfigure}
+    \hfill
+    % Image 8 (h)
+    \begin{subfigure}[b]{0.24\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{Betweenness_1FIND.png}
+        \caption{Betweenness}
+        \label{fig:betweenness}
+    \end{subfigure}
+
+    \par\bigskip % Saut de ligne avec espace vertical
+
+    % --- LIGNE 3 ---
+    % Image 9 (i)
+    \begin{subfigure}[b]{0.24\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{GroundTruth_1FIND.png}
+        \caption{Ground truth}
+        \label{fig:GT}
+    \end{subfigure}
+    \hfill
+    % Image 10 (j)
+    \begin{subfigure}[b]{0.24\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{CrackSegDiff_1FIND.png}
+        \caption{{\footnotesize CrackSegDiff}}
+        \label{fig:CSD}
+    \end{subfigure}
+    \hfill
+    % Image 11 (k)
+    \begin{subfigure}[b]{0.24\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{Resultat_1FIND.png}
+        \caption{Our result}
+        \label{fig:Resultat}
+    \end{subfigure}
+    \hfill
+    % Image 12 (l)
+    \begin{subfigure}[b]{0.24\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{Overlay_1FIND.png}
+        \caption{Overlay}
+        \label{fig:Overlay}
+    \end{subfigure}
+
+    \caption{Overview of image 1 in FIND dataset. 
+    \textbf{Top row:} (a) Intensity and (b) Range modalities, (c) the \Frangi{} ratio $\mathcal{R}_B = |\lambda_1| / |\lambda_2|$ and (d) the map of $\sin(\theta)$ associated to the Hessian. 
+    \textbf{Middle row:} (e) The map $ \mathbf x \mapsto \lambda_2^{} \mathbf 1_{ \lambda_2^{} > 0} $ (very close to the original \Frangi{} filter), (f) Our \Frangi{} similarity ($\mathbf x_i \mapsto \max_{j, \mathbf x_i \sim \mathbf x_j} S_{ij}$), (g) the largest cluster and (h) the weighted betweenness centrality. 
+    \textbf{Bottom row:} (i) Ground truth, (j) Result of CrackSegDiff on fused modalities, (k) Our resulting skeleton (\textsc{Jaccard}: 63\%; \textsc{Tversky}: 71\%; \textsc{Wasserstein}: 8\,px) and (l) Overlay of ground truth, CrackSegDiff and our skeleton.}
+    \label{fig:GlobalAnalysis}
+\end{figure}
+
+% \begin{figure}[!h]
+%     \centering
+%     % Première image (a)
+%     \begin{subfigure}[b]{0.24\linewidth}
+%         \centering
+%         \includegraphics[width=\linewidth]{Intensity_1FIND.png}
+%         \caption{Intensity}
+%         \label{fig:intensity}
+%     \end{subfigure}
+%     \hfill %% Important pour l'espacement
+%     % Deuxième image (b)
+%     \begin{subfigure}[b]{0.24\linewidth}
+%         \centering
+%         \includegraphics[width=\linewidth]{Range_1FIND.png}
+%         \caption{Range}
+%         \label{fig:range}
+%     \end{subfigure}
+%     \hfill %% Important pour l'espacement
+%     % Troisième image (c)
+%     \begin{subfigure}[b]{0.24\linewidth}
+%         \centering
+%         \includegraphics[width=\linewidth]{FrangiRatio_1FIND.png}
+%         \caption{ $|\lambda_1| / |\lambda_2|$}
+%         \label{fig:frangiRatio}
+%     \end{subfigure}
+%     \hfill %% Important pour l'espacement
+%     % Quatrième image (d)
+%     \begin{subfigure}[b]{0.24\linewidth}
+%         \centering
+%         \includegraphics[width=\linewidth]{Angle_1FIND.png}
+%         \caption{Angle $\theta$}
+%         \label{fig:angle}
+%     \end{subfigure}
+
+%     \caption{From left to right: (a) Intensity and (b) Range modalities of image $1$ in FIND dataset, (c) the \Frangi{} ratio $\mathcal{R}_B = |\lambda_1| / |\lambda_2|$ and (d) the map of $\sin(\theta)$, the rotation angle associated to the Hessian.}
+%     \label{Modalities}
+% \end{figure}
+
+% \begin{figure}[!h]
+%     \centering
+%     % Première image (a)
+%     \begin{subfigure}[b]{0.24\linewidth}
+%         \centering
+%         \includegraphics[width=\linewidth]{Int_1FIND.png}
+%         \caption{$\lambda_2$ ($>0$)}
+%         \label{fig:frangi}
+%     \end{subfigure}
+%     \hfill %% Important pour l'espacement
+%     % Deuxième image (b)
+%     \begin{subfigure}[b]{0.24\linewidth}
+%         \centering
+%         \includegraphics[width=\linewidth]{FrangiSim_1FIND.png}
+%         \caption{Similarity}
+%         \label{fig:similarity}
+%     \end{subfigure}
+%     \hfill %% Important pour l'espacement
+%     % Troisième image (c)
+%     \begin{subfigure}[b]{0.24\linewidth}
+%         \centering
+%         \includegraphics[width=\linewidth]{Cluster_1FIND.png}
+%         \caption{Cluster}
+%         \label{fig:cluster}
+%     \end{subfigure}
+%     \hfill %% Important pour l'espacement
+%     % Quatrième image (d)
+%     \begin{subfigure}[b]{0.24\linewidth}
+%         \centering
+%         \includegraphics[width=\linewidth]{Betweenness_1FIND.png}
+%         \caption{Betweenness}
+%         \label{fig:betweenness}
+%     \end{subfigure}
+
+%     \caption{From left to right: (a) The map $ \mathbf x \mapsto \lambda_2^{\mathbf x} \mathbf 1_{ \lambda_2^{\mathbf x} > 0} $(b) \Frangi{} similarity ($\mathbf x_i \mapsto \max_{j, \mathbf x_i \sim \mathbf x_j} S_{ij}$), (c) the largest cluster and (d) the weighted betweenness centrality.}
+%     \label{Modalities}
+% \end{figure}
+
+
+
+% %[Ajouter une référence pour justifier très brièvement le choix de ce type de bruit ?]
+
+
+% \begin{figure}[!h]
+%     \centering
+%     % Première image (a)
+%     \begin{subfigure}[b]{0.24\linewidth}
+%         \centering
+%         \includegraphics[width=\linewidth]{GroundTruth_1FIND.png}
+%         \caption{Ground truth}
+%         \label{fig:GT}
+%     \end{subfigure}
+%     \hfill %% Important pour l'espacement
+%     % Deuxième image (b)
+%     \begin{subfigure}[b]{0.24\linewidth}
+%         \centering
+%         \includegraphics[width=\linewidth]{CrackSegDiff_1FIND.png}
+%         \caption{{\footnotesize CrackSegDiff}}
+%         \label{fig:CSD}
+%     \end{subfigure}
+%     \hfill %% Important pour l'espacement
+%     % Troisième image (c)
+%     \begin{subfigure}[b]{0.24\linewidth}
+%         \centering
+%         \includegraphics[width=\linewidth]{Resultat_1FIND.png}
+%         \caption{Our result}
+%         \label{fig:Resultat}
+%     \end{subfigure}
+%     \hfill %% Important pour l'espacement
+%     % Quatrième image (d)
+%     \begin{subfigure}[b]{0.24\linewidth}
+%         \centering
+%         \includegraphics[width=\linewidth]{Overlay_1FIND.png}
+%         \caption{Overlay}
+%         \label{fig:Overlay}
+%     \end{subfigure}
+
+%     \caption{From left to right: (a) Ground truth of image 1 in FIND dataset, (b) Result of CrackSegDiff on fused modalities, (c) Our resulting skeleton (\textsc{Jaccard}: 63\%; \textsc{Tversky}: 71\%; \textsc{Wasserstein}: 8\,px) and (d) Overlay of ground truth, CrackSegDiff and our skeleton.}
+%     \label{fig:Resultat}
+% \end{figure}
+
+
+
+
+
+We evaluate robustness by injecting synthetic noise consistent with sensor physics (see Fig.~\ref{fig:intensityNoisy}~and~ \ref{fig:rangeNoisy}):
+\begin{itemize}
+    \item \textbf{Intensity:} Multiplicative speckle noise for Intensity (simulating coherent imaging artifacts).
+    \item \textbf{Range:} Additive white Gaussian noise for Range (simulating thermal noise).
+    %\item \textbf{Filtered Range:} Preprocessing via frequency domain filtering \cite{Zhou2020}.
+\end{itemize}
+
+
+
+
+\begin{figure}[!h]
+    \centering
+    % Première image (a)
+    \begin{subfigure}[b]{0.24\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{IntensityNoisy_1FIND.png}
+        \caption{Noisy Int.}
+        \label{fig:intensityNoisy}
+    \end{subfigure}
+    \hfill %% Important pour l'espacement
+    % Deuxième image (b)
+    \begin{subfigure}[b]{0.24\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{RangeNoisy_1FIND.png}
+        \caption{Noisy Range}
+        \label{fig:rangeNoisy}
+    \end{subfigure}
+    \hfill %% Important pour l'espacement
+    % Troisième image (c)
+    \begin{subfigure}[b]{0.24\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{SimilarityNoisy_1FIND.png}
+        \caption{Similarity}
+        \label{fig:similarityNoisy}
+    \end{subfigure}
+    \hfill %% Important pour l'espacement
+    % Quatrième image (d)
+    \begin{subfigure}[b]{0.24\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{ResultatNoisy_1FIND.png}
+        \caption{Our result}
+        \label{fig:resultatNoisy}
+    \end{subfigure}
+
+    \caption{Noisy settings. From left to right: (a) Noisy Intensity (var $=0.5$) and (b) Noisy Range (sigma $= 0.5$) modalities of image $1$ in FIND dataset, (c) the \Frangi{} similarity and (d) the result of our algorithm on this noisy modalities.}
+    \label{RobustesseNoisy}
+\end{figure}
+
+
+
+% To demonstrate robustness to domain shifts and the power of fusion, we applied our method (with fixed parameters used for FIND) to images of the retaining rock of the \emph{Palais des Papes} in Avignon (Fig. \ref{Avignon}). These images were acquired using a smartphone, with depth reconstructed via photogrammetry.
+
+% % \begin{figure}[!h]
+% %     \centering
+% %     \includegraphics[width=0.48\linewidth]{ICPR_2026_LaTeX_Templates/RocheSoutenementAvignon.png}
+% %     \includegraphics[width=0.48\linewidth]{ICPR_2026_LaTeX_Templates/RocheSoutenementAvignon_Profondeur.png}
+% %     \caption{Retaining rock of the Palais des Papes, Avignon. Left: Original Intensity image. Right: Image superposed with the depth map in color.\label{Avignon}}
+% % \end{figure}
+
+% The central fault is deep, creating a shadow area that weakens the photometric signal. Consequently, the Hessian response $\lambda_2$ is ``erased'' in the intensity modality (Fig. \ref{Lambda2}, left). However, the fault is clear in the depth map (Fig. \ref{Lambda2}, center). By fusing the modalities ($\tfrac{2}{3}$ Intensity + $\tfrac{1}{3}$ Range), the signal is fully recovered (Fig. \ref{Lambda2}, right). This confirms our method's ability to handle unseen data and sensor types without retraining.
+
+% % \begin{figure}[!h]
+% %     \centering
+% %     \includegraphics[width=0.32\linewidth]{ICPR_2026_LaTeX_Templates/Lambda2_sigma10_1_0.png}
+% %     \includegraphics[width=0.32\linewidth]{ICPR_2026_LaTeX_Templates/Lambda2_sigma10_0_1.png}
+% %     \includegraphics[width=0.32\linewidth]{ICPR_2026_LaTeX_Templates/Lambda2_sigma10_0.66_0.33.png}
+% %     \caption{Map of $\lambda_2$ at $\sigma = 10 \texttt{\,px}$. Left: on Intensity. Center: on Depth. Right: on Fusion ($\tfrac23$ Intensity $+$ $\tfrac13$ Depth).\label{Lambda2}}
+% % \end{figure}
+
+\subsection{Metrics}\label{sec:metrics}
+A common measure for quantitatively evaluating similarity between two shapes is the \textsc{Jaccard} index \cite{Jaccard1901}, also known as \textit{Intersection Over Union} (\textsc{IoU}) \cite{IoUDeepLearning}. Defined for sets $A$ (Ground Truth) and $B$ (Prediction):
+\begin{equation}
+J(A,B) = \frac{\module{A \cap B}}{\module{A \cup B}}
+\end{equation}
+
+The \textsc{Tversky} index \cite{Tversky1977} generalizes Jaccard by decomposing the union. For parameters $\alpha, \beta$:
+\begin{equation}
+T(A, B) = \frac{\module{A \cap B}}{\module{A \cap B} + \alpha \module{A \setminus B} + \beta \module{B \setminus A}}
+\end{equation}
+We set $\alpha = 1$ and $\beta = 0.5$. This configuration penalizes False Positives ($\beta$) less than False Negatives ($\alpha$), which is appropriate for safety inspections where missing a crack is more critical than over-detection.
+Note that \textsc{Tversky} (and \textsc{Jaccard}) are very sensitive when $A$ and $B$ are 1-pixel wide networks; therefore, we apply a morphological dilation of 3 pixels to both skeletons before computing overlap metrics (an \textit{ad hoc} choice given the image resolution).
+
+Finally, the \textsc{Wasserstein} distance \cite{Wasserstein} measures the physical work to transport the distribution of the prediction to the ground truth, providing a spatially meaningful error metric for disjoint skeletons.
+
+\subsection{Results and Comparison}
+
+\subsubsection{Post-processing: Skeletonization}
+
+%[Parler de la squelettisation à la fois de la ground truth et des masques de CrackSegDiff et renvoyer au notebook pour les détails techniques ainsi que des illustrations.]
+
+To ensure a fair comparison, we apply morphological \textsc{Lee} skeletonization \cite{SciKitSkeletonization} to both the ground truth masks and the CrackSegDiff predictions. (See the notebook for technical details.)
+%This ensures that the metrics evaluate the topological overlap (1-pixel wide) rather than the segmentation width.
+
+\subsubsection{Results on the clean FIND dataset}
+
+We compare our method against CrackSegDiff \cite{CrackSegDiff2024}. As shown in Table~\ref{tab:ResultatsClean}, CrackSegDiff outperforms our method on clean data. This is expected, as the diffusion model learns to fit the training distribution perfectly (see Fig.~\ref{fig:CSD}). 
+The FIND dataset includes a ``Filtered'' modality (pre-processed Range). Incorporating this modality boosts performance (see Tab.~\ref{tab:ResultatsAblation}).
+With a \textsc{Tversky} index of 71\% and a Wasserstein distance of 11\,px, our unsupervised method effectively isolates the crack topology. These metrics demonstrate a high-fidelity recovery of the underlying structure (see Fig.~\ref{fig:Resultat}) without requiring any training labels.
+
+
+%We compare against CrackSegDiff \cite{CrackSegDiff2024} (trained on the 2000 last images of FIND), using the corrected fork provided in our repository\footnote{\href{}{Mettre CrackSegDiff sur le GitHub AYANA}}.
+%Table~\ref{tab:ResultatsClean} shows a clear advantage for CrackSegDiff.
+%[À noter que FIND propose une modalité ``Filtered'' consistant en un pré-traitement de la modalité Range, et supprimant les rainures parasites. Ce pré-traitement aide beaucoup notre méthode et améliore les résultats (voir Tab.~\ref{tab:ResultatsAblation}). Malheureusement dans l'incapacité de reproduire Filtered (afin de simuler un bruit consistant sur les trois modalités), nous nous sommes contentés de nous comparer avec CrackSegDiff avec les deux seules modalités Intensity et Range.
+
+%En outre, le Tab.~\ref{tab:ResultatsAblation} montre tout l'intérêt de la multi-modalité et le gain en performance à chaque ajout de modalité.]
+
+\begin{table}[h]
+    \centering
+    \caption{Performance on clean FIND data}
+    \label{tab:ResultatsClean}
+    \begin{tabular}{lccc}
+        \toprule
+        Method & \textsc{Jaccard} / IoU & \textsc{Tversky} & \textsc{Wasserstein} \\
+        \midrule
+        Ours  & 60\% & 68\% & 18\,px \\
+        % Ours (Range)     &  &  &  \\
+        % Ours (Fusion)    &  &  &  \\
+        \midrule
+        CrackSegDiff & \textbf{87\%} & \textbf{90\%} & \textbf{5\,px} \\
+        % CrackSegDiff (Range)     &  &  &  \\
+        % CrackSegDiff (Fusion)    &  &  &  \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+
+\begin{table}[h]
+    \centering
+    \caption{Performance on varying the modality weights. $I$: Intensity, $R$: Range, $F$: Filtered.}
+    \label{tab:ResultatsAblation}
+    \begin{tabular}{lccc}
+        \toprule
+        Weights & \textsc{Jaccard} / IoU & \textsc{Tversky} &  \textsc{Wasserstein} \\
+        \midrule
+        $I=1$  & 41\% & 48\% &  43\,px\\
+        \midrule
+        $R=1$  & 54\% & 62\% &  20\,px \\
+        \midrule
+        $F=1$  & 60\% & 68\% &  12\,px \\
+        \midrule
+        $I=\tfrac12, R=\tfrac12$  & 60\% & 68\% & 18\,px \\
+        \midrule
+        $I=\tfrac13, R=\tfrac13, F=\tfrac13$  &  \textbf{63\%} &  \textbf{71\%}&\textbf{11\,px}  \\
+        %\midrule
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+
+CrackSegDiff outperforms our method on clean data by overfitting the training distribution (Tab.~\ref{tab:ResultatsClean}, see also Fig.~\ref{fig:GT}~and~\ref{fig:CSD}). 
+However, our unsupervised method achieves a \textsc{Jaccard}/\textsc{Tversky} index around 65/70\% and a \textsc{Wasserstein} distance less than 20\,px on average, confirming that the topological structure of the crack network is accurately recovered (Fig.~\ref{fig:Resultat}).
+
+
+
+\subsubsection{Results on the noisy FIND}
+
+
+\begin{figure}[!h]
+    \centering
+    % Première image (a)
+    \begin{subfigure}[b]{0.6\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{Jaccard_noisy.png}
+        \caption{\textsc{Jaccard}}
+        \label{fig:Jaccard_noisy}
+    \end{subfigure}
+    %\hfill %% Important pour l'espacement
+    % Deuxième image (b)
+    \begin{subfigure}[b]{0.6\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{Tversky_noisy.png}
+        \caption{\textsc{Tversky}}
+        \label{fig:Tversky_noisy}
+    \end{subfigure}
+    %\hfill %% Important pour l'espacement
+    % Troisième image (c)
+    \begin{subfigure}[b]{0.6\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{Wasserstein_noisy.png}
+        \caption{\textsc{Wasserstein}}
+        \label{fig:Wasserstein_noisy}
+    \end{subfigure}
+    %\hfill %% Important pour l'espacement
+
+    \caption{The results on \emph{noisy} (both Intensity and Range) FIND (average scores and standard deviation). From top to bottom: (a) \textsc{Jaccard} index, (b)\textsc{Tversky} index and (c) \textsc{Wasserstein} distance. In red, \textcolor{myred}{our algorithm}; in green \textcolor{mygreen}{CrackSegDiff} results. $x$-axis: the noise, from $0$ to $0.5$ (see notebook for technical details). $y$-axis: performance, from 0\% to 100\% for (a) and (b), from 0\,px to 50\,px for (c).}
+    \label{Results_noisy}
+\end{figure}
+
+
+
+%CrackSegDiff outperforms our method on clean data, which is expected as it fits the training distribution. 
+
+%[Le modèle de diffusion CrackSegDiff apprend si bien que les masques ``épousent'' presque parfaitement la ground truth (voir Fig.~\ref{fig:GT}~and~\ref{fig:CSD}), expliquant ses résultats exceptionnellement bons. Toutefois, nous tenons à signaler que nos résultats sont tout à fait honorables et qu'un \textsc{Jaccard}\textsc{Tversky} aux alentours de 65/70\% et une distance de \textsc{Wasserstein} autour de 10\,px représente de très bons résultats comme ceux de la Fig.~\ref{fig:Resultat}.]
+
+
+
+
+%However, our method shows huge superior stability under noise and domain shift, as the geometric priors remain valid while the data-driven model falters.
+%This superiority is illustrated in Fig.~\ref{RobustesseNoisy}.
+%[Sur des résultats à bruit maximum comme en Fig.~\ref{fig:intensityNoisy}~and~\ref{fig:rangeNoisy}, notre algorithme donne de bien meilleurs résultats que CrackSegDiff. La distance moyenne de \textsc{Wasserstein} pour CrackSegDiff explose très rapidement avec de légers bruits du fait que CrackSegDiff se met à ne même plus détecter de failles sur certaines images.]
+Our method demonstrates superior stability under noise. As shown in Fig.~\ref{Results_noisy}, while CrackSegDiff's performance degrades rapidly (often failing to detect any structure in medium noise regimes, causing the \textsc{Wasserstein} error to explode) our geometric approach maintains consistent extraction. The topological priors encoded in the \Frangi{} Graph remain valid even when the pixel-wise signal-to-noise ratio drops.
+
+
+%\subsubsection{Ablation study}
+
+
+
+\subsection{Robustness to domain shift}
+
+{To demonstrate zero-shot capabilities, we present results on a fractured limestone wall forming part of the support structure of the \textit{Palais des Papes} (Avignon, France). Eight images were captured with a smartphone. % (iPhone SE, 24 MP, 5712 × 4284 pixels). 
+A point cloud was reconstructed via photogrammetry using the Metashape commercial software, from which both a digital depth model and an orthophoto were derived (Fig.~\ref{PalaisDesPapes}). The wall features a primary open fracture several centimeters deep, extending vertically from top to bottom. 
+Several smaller, less open fractures intersect it almost perpendicularly. 
+\textcolor{red}{Expliquer que ces petites fractures ne sont pas détectées car Depth ne les capture pas ?}
+This wall poses significant challenges for image processing due to its very light limestone surface, the diversity of fracture shapes and orientations, and subtle variations in depth and texture}
+
+\begin{figure}[!h]
+    \centering
+    % Première image (a)
+    \begin{subfigure}[b]{0.32\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{PalaisDesPapes.png}
+        \caption{Intensity}
+        \label{fig:intensityPapes}
+    \end{subfigure}
+    \hfill %% Important pour l'espacement
+    % Deuxième image (b)
+    \begin{subfigure}[b]{0.32\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{PalaisDesPapes_IntDepth.png}
+        \caption{Int + Range}
+        \label{fig:rangePapes}
+    \end{subfigure}
+    \hfill %% Important pour l'espacement
+    % Troisième image (c)
+    \begin{subfigure}[b]{0.32\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{PalaisDesPapes_Result.png}
+        \caption{Our result}
+        \label{fig:resultatPapes}
+    \end{subfigure}
+    \hfill %% Important pour l'espacement
+    \caption{Retaining rock wall of the \textit{Palais des Papes} (Avignon, France). From left to right: (a) Intensity superimposed with (b) Range (depth), (c) the result of our algorithm.}
+    \label{PalaisDesPapes}
+\end{figure}
+
+%To demonstrate zero-shot capabilities, we applied our method to a fractured limestone wall at the \emph{Palais des Papes} in Avignon (Fig.~\ref{PalaisDesPapes}). Images were acquired with a smartphone and depth reconstructed via photogrammetry. The wall features a primary vertical fracture intersecting with smaller perpendicular ones. Despite the domain shift (different sensor, material, and scale), our algorithm successfully extracts the network by fusing Intensity and Range. 
+
+Similar robustness was demonstrated on geological data from the \emph{Vaches Noires} cliffs \cite{BibiStrasbourg}.
+
+%[Mentionner le Gretsi et les Vaches noires \cite{BibiStrasbourg}.]
+
+\section{Conclusion}
+
+%[Étoffer la conclusion]
+
+We presented a ``universal'' unsupervised framework for multi-modal crack extraction. By generalizing the \Frangi{} filter to multi-modal graphs and leveraging topological centrality, we achieve robust extraction without training. %The Avignon case study confirms the method's versatility. 
+
+While supervised models excel on in-distribution data, our geometric approach offers superior stability under severe noise and successfully handles zero-shot domain shifts.
+
+Future work will apply this pipeline to the massive 3DCrack dataset \cite{Zhang2025Review}. We also emphasize that while our method is robust, high-quality pre-processing (like the FIND Filtered modality) remains a critical factor for maximizing topological fidelity.
+%- Parler de la nécessité d'avoir des données propres ; un pré-traitement souvent nécessaire et utile ; parler de la modalité Filtered (et le fait qu'elle fasse gagner 2/3\%  sur les similarités).
+
+% \section*{Appendix: Excluded Images}
+% Images excluded due to inconsistent physical properties (inverted contrast/artifacts) in the first 500 images of the FIND test set: [1, 39, 42, 133, 152, 203, 204, 206, 397, 411, 414, 415, 431, 449, 452, 457, 460, 461, 465, 469, 471, 475, 478]
+
+{\footnotesize
+\section*{Acknowledgment}
+
+The Inria authors acknowledge Bpifrance for partial financial support through the LiChIE contract (2020-2025).
+%[Airbus DS ?]
+The first author also thanks Université Côte d’Azur (UniCA) for funding his PhD thesis \textit{via} the DS4H (ANR-17-EURE-0004) and 3IA (ANR-19-P3IA-0002) programs.
+
+}
+{\footnotesize
+\section*{Reproducibility and availability of the code/data}
+
+We provide all necessary materials to fully reproduce our experiments:
+\begin{itemize}
+    \item Our \Frangi{}-Generalized GitHub repo \cite{GitHubGeneralizedFrangi2026} containing the code and Colab python notebook reproducing all tables and figures present in this paper. This notebook provides also the FIND \cite{FIND2022} benchmark and our \textit{Palais des Papes} test. The users need a Google account to reproduce on their Drive our architecture, providing the CrackSegDiff masks. These masks can be generated using our corrected CrackSegDiff GitHub fork (see next).
+    \item Our corrected CrackSegDiff GitHub fork with an additional Colab python notebook which is automatically training and generating the masks. \textcolor{red}{\href{}{Mettre un lien. Le mettre sur le GitHub AYANA ?}}
+\end{itemize}
+}
+
+\bibliographystyle{IEEEtran}
+\bibliography{IEEEabrv,Biblio_comp_est_densite.bib}
+
+
+
+% that's all folks
+\end{document}
+
+
