@@ -1,7 +1,5 @@
 # Universal and Robust Multi-Modal Crack Extraction via Generalized Frangi Graphs
 
-**EUSIPCO 2026**
-
 This repository contains the official implementation of our paper: **"Multi-Modal, Training-Free Crack Extraction *via* Generalized Frangi Graph"**.
 
 We propose a "universal", **training-free approach** that robustly extracts crack networks across varying data distributions (from civil infrastructure to geological faults). Our method generalizes the classical **Frangi vesselness filter** to the multi-modal setting, fusing photometric (intensity) and geometric (range/depth) data at the Hessian level. Instead of pixel-wise classification, we construct a sparse graph driven by a pairwise Frangi similarity metric and extract a topological skeleton using **Weighted Betweenness Centrality**.
@@ -46,9 +44,17 @@ To fully reproduce the comparison with state-of-the-art methods (specifically **
 
 ## 📄 Citation
 
-If you use this code for your research, please cite our paper:
+If you use this code for your research, please cite:
 
 ```bibtex
+@misc{GitHubGeneralizedFrangi2026,
+  author       = {Louis Hauseux},
+  title        = {{Generalized Frangi with Multi‑modal Fusion on FIND fault benchmark}},
+  year         = {2026},
+  howpublished = {\url{https://github.com/Ayana-Inria/Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset}},
+  note         = {GitHub repository}
+}
+
 @misc{HauseuxEUSIPCO2026,
   title={Multi-Modal, Training-Free Crack Extraction via Generalized Frangi Graph},
   author={Hauseux, Louis and Antoine, Raphaël and Foucher, Philippe and Charbonnier, Pierre and Zerubia, Josiane},
