@@ -38,13 +38,13 @@ class StegerHessian:
     def compute_hessian(self, image_tensor):
         """
         Computes Hessian components (Ixx, Ixy, Iyy) for a batch of images.
+        Uses replication padding to minimize boundary effects.
         image_tensor: (B, 1, H, W)
         """
         if image_tensor.device != self.device:
             image_tensor = image_tensor.to(self.device)
 
         # Reshape kernels for conv2d: (out_channels, in_channels, kH, kW)
-        
         k0 = self.kernels['0'].view(1, 1, 1, -1)  # (1, 1, 1, W) - Horizontal
         k1 = self.kernels['1'].view(1, 1, 1, -1)
         k2 = self.kernels['2'].view(1, 1, 1, -1)
@@ -53,27 +53,54 @@ class StegerHessian:
         k1_T = k1.transpose(2, 3)
         k2_T = k2.transpose(2, 3)
 
-        # Padding to keep size same
-        pad = k0.shape[3] // 2
+        pad_size = k0.shape[3] // 2
         
+        # Helper for separable convolution with replication padding
+        def convolve_sep(input_tensor, k_horz, k_vert):
+            # Horizontal pass
+            # Pad (Left, Right, Top, Bottom) -> (pad, pad, 0, 0)
+            padded_h = F.pad(input_tensor, (pad_size, pad_size, 0, 0), mode='replicate')
+            temp = F.conv2d(padded_h, k_horz)
+            
+            # Vertical pass
+            # Pad (0, 0, pad, pad)
+            padded_v = F.pad(temp, (0, 0, pad_size, pad_size), mode='replicate')
+            out = F.conv2d(padded_v, k_vert)
+            return out
+
         # Ixx: deriv 2 in x, smooth in y -> (I * G''_x) * G_y
-        ixx_temp = F.conv2d(image_tensor, k2, padding=(0, pad))
-        ixx = F.conv2d(ixx_temp, k0_T, padding=(pad, 0))
+        ixx = convolve_sep(image_tensor, k2, k0_T)
 
         # Iyy: deriv 2 in y, smooth in x -> (I * G_x) * G''_y
-        iyy_temp = F.conv2d(image_tensor, k0, padding=(0, pad))
-        iyy = F.conv2d(iyy_temp, k2_T, padding=(pad, 0))
+        iyy = convolve_sep(image_tensor, k0, k2_T)
 
         # Ixy: deriv 1 in x, deriv 1 in y -> (I * G'_x) * G'_y
-        ixy_temp = F.conv2d(image_tensor, k1, padding=(0, pad))
-        ixy = F.conv2d(ixy_temp, k1_T, padding=(pad, 0))
+        ixy = convolve_sep(image_tensor, k1, k1_T)
         
         # Also compute Ix and Iy for Steger (1st derivatives)
         # Ix: (I * G'_x) * G_y
-        ix = F.conv2d(ixy_temp, k0_T, padding=(pad, 0))
+        ix = convolve_sep(image_tensor, k1, k0_T)
         
         # Iy: (I * G_x) * G'_y
-        iy = F.conv2d(iyy_temp, k1_T, padding=(pad, 0))
+        iy = convolve_sep(image_tensor, k0, k1_T)
+
+        # Zero out the borders to remove padding artifacts
+        pad = pad_size
+        if pad > 0:
+            ix[:, :, :pad, :] = 0; ix[:, :, -pad:, :] = 0
+            ix[:, :, :, :pad] = 0; ix[:, :, :, -pad:] = 0
+            
+            iy[:, :, :pad, :] = 0; iy[:, :, -pad:, :] = 0
+            iy[:, :, :, :pad] = 0; iy[:, :, :, -pad:] = 0
+
+            ixx[:, :, :pad, :] = 0; ixx[:, :, -pad:, :] = 0
+            ixx[:, :, :, :pad] = 0; ixx[:, :, :, -pad:] = 0
+
+            ixy[:, :, :pad, :] = 0; ixy[:, :, -pad:, :] = 0
+            ixy[:, :, :, :pad] = 0; ixy[:, :, :, -pad:] = 0
+
+            iyy[:, :, :pad, :] = 0; iyy[:, :, -pad:, :] = 0
+            iyy[:, :, :, :pad] = 0; iyy[:, :, :, -pad:] = 0
 
         return ix, iy, ixx, ixy, iyy
 
@@ -90,10 +117,9 @@ class StegerHessian:
         # Discriminant: sqrt(tr^2 - 4*det) = sqrt((Ixx-Iyy)^2 + 4Ixy^2)
         disc = torch.sqrt((ixx - iyy)**2 + 4 * ixy**2)
         
-        # Eigenvalues
+        # Eigenvalues (λ1, λ2)
         λ1 = (trace - disc) / 2
         λ2 = (trace + disc) / 2
-        
         return λ1, λ2
 
     def compute_steger_center(self, ix, iy, ixx, ixy, iyy, λ1, λ2):
@@ -129,7 +155,7 @@ class StegerHessian:
 
 if __name__ == "__main__":
     # Simple test
-    print("Testing Steger GPU (with Greek notation)...")
+    print("Testing Steger GPU (with Greek notation & Replication padding)...")
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     
     steger = StegerHessian(σ=2.0, device=device)
