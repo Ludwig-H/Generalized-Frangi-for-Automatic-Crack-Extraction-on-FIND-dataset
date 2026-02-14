@@ -13,3 +13,6 @@ imageio
 pandas
 Pillow
 pot
+torch
+torchvision
+rasterio
