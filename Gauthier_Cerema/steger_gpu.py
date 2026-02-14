@@ -84,24 +84,6 @@ class StegerHessian:
         # Iy: (I * G_x) * G'_y
         iy = convolve_sep(image_tensor, k0, k1_T)
 
-        # Zero out the borders to remove padding artifacts
-        pad = pad_size
-        if pad > 0:
-            ix[:, :, :pad, :] = 0; ix[:, :, -pad:, :] = 0
-            ix[:, :, :, :pad] = 0; ix[:, :, :, -pad:] = 0
-            
-            iy[:, :, :pad, :] = 0; iy[:, :, -pad:, :] = 0
-            iy[:, :, :, :pad] = 0; iy[:, :, :, -pad:] = 0
-
-            ixx[:, :, :pad, :] = 0; ixx[:, :, -pad:, :] = 0
-            ixx[:, :, :, :pad] = 0; ixx[:, :, :, -pad:] = 0
-
-            ixy[:, :, :pad, :] = 0; ixy[:, :, -pad:, :] = 0
-            ixy[:, :, :, :pad] = 0; ixy[:, :, :, -pad:] = 0
-
-            iyy[:, :, :pad, :] = 0; iyy[:, :, -pad:, :] = 0
-            iyy[:, :, :, :pad] = 0; iyy[:, :, :, -pad:] = 0
-
         return ix, iy, ixx, ixy, iyy
 
     def compute_eigenvalues(self, ixx, ixy, iyy):
