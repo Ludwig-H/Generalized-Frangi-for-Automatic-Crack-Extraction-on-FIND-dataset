@@ -54,7 +54,29 @@ def build_steger_graph(ix, iy, ixx, ixy, iyy,
     nx = torch.cos(theta)
     ny = torch.sin(theta)
     
+    # Check if (nx, ny) is the direction of MAX absolute curvature (normal to line)
+    # The formula for theta gives one eigenvector, but we need the one with max |eigenvalue|.
+    
+    # Curvature along current n
+    k_n = (nx**2)*ixx + 2*nx*ny*ixy + (ny**2)*iyy
+    
+    # Curvature along orthogonal vector (-ny, nx)
+    nx_orth = -ny
+    ny_orth = nx
+    k_orth = (nx_orth**2)*ixx + 2*nx_orth*ny_orth*ixy + (ny_orth**2)*iyy
+    
+    # If orthogonal curvature is stronger, swap
+    mask_swap = torch.abs(k_orth) > torch.abs(k_n)
+    
+    # Apply swap
+    nx_final = torch.where(mask_swap, nx_orth, nx)
+    ny_final = torch.where(mask_swap, ny_orth, ny)
+    
+    nx = nx_final
+    ny = ny_final
+    
     # Direction of the line (perpendicular to normal)
+    # If n is normal, u is tangent. u = (-ny, nx)
     ux = -ny
     uy = nx
     
