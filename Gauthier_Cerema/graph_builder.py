@@ -17,7 +17,7 @@ def build_steger_graph(ix, iy, ixx, ixy, iyy,
                        dark_ridges=True,
                        batch_size=2048): # Batch size for GPU distance matrix
     """
-    Builds a sparse similarity graph from Steger filter outputs completely on GPU (where feasible).
+    Builds a sparse graph from Steger filter outputs completely on GPU (where feasible).
     
     Args:
         ix, iy, ixx, ixy, iyy: Tensor components of the Hessian (fused or single) on GPU.
@@ -28,7 +28,7 @@ def build_steger_graph(ix, iy, ixx, ixy, iyy,
                             
     Returns:
         nodes_data (dict): Contains 'coords' (Nx2), 'directions' (Nx2), 'l2' (N) (as numpy arrays for viz).
-        adj_matrix (scipy.sparse.csr_matrix): Sparse adjacency matrix.
+        adj_matrix (scipy.sparse.csr_matrix): Sparse adjacency matrix containing DISSIMILARITY weights.
     """
     
     device = ix.device
@@ -142,9 +142,11 @@ def build_steger_graph(ix, iy, ixx, ixy, iyy,
         # Avoid div by zero (mask ensures dist > 0 effectively since j > i)
         vec_ij_norm = vec_ij / (dist_vals.unsqueeze(1) + 1e-8)
         
-        # Directions
+        # Directions and Lambda2
         u_i = directions[rows_global]
         u_j = directions[cols]
+        l2_i = l2_val[rows_global]
+        l2_j = l2_val[cols]
         
         # Cross Product Dissimilarity
         # 2D cross product: x1*y2 - x2*y1
@@ -154,13 +156,18 @@ def build_steger_graph(ix, iy, ixx, ixy, iyy,
         cross_i = torch.abs(cross_2d(vec_ij_norm, u_i))
         cross_j = torch.abs(cross_2d(vec_ij_norm, u_j))
         
-        dissim = (cross_i + cross_j) / 2.0
-        similarity = torch.clamp(1.0 - dissim, min=0.0, max=1.0)
+        # Dissimilarity formula: Distance * (Cross_i * |L2_i| + Cross_j * |L2_j|)
+        # Note: l2_val is already |lambda2| (max abs eigenvalue)
+        
+        # Weighted alignment term
+        align_term = cross_i * l2_i + cross_j * l2_j
+        
+        dissim = dist_vals * align_term
         
         # Store results (move to CPU to save GPU RAM for next batches)
         all_rows.append(rows_global.cpu())
         all_cols.append(cols.cpu())
-        all_sims.append(similarity.cpu())
+        all_sims.append(dissim.cpu())
     
     # --- 5. Construct Sparse Matrix ---
     
