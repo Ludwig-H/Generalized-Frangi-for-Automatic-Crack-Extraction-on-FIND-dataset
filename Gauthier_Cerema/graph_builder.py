@@ -80,6 +80,22 @@ def build_steger_graph(ix, iy, ixx, ixy, iyy,
     # Offset is (t*nx, t*ny)
     steger_pos_check = (torch.abs(t * nx) <= 0.5) & (torch.abs(t * ny) <= 0.5)
     
+    # Debug Stats
+    n_total = mag_check.numel()
+    n_mag = mag_check.sum().item()
+    n_sign = sign_check.sum().item()
+    n_steger = steger_pos_check.sum().item()
+    n_combined = (mag_check & sign_check).sum().item()
+    n_final = (mag_check & sign_check & steger_pos_check & mask_nonzero).sum().item()
+    
+    print(f"--- Debug Node Extraction ---")
+    print(f"Total pixels: {n_total}")
+    print(f"Pass Magnitude (>{τ}): {n_mag} ({n_mag/n_total:.1%})")
+    print(f"Pass Sign (Dark={dark_ridges}): {n_sign} ({n_sign/n_total:.1%})")
+    print(f"Pass Mag + Sign: {n_combined} ({n_combined/n_total:.1%})")
+    print(f"Pass Steger Position: {n_steger} ({n_steger/n_total:.1%})")
+    print(f"Final Nodes: {n_final}")
+    
     valid_mask = steger_pos_check & mag_check & sign_check & mask_nonzero
     
     # Get indices (y, x)
