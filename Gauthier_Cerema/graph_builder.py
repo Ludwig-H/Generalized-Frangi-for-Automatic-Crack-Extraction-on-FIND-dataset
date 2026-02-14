@@ -15,7 +15,8 @@ def build_steger_graph(ix, iy, ixx, ixy, iyy,
                        R=10.0, 
                        τ=0.1, 
                        dark_ridges=True,
-                       batch_size=2048): # Batch size for GPU distance matrix
+                       batch_size=2048,
+                       steger_tolerance=0.5): # Tolerance for sub-pixel position (default 0.5)
     """
     Builds a sparse graph from Steger filter outputs completely on GPU (where feasible).
     
@@ -25,6 +26,7 @@ def build_steger_graph(ix, iy, ixx, ixy, iyy,
         τ (float): Threshold for |lambda2|.
         dark_ridges (bool): If True, implies we are looking for ridges/valleys.
         batch_size (int): Number of rows to process at once for distance calculation.
+        steger_tolerance (float): Max distance from pixel center to be accepted (default 0.5).
                             
     Returns:
         nodes_data (dict): Contains 'coords' (Nx2), 'directions' (Nx2), 'l2' (N) (as numpy arrays for viz).
@@ -76,9 +78,9 @@ def build_steger_graph(ix, iy, ixx, ixy, iyy,
         # Ridges (bright lines) -> Negative curvature -> lambda < 0
         sign_check = lambda_sorted < 0
         
-    # Steger condition: sub-pixel offset must be within [-0.5, 0.5] in both x and y
+    # Steger condition: sub-pixel offset must be within [-tolerance, tolerance] in both x and y
     # Offset is (t*nx, t*ny)
-    steger_pos_check = (torch.abs(t * nx) <= 0.5) & (torch.abs(t * ny) <= 0.5)
+    steger_pos_check = (torch.abs(t * nx) <= steger_tolerance) & (torch.abs(t * ny) <= steger_tolerance)
     
     # Debug Stats
     n_total = mag_check.numel()
@@ -93,7 +95,7 @@ def build_steger_graph(ix, iy, ixx, ixy, iyy,
     print(f"Pass Magnitude (>{τ}): {n_mag} ({n_mag/n_total:.1%})")
     print(f"Pass Sign (Dark={dark_ridges}): {n_sign} ({n_sign/n_total:.1%})")
     print(f"Pass Mag + Sign: {n_combined} ({n_combined/n_total:.1%})")
-    print(f"Pass Steger Position: {n_steger} ({n_steger/n_total:.1%})")
+    print(f"Pass Steger Position (tol={steger_tolerance}): {n_steger} ({n_steger/n_total:.1%})")
     print(f"Final Nodes: {n_final}")
     
     valid_mask = steger_pos_check & mag_check & sign_check & mask_nonzero
@@ -115,7 +117,7 @@ def build_steger_graph(ix, iy, ixx, ixy, iyy,
     ny_val = ny.squeeze()[y_idx, x_idx]
     ux_val = ux.squeeze()[y_idx, x_idx]
     uy_val = uy.squeeze()[y_idx, x_idx]
-    l2_val = lambda_sorted.squeeze()[y_idx, x_idx] # Signed value now
+    l2_val = lambda_sorted.squeeze()[y_idx, x_idx] # Signed value
     abs_l2_val = torch.abs(l2_val)
     
     # Compute sub-pixel coordinates (GPU)
