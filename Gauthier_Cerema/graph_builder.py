@@ -42,9 +42,10 @@ def build_steger_graph(ix, iy, ixx, ixy, iyy,
     # Eigenvalues (sorted by abs magnitude)
     l1_raw = (trace - disc) / 2
     l2_raw = (trace + disc) / 2
-    abs_l1 = torch.abs(l1_raw)
-    abs_l2 = torch.abs(l2_raw)
-    lambda_max = torch.maximum(abs_l1, abs_l2)
+    
+    # We need to determine which one is the max absolute eigenvalue and keep its sign
+    mask_l1_bigger = torch.abs(l1_raw) > torch.abs(l2_raw)
+    lambda_sorted = torch.where(mask_l1_bigger, l1_raw, l2_raw)
     
     # Orientation (theta)
     theta = 0.5 * torch.atan2(2 * ixy, ixx - iyy)
@@ -64,7 +65,18 @@ def build_steger_graph(ix, iy, ixx, ixy, iyy,
     t[mask_nonzero] = -dir_deriv_1[mask_nonzero] / dir_deriv_2[mask_nonzero]
     
     # --- 2. Node Selection (GPU) ---
-    valid_mask = (torch.abs(t) <= 0.5) & (lambda_max > τ) & mask_nonzero
+    # Filter by magnitude
+    mag_check = torch.abs(lambda_sorted) > τ
+    
+    # Filter by sign
+    if dark_ridges:
+        # Valleys (dark lines) -> Positive curvature -> lambda > 0
+        sign_check = lambda_sorted > 0
+    else:
+        # Ridges (bright lines) -> Negative curvature -> lambda < 0
+        sign_check = lambda_sorted < 0
+        
+    valid_mask = (torch.abs(t) <= 0.5) & mag_check & sign_check & mask_nonzero
     
     # Get indices (y, x)
     # Note: torch.nonzero returns (N, 4) for (B, C, H, W)
@@ -83,7 +95,8 @@ def build_steger_graph(ix, iy, ixx, ixy, iyy,
     ny_val = ny.squeeze()[y_idx, x_idx]
     ux_val = ux.squeeze()[y_idx, x_idx]
     uy_val = uy.squeeze()[y_idx, x_idx]
-    l2_val = lambda_max.squeeze()[y_idx, x_idx]
+    l2_val = lambda_sorted.squeeze()[y_idx, x_idx] # Signed value now
+    abs_l2_val = torch.abs(l2_val)
     
     # Compute sub-pixel coordinates (GPU)
     px = x_idx.float() + t_val * nx_val
@@ -145,8 +158,8 @@ def build_steger_graph(ix, iy, ixx, ixy, iyy,
         # Directions and Lambda2
         u_i = directions[rows_global]
         u_j = directions[cols]
-        l2_i = l2_val[rows_global]
-        l2_j = l2_val[cols]
+        l2_i = abs_l2_val[rows_global]
+        l2_j = abs_l2_val[cols]
         
         # Cross Product Dissimilarity
         # 2D cross product: x1*y2 - x2*y1
