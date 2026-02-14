@@ -156,13 +156,15 @@ def build_steger_graph(ix, iy, ixx, ixy, iyy,
         cross_i = torch.abs(cross_2d(vec_ij_norm, u_i))
         cross_j = torch.abs(cross_2d(vec_ij_norm, u_j))
         
-        # Dissimilarity formula: Distance * (Cross_i * |L2_i| + Cross_j * |L2_j|)
-        # Note: l2_val is already |lambda2| (max abs eigenvalue)
+        # Dissimilarity formula: Distance * ( (1 + Cross_i)/|L2_i| + (1 + Cross_j)/|L2_j| )
+        # We add 1.0 to cross product so that even perfectly aligned segments have a cost 
+        # inversely proportional to their intensity (stronger = cheaper).
         
-        # Weighted alignment term
-        align_term = cross_i * l2_i + cross_j * l2_j
+        eps = 1e-6
+        term_i = (1.0 + cross_i) / (l2_i + eps)
+        term_j = (1.0 + cross_j) / (l2_j + eps)
         
-        dissim = dist_vals * align_term
+        dissim = dist_vals * (term_i + term_j) / 2.0
         
         # Store results (move to CPU to save GPU RAM for next batches)
         all_rows.append(rows_global.cpu())
