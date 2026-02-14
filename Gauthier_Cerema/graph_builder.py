@@ -76,7 +76,11 @@ def build_steger_graph(ix, iy, ixx, ixy, iyy,
         # Ridges (bright lines) -> Negative curvature -> lambda < 0
         sign_check = lambda_sorted < 0
         
-    valid_mask = (torch.abs(t) <= 0.5) & mag_check & sign_check & mask_nonzero
+    # Steger condition: sub-pixel offset must be within [-0.5, 0.5] in both x and y
+    # Offset is (t*nx, t*ny)
+    steger_pos_check = (torch.abs(t * nx) <= 0.5) & (torch.abs(t * ny) <= 0.5)
+    
+    valid_mask = steger_pos_check & mag_check & sign_check & mask_nonzero
     
     # Get indices (y, x)
     # Note: torch.nonzero returns (N, 4) for (B, C, H, W)
