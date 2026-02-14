@@ -100,8 +100,19 @@ class StegerHessian:
         disc = torch.sqrt((ixx - iyy)**2 + 4 * ixy**2)
         
         # Eigenvalues (λ1, λ2)
-        λ1 = (trace - disc) / 2
-        λ2 = (trace + disc) / 2
+        l1 = (trace - disc) / 2
+        l2 = (trace + disc) / 2
+        
+        # Sort by absolute value so that |λ1| <= |λ2|
+        # This matches the convention used in src/frangi_fusion/hessian.py
+        abs_l1 = torch.abs(l1)
+        abs_l2 = torch.abs(l2)
+        
+        swap_mask = abs_l1 > abs_l2
+        
+        λ1 = torch.where(swap_mask, l2, l1)
+        λ2 = torch.where(swap_mask, l1, l2)
+        
         return λ1, λ2
 
     def compute_steger_center(self, ix, iy, ixx, ixy, iyy, λ1, λ2):
