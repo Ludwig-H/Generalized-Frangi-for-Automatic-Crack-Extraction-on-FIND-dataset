@@ -31,7 +31,7 @@ def main():
     # Using the Avignon image as a proxy for the user's data
     input_path = "data_avignon/Ortho_new_extrait.tif" 
     output_dir = "Gauthier_Cerema/results"
-    sigma = 3.0  # Adjustable scale parameter
+    σ = 3.0  # Adjustable scale parameter (sigma)
     
     if not os.path.exists(input_path):
         print(f"Error: Input file {input_path} not found.")
@@ -56,17 +56,17 @@ def main():
     img_tensor = torch.from_numpy(img_np).unsqueeze(0).unsqueeze(0).to(device)
     
     # 2. Steger Filter
-    print(f"Running Steger Filter (sigma={sigma})...")
-    steger = StegerHessian(sigma=sigma, device=device)
+    print(f"Running Steger Filter (σ={σ})...")
+    steger = StegerHessian(σ=σ, device=device)
     
     ix, iy, ixx, ixy, iyy = steger.compute_hessian(img_tensor)
-    l1, l2 = steger.compute_eigenvalues(ixx, ixy, iyy)
-    t, valid_mask, nx, ny = steger.compute_steger_center(ix, iy, ixx, ixy, iyy, l1, l2)
+    λ1, λ2 = steger.compute_eigenvalues(ixx, ixy, iyy)
+    t, valid_mask, nx, ny = steger.compute_steger_center(ix, iy, ixx, ixy, iyy, λ1, λ2)
     
     # 3. Process Results
     # Create a "Line Strength" map
-    # We use the magnitude of the max curvature (l2) masked by valid points
-    line_strength = torch.abs(l2) * valid_mask.float()
+    # We use the magnitude of the max curvature (λ2) masked by valid points
+    line_strength = torch.abs(λ2) * valid_mask.float()
     
     # Normalize for visualization
     line_strength_np = line_strength.squeeze().cpu().numpy()
@@ -85,7 +85,7 @@ def main():
     plt.axis('off')
     
     plt.subplot(1, 3, 2)
-    plt.title(f"Steger Response (sigma={sigma})")
+    plt.title(f"Steger Response (σ={σ})")
     plt.imshow(line_strength_np, cmap='inferno')
     plt.axis('off')
     
