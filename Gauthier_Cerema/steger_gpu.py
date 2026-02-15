@@ -88,63 +88,78 @@ class StegerHessian:
 
     def compute_eigenvalues(self, ixx, ixy, iyy):
         """
-        Computes eigenvalues and eigenvectors of the Hessian.
+        Computes eigenvalues of the Hessian, sorted by absolute magnitude.
         Returns:
-            λ1, λ2: Eigenvalues
+            λ1, λ2: Eigenvalues where |λ2| >= |λ1|
         """
-        # Trace = λ1 + λ2 = Ixx + Iyy
-        # Det = λ1*λ2 = Ixx*Iyy - Ixy^2
-        
         trace = ixx + iyy
-        # Discriminant: sqrt(tr^2 - 4*det) = sqrt((Ixx-Iyy)^2 + 4Ixy^2)
         disc = torch.sqrt((ixx - iyy)**2 + 4 * ixy**2)
         
-        # Eigenvalues (λ1, λ2)
-        l1 = (trace - disc) / 2
-        l2 = (trace + disc) / 2
+        l_plus = (trace + disc) / 2
+        l_minus = (trace - disc) / 2
         
-        # Sort by absolute value so that |λ1| <= |λ2|
-        # This matches the convention used in src/frangi_fusion/hessian.py
-        abs_l1 = torch.abs(l1)
-        abs_l2 = torch.abs(l2)
+        abs_l_plus = torch.abs(l_plus)
+        abs_l_minus = torch.abs(l_minus)
         
-        swap_mask = abs_l1 > abs_l2
+        mask_minus_bigger = abs_l_minus > abs_l_plus
         
-        λ1 = torch.where(swap_mask, l2, l1)
-        λ2 = torch.where(swap_mask, l1, l2)
+        λ2 = torch.where(mask_minus_bigger, l_minus, l_plus)
+        λ1 = torch.where(mask_minus_bigger, l_plus, l_minus)
         
         return λ1, λ2
 
-    def compute_steger_center(self, ix, iy, ixx, ixy, iyy, λ1, λ2):
+    def compute_steger_center(self, ix, iy, ixx, ixy, iyy):
         """
-        Implements Steger's line center extraction.
-        t = - (nx*rx + ny*ry) / (nx^2*rxx + 2*nx*ny*rxy + ny^2*ryy)
-        Ideally t = - (n^T * grad) / λ
+        Implements Steger's line center extraction with rigorous eigenvector sorting.
+        Returns:
+            t: Subpixel offset along the normal
+            valid_mask: Boolean mask of valid points
+            nx, ny: Components of the normal vector (eigenvector of max curvature)
+            l2: The eigenvalue corresponding to the normal (max curvature)
         """
+        # 1. Eigenvalues formulas (λ+, λ-)
+        trace = ixx + iyy
+        disc = torch.sqrt((ixx - iyy)**2 + 4 * ixy**2)
         
-        # Orientation of the structure (perpendicular to normal)
-        # Angle θ of the eigenvector corresponding to λ2 (max curvature)
-        θ = 0.5 * torch.atan2(2 * ixy, ixx - iyy)
-        nx = torch.cos(θ)
-        ny = torch.sin(θ)
+        l_plus = (trace + disc) / 2
+        l_minus = (trace - disc) / 2
         
-        # Term 1: Directional derivative (n^T * grad)
+        # 2. Angle and Eigenvectors
+        # θ = 0.5 * atan2(2b, a-c)
+        # v+ = (cos θ, sin θ)
+        # v- = (-sin θ, cos θ)
+        theta = 0.5 * torch.atan2(2 * ixy, ixx - iyy)
+        cos_t = torch.cos(theta)
+        sin_t = torch.sin(theta)
+        
+        # 3. Sort by absolute magnitude to find normal n (max curvature)
+        # We want λ2 such that |λ2| >= |λ1|
+        abs_l_plus = torch.abs(l_plus)
+        abs_l_minus = torch.abs(l_minus)
+        
+        mask_minus_bigger = abs_l_minus > abs_l_plus
+        
+        # If |λ-| > |λ+|, then n = v- and λ2 = λ-
+        # Else n = v+ and λ2 = λ+
+        l2 = torch.where(mask_minus_bigger, l_minus, l_plus)
+        
+        nx = torch.where(mask_minus_bigger, -sin_t, cos_t)
+        ny = torch.where(mask_minus_bigger, cos_t, sin_t)
+        
+        # 4. Steger computation t
+        # t = - (∇r · n) / (n^T H n)
+        # By definition, n^T H n = λ2
         dir_deriv_1 = nx * ix + ny * iy
         
-        # Term 2: Second directional derivative (eigenvalue λ)
-        # Ideally this is λ2.
-        dir_deriv_2 = λ2 
-        
-        # Calculate t
         # Avoid division by zero
-        mask_nonzero = torch.abs(dir_deriv_2) > 1e-6
-        t = torch.zeros_like(dir_deriv_1)
-        t[mask_nonzero] = -dir_deriv_1[mask_nonzero] / dir_deriv_2[mask_nonzero]
+        mask_nonzero = torch.abs(l2) > 1e-6
+        t = torch.zeros_like(l2)
+        t[mask_nonzero] = -dir_deriv_1[mask_nonzero] / l2[mask_nonzero]
         
-        # Valid mask: |t| <= 0.5 and curvature is sufficiently high
+        # Valid mask: |t| <= 0.5
         valid_mask = (torch.abs(t) <= 0.5) & mask_nonzero
         
-        return t, valid_mask, nx, ny
+        return t, valid_mask, nx, ny, l2
 
 if __name__ == "__main__":
     # Simple test
@@ -158,5 +173,10 @@ if __name__ == "__main__":
     ix, iy, ixx, ixy, iyy = steger.compute_hessian(dummy_img)
     λ1, λ2 = steger.compute_eigenvalues(ixx, ixy, iyy)
     
+    # Test new steger center computation
+    t, valid, nx, ny, l2_val = steger.compute_steger_center(ix, iy, ixx, ixy, iyy)
+    
     print(f"Max Ixx value: {ixx.max().item()}")
+    print(f"Max Lambda2 value: {l2_val.max().item()}")
+    print(f"Number of valid points: {valid.sum().item()}")
     print("Done.")

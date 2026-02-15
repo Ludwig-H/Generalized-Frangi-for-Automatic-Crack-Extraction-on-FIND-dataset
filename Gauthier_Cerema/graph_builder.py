@@ -41,52 +41,45 @@ def build_steger_graph(ix, iy, ixx, ixy, iyy,
     trace = ixx + iyy
     disc = torch.sqrt((ixx - iyy)**2 + 4 * ixy**2)
     
-    # Eigenvalues (sorted by abs magnitude)
-    l1_raw = (trace - disc) / 2
-    l2_raw = (trace + disc) / 2
+    # Eigenvalues (λ+, λ-)
+    l_plus = (trace + disc) / 2
+    l_minus = (trace - disc) / 2
     
-    # We need to determine which one is the max absolute eigenvalue and keep its sign
-    mask_l1_bigger = torch.abs(l1_raw) > torch.abs(l2_raw)
-    lambda_sorted = torch.where(mask_l1_bigger, l1_raw, l2_raw)
-    
-    # Orientation (theta)
+    # Angle and Eigenvectors
+    # θ = 0.5 * atan2(2b, a-c)
     theta = 0.5 * torch.atan2(2 * ixy, ixx - iyy)
-    nx = torch.cos(theta)
-    ny = torch.sin(theta)
+    cos_t = torch.cos(theta)
+    sin_t = torch.sin(theta)
     
-    # Check if (nx, ny) is the direction of MAX absolute curvature (normal to line)
-    # The formula for theta gives one eigenvector, but we need the one with max |eigenvalue|.
+    # Sort by absolute magnitude to find normal n (max curvature)
+    # We want λ2 such that |λ2| >= |λ1|
+    abs_l_plus = torch.abs(l_plus)
+    abs_l_minus = torch.abs(l_minus)
     
-    # Curvature along current n
-    k_n = (nx**2)*ixx + 2*nx*ny*ixy + (ny**2)*iyy
+    mask_minus_bigger = abs_l_minus > abs_l_plus
     
-    # Curvature along orthogonal vector (-ny, nx)
-    nx_orth = -ny
-    ny_orth = nx
-    k_orth = (nx_orth**2)*ixx + 2*nx_orth*ny_orth*ixy + (ny_orth**2)*iyy
+    # lambda_sorted is the eigenvalue with max absolute magnitude (λ2)
+    lambda_sorted = torch.where(mask_minus_bigger, l_minus, l_plus)
     
-    # If orthogonal curvature is stronger, swap
-    mask_swap = torch.abs(k_orth) > torch.abs(k_n)
+    # Normal vector (nx, ny) corresponds to λ2
+    # If |λ-| > |λ+|, n = v- = (-sin, cos)
+    # Else n = v+ = (cos, sin)
+    nx = torch.where(mask_minus_bigger, -sin_t, cos_t)
+    ny = torch.where(mask_minus_bigger, cos_t, sin_t)
     
-    # Apply swap
-    nx_final = torch.where(mask_swap, nx_orth, nx)
-    ny_final = torch.where(mask_swap, ny_orth, ny)
-    
-    nx = nx_final
-    ny = ny_final
-    
-    # Direction of the line (perpendicular to normal)
-    # If n is normal, u is tangent. u = (-ny, nx)
+    # Tangent vector (ux, uy) is orthogonal to normal
+    # u = (-ny, nx)
     ux = -ny
     uy = nx
     
-    # Calculate t (sub-pixel offset)
+    # Calculate t (sub-pixel offset along normal)
+    # t = - (∇r · n) / λ2
     dir_deriv_1 = nx * ix + ny * iy
-    dir_deriv_2 = (nx**2)*ixx + 2*nx*ny*ixy + (ny**2)*iyy
     
-    mask_nonzero = torch.abs(dir_deriv_2) > 1e-6
+    # Avoid division by zero
+    mask_nonzero = torch.abs(lambda_sorted) > 1e-6
     t = torch.zeros_like(dir_deriv_1)
-    t[mask_nonzero] = -dir_deriv_1[mask_nonzero] / dir_deriv_2[mask_nonzero]
+    t[mask_nonzero] = -dir_deriv_1[mask_nonzero] / lambda_sorted[mask_nonzero]
     
     # --- 2. Node Selection (GPU) ---
     # Filter by magnitude

@@ -60,13 +60,13 @@ def main():
     steger = StegerHessian(σ=σ, device=device)
     
     ix, iy, ixx, ixy, iyy = steger.compute_hessian(img_tensor)
-    λ1, λ2 = steger.compute_eigenvalues(ixx, ixy, iyy)
-    t, valid_mask, nx, ny = steger.compute_steger_center(ix, iy, ixx, ixy, iyy, λ1, λ2)
+    # We no longer need separate eigenvalues call for center computation
+    t, valid_mask, nx, ny, l2 = steger.compute_steger_center(ix, iy, ixx, ixy, iyy)
     
     # 3. Process Results
     # Create a "Line Strength" map
-    # We use the magnitude of the max curvature (λ2) masked by valid points
-    line_strength = torch.abs(λ2) * valid_mask.float()
+    # We use the magnitude of the max curvature (l2) masked by valid points
+    line_strength = torch.abs(l2) * valid_mask.float()
     
     # Normalize for visualization
     line_strength_np = line_strength.squeeze().cpu().numpy()
