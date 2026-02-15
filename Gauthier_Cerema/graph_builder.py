@@ -13,7 +13,7 @@ except ImportError:
 
 def build_steger_graph(ix, iy, ixx, ixy, iyy, 
                        R=10.0, 
-                       τ=0.1, 
+                       τ=0.05, 
                        dark_ridges=True,
                        batch_size=2048,
                        steger_tolerance=0.5): # Tolerance for sub-pixel position (default 0.5)
