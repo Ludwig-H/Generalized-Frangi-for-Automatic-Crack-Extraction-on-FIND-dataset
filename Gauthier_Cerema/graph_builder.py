@@ -16,7 +16,7 @@ def build_steger_graph(ix, iy, ixx, ixy, iyy,
                        τ=0.05, 
                        dark_ridges=True,
                        batch_size=2048,
-                       steger_tolerance=0.5): # Tolerance for sub-pixel position (default 0.5)
+                       steger_tolerance=1.0): # Tolerance for sub-pixel position (increased to 1.0 to recover nodes)
     """
     Builds a sparse graph from Steger filter outputs completely on GPU (where feasible).
     
