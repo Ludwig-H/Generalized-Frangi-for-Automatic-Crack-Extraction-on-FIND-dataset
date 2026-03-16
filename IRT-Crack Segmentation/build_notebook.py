@@ -523,20 +523,23 @@ def skeletonize_lee(binary_mask: np.ndarray) -> np.ndarray:
 
 def thicken(skel: np.ndarray, pixels: int = 3) -> np.ndarray:
     if pixels <= 1: return skel.astype(np.uint8)
-    thick = dilation(skel>0, disk(int(pixels)))
-    return thick.astype(np.uint8)
+    import cv2
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (pixels*2+1, pixels*2+1))
+    thick = cv2.dilate((skel>0).astype(np.uint8), kernel)
+    return thick
 
 def compute_metrics(pred_mask, gt_mask):
-    A = (pred_mask > 0).astype(np.uint8)
-    B = (gt_mask > 0).astype(np.uint8)
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    A = torch.from_numpy(pred_mask).bool().to(device)
+    B = torch.from_numpy(gt_mask).bool().to(device)
     
-    inter = np.logical_and(A, B).sum()
-    union = np.logical_or(A, B).sum()
-    jaccard = float(inter) / float(union + 1e-9)
+    inter = torch.logical_and(A, B).sum().float()
+    union = torch.logical_or(A, B).sum().float()
+    jaccard = (inter / (union + 1e-9)).item()
     
-    fp = np.logical_and(np.logical_not(A), B).sum()
-    fn = np.logical_and(A, np.logical_not(B)).sum()
-    tversky = float(inter) / float(inter + 1.0 * fn + 0.5 * fp + 1e-9)
+    fp = torch.logical_and(torch.logical_not(A), B).sum().float()
+    fn = torch.logical_and(A, torch.logical_not(B)).sum().float()
+    tversky = (inter / (inter + 1.0 * fn + 0.5 * fp + 1e-9)).item()
     
     return jaccard, tversky
 
@@ -554,8 +557,14 @@ def wasserstein_distance_skeletons(A: np.ndarray, B: np.ndarray, max_samples: in
     na, nb = A_pts.shape[0], B_pts.shape[0]
     a = np.ones((na,), dtype=np.float64) / float(na)
     b = np.ones((nb,), dtype=np.float64) / float(nb)
-    from scipy.spatial.distance import cdist
-    M = cdist(A_pts, B_pts, metric='euclidean').astype(np.float64)
+    
+    # Calcul de la matrice de coût sur le GPU (Accélération fulgurante de cdist)
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    A_t = torch.from_numpy(A_pts).to(device)
+    B_t = torch.from_numpy(B_pts).to(device)
+    M_t = torch.cdist(A_t, B_t, p=2.0)
+    M = M_t.cpu().numpy().astype(np.float64)
+    
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         emd_cost = ot.emd2(a,b,M)
