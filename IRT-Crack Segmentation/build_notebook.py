@@ -610,8 +610,8 @@ imgs = {
     'infrared': sample['infrared']
 }
 
-# Fusion : 50% Visible, 50% Infrarouge
-weights = {'visible': 0.5, 'infrared': 0.5}
+# Fusion : 2/3 Visible, 1/3 Infrarouge
+weights = {'visible': 2/3, 'infrared': 1/3}
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 frangi_response, similarity_img, centrality, timings = extract_frangi_graph_gpu(imgs, weights, device=device)
