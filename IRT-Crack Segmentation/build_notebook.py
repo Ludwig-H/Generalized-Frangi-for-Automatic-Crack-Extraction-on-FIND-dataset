@@ -383,47 +383,41 @@ def extract_frangi_graph_gpu(imgs_dict, weights, scales=[1, 3, 5, 7], R=10,
     # b. Minimum Spanning Tree
     mst = minimum_spanning_tree(sparse_dist_largest)
     
-    # c. Weighted Betweenness Centrality exacte (Eq. 7 Eusipco)
+    # c. Weighted Betweenness Centrality exacte (Eq. 7 Eusipco) vectorisée
     order, preds = breadth_first_order(mst, i_start=0, directed=False, return_predecessors=True)
     
     N_L = len(nodes_largest)
     E_mass = np.zeros(N_L)
     W_parent = np.zeros(N_L)
-    children = {i: [] for i in range(N_L)}
     
-    for i in range(N_L):
-        p = preds[i]
-        if p >= 0:
-            children[p].append(i)
-            
+    valid_mask = preds >= 0
+    p_valid = preds[valid_mask]
+    i_valid = np.arange(N_L)[valid_mask]
+    
+    # Extraction vectorisée des poids des parents (S_sparse_largest est symétrique)
+    W_parent[i_valid] = np.asarray(S_sparse_largest[p_valid, i_valid]).flatten()
+    
     # Accumulation des masses (somme des similarités S_ij) depuis les feuilles vers la racine
     for i in order[::-1]:
         p = preds[i]
         if p >= 0:
-            w = S_sparse_largest[p, i]
-            W_parent[i] = w
-            E_mass[p] += E_mass[i] + w
+            E_mass[p] += E_mass[i] + W_parent[i]
             
     M_total = E_mass[order[0]]
-    centrality = np.zeros(N_L)
     
-    # Calcul de la centralité pour chaque noeud
-    for i in range(N_L):
-        masses = []
-        sum_masses = 0
-        for c in children[i]:
-            m_c = W_parent[c] + E_mass[c]
-            masses.append(m_c)
-            sum_masses += m_c
-            
-        m_p = M_total - sum_masses
-        if m_p > 0:
-            masses.append(m_p)
-            
-        c_val = 0.0
-        for m in masses:
-            c_val += m * (M_total - m)
-        centrality[i] = c_val / 2.0
+    # Calcul de la centralité 100% vectorisé pour chaque noeud
+    child_branch_mass = W_parent + E_mass
+    sum_masses_children = np.zeros(N_L)
+    np.add.at(sum_masses_children, p_valid, child_branch_mass[i_valid])
+    
+    parent_branch_mass = np.maximum(0, M_total - sum_masses_children)
+    
+    val_child = child_branch_mass * (M_total - child_branch_mass)
+    sum_val_child = np.zeros(N_L)
+    np.add.at(sum_val_child, p_valid, val_child[i_valid])
+    
+    val_parent = parent_branch_mass * (M_total - parent_branch_mass)
+    centrality = (sum_val_child + val_parent) / 2.0
         
     if centrality.max() > 0:
         centrality /= centrality.max()
@@ -491,7 +485,8 @@ axes[1, 2].imshow(skeleton, cmap='Reds', alpha=np.where(skeleton > 0, 1.0, 0.0))
 axes[1, 2].imshow(sample['gt'].numpy(), cmap='Greens', alpha=np.where(sample['gt'].numpy() > 0, 0.5, 0.0))
 axes[1, 2].set_title('Superposition (Rouge: Prédiction, Vert: GT)')
 
-axes[1, 3].axis('off')
+axes[1, 3].imshow(skeleton, cmap='gray')
+axes[1, 3].set_title('Squelette Extrait (Binaire)')
 
 for ax in axes.flat:
     ax.axis('off')
