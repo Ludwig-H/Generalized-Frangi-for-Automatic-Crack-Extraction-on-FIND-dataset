@@ -498,42 +498,104 @@ add_md("""## 5. Évaluation des Métriques (Jaccard / Tversky)
 
 Calcul des métriques sur un batch d'images pour valider l'approche sur le benchmark.""")
 
-add_code("""def compute_metrics(pred_mask, gt_mask):
-    intersection = np.logical_and(pred_mask, gt_mask).sum()
-    union = np.logical_or(pred_mask, gt_mask).sum()
-    jaccard = intersection / (union + 1e-8)
+add_code("""!pip install -q POT
+import ot
+from skimage.morphology import skeletonize, disk, dilation
+import warnings
+
+def skeletonize_lee(binary_mask: np.ndarray) -> np.ndarray:
+    m = (binary_mask > 0).astype(np.uint8)
+    sk = skeletonize(m>0)
+    return sk.astype(np.uint8)
+
+def thicken(skel: np.ndarray, pixels: int = 3) -> np.ndarray:
+    if pixels <= 1: return skel.astype(np.uint8)
+    thick = dilation(skel>0, disk(int(pixels)))
+    return thick.astype(np.uint8)
+
+def compute_metrics(pred_mask, gt_mask):
+    A = (pred_mask > 0).astype(np.uint8)
+    B = (gt_mask > 0).astype(np.uint8)
     
-    # Tversky (alpha=1, beta=0.5 -> pénalise moins les Faux Positifs, adapté pour les réseaux filaires)
-    fp = np.logical_and(pred_mask, np.logical_not(gt_mask)).sum()
-    fn = np.logical_and(np.logical_not(pred_mask), gt_mask).sum()
-    tversky = intersection / (intersection + 1.0 * fn + 0.5 * fp + 1e-8)
+    inter = np.logical_and(A, B).sum()
+    union = np.logical_or(A, B).sum()
+    jaccard = float(inter) / float(union + 1e-9)
+    
+    fp = np.logical_and(np.logical_not(A), B).sum()
+    fn = np.logical_and(A, np.logical_not(B)).sum()
+    tversky = float(inter) / float(inter + 1.0 * fn + 0.5 * fp + 1e-9)
     
     return jaccard, tversky
 
+def wasserstein_distance_skeletons(A: np.ndarray, B: np.ndarray, max_samples: int = 2000) -> float:
+    Ay, Ax = np.nonzero(A>0); By, Bx = np.nonzero(B>0)
+    if len(Ay)==0 and len(By)==0: return 0.0
+    if len(Ay)==0: return float(len(By))
+    if len(By)==0: return float(len(Ay))
+    A_pts = np.column_stack([Ay,Ax]).astype(np.float32)
+    B_pts = np.column_stack([By,Bx]).astype(np.float32)
+    if A_pts.shape[0] > max_samples:
+        idx = np.random.choice(A_pts.shape[0], size=max_samples, replace=False); A_pts = A_pts[idx]
+    if B_pts.shape[0] > max_samples:
+        idx = np.random.choice(B_pts.shape[0], size=max_samples, replace=False); B_pts = B_pts[idx]
+    na, nb = A_pts.shape[0], B_pts.shape[0]
+    a = np.ones((na,), dtype=np.float64) / float(na)
+    b = np.ones((nb,), dtype=np.float64) / float(nb)
+    from scipy.spatial.distance import cdist
+    M = cdist(A_pts, B_pts, metric='euclidean').astype(np.float64)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        emd_cost = ot.emd2(a,b,M)
+    return float(emd_cost)
+
+# --- 1. Metrics for the single sample example ---
+gt_arr_sample = sample['gt'].numpy().astype(np.uint8)
+sk_gt_sample = skeletonize_lee(gt_arr_sample)
+sk_gt_thick_sample = thicken(sk_gt_sample, pixels=3)
+
+pred_sample = (centrality > 0.05).astype(np.uint8)
+sk_pred_thick_sample = thicken(pred_sample, pixels=3)
+
+j_sample, t_sample = compute_metrics(sk_pred_thick_sample, sk_gt_thick_sample)
+w_sample = wasserstein_distance_skeletons(sk_pred_thick_sample, sk_gt_thick_sample)
+
+print("--- Metrics for sample ---")
+print(f"Jaccard (IoU): {j_sample:.4f}")
+print(f"Tversky:       {t_sample:.4f}")
+print(f"Wasserstein:   {w_sample:.4f}")
+print("--------------------------")
+
+# --- 2. Batch Evaluation ---
 # Évaluation sur 20 images pour démonstration rapide
 num_eval = min(20, len(dataset))
 jaccard_scores = []
 tversky_scores = []
+wasserstein_scores = []
 
 print(f"Évaluation sur {num_eval} images...")
 for i in range(num_eval):
-    sample = dataset[i]
-    imgs = {'visible': sample['visible'], 'infrared': sample['infrared']}
+    sample_i = dataset[i]
+    imgs_i = {'visible': sample_i['visible'], 'infrared': sample_i['infrared']}
     
-    _, _, centrality = extract_frangi_graph_gpu(imgs, weights, device=device)
+    _, _, centrality_i = extract_frangi_graph_gpu(imgs_i, weights, device=device)
     
-    # Dilatation du squelette pour comparaison avec le GT (qui a souvent une épaisseur de quelques pixels)
-    pred = (centrality > 0.05).astype(np.uint8)
-    pred_dilated = cv2.dilate(pred, np.ones((3,3), np.uint8), iterations=1)
+    pred_i = (centrality_i > 0.05).astype(np.uint8)
+    sk_pred_thick_i = thicken(pred_i, pixels=3)
     
-    gt_arr = sample['gt'].numpy().astype(np.uint8)
+    gt_arr_i = sample_i['gt'].numpy().astype(np.uint8)
+    sk_gt_i = skeletonize_lee(gt_arr_i)
+    sk_gt_thick_i = thicken(sk_gt_i, pixels=3)
     
-    j, t = compute_metrics(pred_dilated, gt_arr)
+    j, t = compute_metrics(sk_pred_thick_i, sk_gt_thick_i)
+    w = wasserstein_distance_skeletons(sk_pred_thick_i, sk_gt_thick_i)
+    
     jaccard_scores.append(j)
     tversky_scores.append(t)
+    wasserstein_scores.append(w)
 
 print(f"Jaccard (IoU) Moyen : {np.mean(jaccard_scores):.4f} ± {np.std(jaccard_scores):.4f}")
-print(f"Tversky Moyen       : {np.mean(tversky_scores):.4f} ± {np.std(tversky_scores):.4f}")""")
+print(f"Tversky Moyen       : {np.mean(tversky_scores):.4f} ± {np.std(tversky_scores):.4f}")
+print(f"Wasserstein Moyen   : {np.mean(wasserstein_scores):.4f} ± {np.std(wasserstein_scores):.4f}")""")
 
 notebook = {
     "cells": cells,
