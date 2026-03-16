@@ -233,7 +233,7 @@ Cette fonction exécute la pipeline optimisée :
 add_code("""from scipy.sparse import coo_matrix
 
 def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[3, 5, 7, 9, 11], R=5,
-                             ss=2.0, si=0.25, sa=0.125, τ=0.15, device='cuda'):
+                             ss=2.0, si=0.25, sa=0.125, τ=0.05, device='cuda'):
     import time
     t0 = time.time()
     
@@ -367,28 +367,28 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[3, 5, 7, 9, 11], R=5,
     import numpy as np
     from scipy.sparse.csgraph import minimum_spanning_tree, breadth_first_order, connected_components
     
-    # 1re Optimisation: Calcul ultra-rapide des similarités max par noeud avec NumPy 
+    # 1re Optimisation: Calcul ultra-rapide des similarités max par noeud avec NumPy (conservé pour la visualisation)
     node_sim_max = np.zeros(N, dtype=np.float32)
     np.maximum.at(node_sim_max, i_cpu, S_cpu)
     np.maximum.at(node_sim_max, j_cpu, S_cpu)
         
-    # Seuillage strict des top tau % (ex: 20%)
-    num_to_keep = max(1, int(N * τ))
-    if N > num_to_keep:
-        threshold_sim = np.partition(node_sim_max, -num_to_keep)[-num_to_keep]
-        valid_nodes = np.where(node_sim_max >= threshold_sim)[0]
+    # Seuillage strict sur les arêtes (top tau %)
+    num_edges = len(S_cpu)
+    num_to_keep = max(1, int(num_edges * τ))
+    
+    if num_edges > num_to_keep:
+        threshold_sim = np.partition(S_cpu, -num_to_keep)[-num_to_keep]
+        edge_mask = S_cpu >= threshold_sim
     else:
-        valid_nodes = np.arange(N)
-        
-    # Filtrage des arêtes en amont (évite le découpage d'une gigantesque matrice SciPy)
-    valid_mask = np.zeros(N, dtype=bool)
-    valid_mask[valid_nodes] = True
-    edge_mask = valid_mask[i_cpu] & valid_mask[j_cpu]
+        edge_mask = np.ones(num_edges, dtype=bool)
     
     i_v = i_cpu[edge_mask]
     j_v = j_cpu[edge_mask]
     S_v = S_cpu[edge_mask]
     d_v = d_cpu[edge_mask]
+    
+    # Identification des noeuds ayant conservé au moins une arête
+    valid_nodes = np.unique(np.concatenate([i_v, j_v])) if len(i_v) > 0 else np.array([], dtype=np.int32)
     
     # Remapping des index (0 à N_valid - 1)
     remap = np.full(N, -1, dtype=np.int32)
