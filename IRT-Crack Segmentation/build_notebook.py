@@ -362,14 +362,10 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[1, 3, 5, 7], R=10,
     import numpy as np
     from scipy.sparse.csgraph import minimum_spanning_tree, breadth_first_order, connected_components
     
-    # Création de la matrice creuse symétrique
-    S_sparse_full = coo_matrix((np.concatenate([S_cpu, S_cpu]), 
-                           (np.concatenate([i_cpu, j_cpu]), np.concatenate([j_cpu, i_cpu]))), 
-                          shape=(N, N)).tocsr()
-                          
-    node_sim_max = np.squeeze(np.asarray(S_sparse_full.max(axis=1).todense()))
-    if np.isscalar(node_sim_max) or node_sim_max.size == 0:
-        node_sim_max = np.zeros(N)
+    # 1re Optimisation: Calcul ultra-rapide des similarités max par noeud avec NumPy 
+    node_sim_max = np.zeros(N, dtype=np.float32)
+    np.maximum.at(node_sim_max, i_cpu, S_cpu)
+    np.maximum.at(node_sim_max, j_cpu, S_cpu)
         
     # Seuillage strict des top tau % (ex: 5%)
     num_to_keep = max(1, int(N * τ))
@@ -379,16 +375,35 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[1, 3, 5, 7], R=10,
     else:
         valid_nodes = np.arange(N)
         
-    S_sparse = S_sparse_full[valid_nodes, :][:, valid_nodes]
+    # Filtrage des arêtes en amont (évite le découpage d'une gigantesque matrice SciPy)
+    valid_mask = np.zeros(N, dtype=bool)
+    valid_mask[valid_nodes] = True
+    edge_mask = valid_mask[i_cpu] & valid_mask[j_cpu]
     
-    sparse_dist_full = coo_matrix((np.concatenate([d_cpu, d_cpu]), 
-                                  (np.concatenate([i_cpu, j_cpu]), np.concatenate([j_cpu, i_cpu]))), 
-                                 shape=(N, N)).tocsr()
-    sparse_dist = sparse_dist_full[valid_nodes, :][:, valid_nodes]
+    i_v = i_cpu[edge_mask]
+    j_v = j_cpu[edge_mask]
+    S_v = S_cpu[edge_mask]
+    d_v = d_cpu[edge_mask]
+    
+    # Remapping des index (0 à N_valid - 1)
+    remap = np.full(N, -1, dtype=np.int32)
+    remap[valid_nodes] = np.arange(len(valid_nodes))
+    
+    i_mapped = remap[i_v]
+    j_mapped = remap[j_v]
     
     orig_coords_cpu = coords.cpu().numpy().astype(int)
     coords = coords[valid_nodes]
     N_valid = len(valid_nodes)
+    
+    from scipy.sparse import coo_matrix
+    S_sparse = coo_matrix((np.concatenate([S_v, S_v]), 
+                           (np.concatenate([i_mapped, j_mapped]), np.concatenate([j_mapped, i_mapped]))), 
+                          shape=(N_valid, N_valid)).tocsr()
+                          
+    sparse_dist = coo_matrix((np.concatenate([d_v, d_v]), 
+                              (np.concatenate([i_mapped, j_mapped]), np.concatenate([j_mapped, i_mapped]))), 
+                             shape=(N_valid, N_valid)).tocsr()
     
     # Isolation de la plus grande composante connexe
     n_comp, labels = connected_components(sparse_dist, directed=False)
@@ -434,17 +449,20 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[1, 3, 5, 7], R=10,
 
 
     
-    # Transfert vers le GPU
-    W_parent = torch.tensor(W_parent_np, dtype=torch.float32, device=device)
-    E_mass = torch.zeros(N_L, dtype=torch.float32, device=device)
+    # 2e Optimisation : Accumulation sur CPU pur (NumPy très rapide pour les boucles)
+    E_mass_np = np.zeros(N_L, dtype=np.float32)
     
     # Accumulation depuis les feuilles
     for i in order[::-1]:
         p = preds[i]
         if p >= 0:
-            E_mass[p] += E_mass[i] + W_parent[i]
+            E_mass_np[p] += E_mass_np[i] + W_parent_np[i]
             
-    M_total = E_mass[order[0]]
+    M_total = E_mass_np[order[0]]
+    
+    # Transfert vers le GPU (une seule fois) pour les calculs tensoriels finaux
+    W_parent = torch.tensor(W_parent_np, dtype=torch.float32, device=device)
+    E_mass = torch.tensor(E_mass_np, dtype=torch.float32, device=device)
     
     # Vectorisation des opérations de Betweenness (sur GPU)
     child_branch_mass = W_parent + E_mass
