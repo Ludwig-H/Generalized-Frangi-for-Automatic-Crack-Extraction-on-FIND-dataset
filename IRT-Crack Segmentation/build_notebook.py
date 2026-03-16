@@ -732,6 +732,7 @@ for i in range(num_eval):
     file_name = f"{file_id}{dataset.extensions[file_id]}"
     
     results.append({
+        'Index': i,
         'File Name': file_name,
         'ID': file_id,
         'Jaccard (IoU)': j,
