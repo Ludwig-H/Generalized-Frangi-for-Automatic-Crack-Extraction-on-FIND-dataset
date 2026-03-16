@@ -27,7 +27,10 @@ Contrairement aux approches par apprentissage profond qui fusionnent les "featur
 
 ### B. Graphe de Similarité Frangi
 Pour dépasser le simple filtrage pixel par pixel, nous construisons un graphe géométrique. Le calcul de la similarité (qui combine l'élongation spatiale, le contraste d'intensité et l'alignement angulaire topologique) implique de comparer chaque pixel candidat à ses voisins de rayon $R$.
-Cette opération matricielle en $\mathcal{O}(N^2)$ est parallélisée massivement via les fonctions de distances tensorielles de PyTorch (`torch.cdist`).
+Pour éviter l'explosion mémoire $\mathcal{O}(N^2)$ (erreur de type `OutOfMemoryError`), l'architecture du graphe a été optimisée et rendue **creuse (Sparse)** :
+1. Une recherche des plus proches voisins (K-NN) est effectuée ultra-rapidement via `scipy.spatial.cKDTree` pour isoler uniquement les paires valides dans le rayon $R$.
+2. Le calcul intensif des tenseurs de similarité par PyTorch n'est effectué **que sur ces arêtes locales**.
+3. Les résultats alimentent une matrice creuse (`scipy.sparse.coo_matrix`), minimisant drastiquement l'empreinte VRAM et RAM.
 
 ### C. Extraction Topologique (Squelettisation)
 Une fois la matrice d'affinité spatiale construite sur le GPU :
@@ -41,7 +44,7 @@ Une fois la matrice d'affinité spatiale construite sur le GPU :
 2. Importez le notebook `Frangi_IRT_Crack_GPU.ipynb` généré dans ce dossier.
 3. Assurez-vous d'activer l'accélérateur matériel **GPU** (idéalement A100 ou T4) dans `Exécution > Modifier le type d'exécution`.
 4. Exécutez toutes les cellules. Le notebook s'occupera :
-    * De télécharger le dataset via `gdown` de manière autonome.
+    * De télécharger le dataset de manière autonome. (Par défaut, il télécharge une **archive ZIP** pour plus de rapidité, mais une option de secours par dossier est sélectionnable via une case à cocher).
     * D'instancier le Dataloader robuste.
     * D'extraire les Fissures sur un échantillon et d'afficher de riches visualisations multi-axes (Modalités isolées, réponse Frangi, carte de Centralité, Superposition au GT).
     * De calculer les métriques de segmentation (IoU/Jaccard, Tversky) sur un batch de validation.
