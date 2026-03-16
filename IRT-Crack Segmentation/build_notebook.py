@@ -228,7 +228,8 @@ Cette fonction exécute la pipeline optimisée :
 1. **Fusion au niveau Hessien** en sommant pondérément les modalités (Intensité, Range/IR) normalisées.
 2. **Réponse Frangi Multi-échelles** pour isoler les "Dark Ridges".
 3. **Voisinage via Unfold (GPU)** pour calculer les similarités instantanément sans boucles.
-4. **Topologie Hybride (MST CPU + Centralité GPU)** : L'extraction de l'arbre se fait avec SciPy sur CPU, mais le calcul de *Weighted Betweenness Centrality* est transféré et vectorisé sur le GPU PyTorch avec `index_add_`.""")
+4. **Sparsification Adaptative (Seuillage Dual $\tau$)** : Filtrage robuste conservant la fraction $\tau$ des meilleures arêtes, puis les $\tau \\times N$ meilleurs noeuds évalués selon leurs arêtes adjacentes, isolant ainsi le bruit.
+5. **Topologie Hybride (MST CPU + Centralité GPU)** : L'extraction des composantes connexes et de l'arbre se fait avec SciPy sur CPU sur le sous-ensemble ultra-épuré. Le calcul de *Weighted Betweenness Centrality* est transféré et vectorisé sur le GPU PyTorch avec `index_add_`.""")
 
 add_code("""from scipy.sparse import coo_matrix
 
@@ -367,18 +368,13 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[4, 6, 8, 10, 12], R=5,
     import numpy as np
     from scipy.sparse.csgraph import minimum_spanning_tree, breadth_first_order, connected_components
     
-    # 1re Optimisation: Calcul ultra-rapide des similarités max par noeud avec NumPy (conservé pour la visualisation)
-    node_sim_max = np.zeros(N, dtype=np.float32)
-    np.maximum.at(node_sim_max, i_cpu, S_cpu)
-    np.maximum.at(node_sim_max, j_cpu, S_cpu)
-        
-    # Seuillage strict sur les arêtes (top tau %)
+    # 1. Seuillage strict sur les arêtes (top tau %)
     num_edges = len(S_cpu)
-    num_to_keep = max(1, int(num_edges * τ))
+    num_to_keep_edges = max(1, int(num_edges * τ))
     
-    if num_edges > num_to_keep:
-        threshold_sim = np.partition(S_cpu, -num_to_keep)[-num_to_keep]
-        edge_mask = S_cpu >= threshold_sim
+    if num_edges > num_to_keep_edges:
+        threshold_edge = np.partition(S_cpu, -num_to_keep_edges)[-num_to_keep_edges]
+        edge_mask = S_cpu >= threshold_edge
     else:
         edge_mask = np.ones(num_edges, dtype=bool)
     
@@ -387,8 +383,38 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[4, 6, 8, 10, 12], R=5,
     S_v = S_cpu[edge_mask]
     d_v = d_cpu[edge_mask]
     
-    # Identification des noeuds ayant conservé au moins une arête
-    valid_nodes = np.unique(np.concatenate([i_v, j_v])) if len(i_v) > 0 else np.array([], dtype=np.int32)
+    # 2. Calcul de la similarité des noeuds restants (max des arêtes retenues)
+    node_sim_max = np.zeros(N, dtype=np.float32)
+    if len(S_v) > 0:
+        np.maximum.at(node_sim_max, i_v, S_v)
+        np.maximum.at(node_sim_max, j_v, S_v)
+        
+    # 3. Seuillage strict sur les noeuds (top tau * N_total)
+    N_total = H * W
+    num_to_keep_nodes = max(1, int(N_total * τ))
+    
+    valid_nodes_candidates = np.unique(np.concatenate([i_v, j_v])) if len(i_v) > 0 else np.array([], dtype=np.int32)
+    
+    if len(valid_nodes_candidates) > num_to_keep_nodes:
+        # On extrait les similarités uniquement pour ces noeuds
+        sims_candidates = node_sim_max[valid_nodes_candidates]
+        threshold_node = np.partition(sims_candidates, -num_to_keep_nodes)[-num_to_keep_nodes]
+        valid_nodes = valid_nodes_candidates[sims_candidates >= threshold_node]
+    else:
+        valid_nodes = valid_nodes_candidates
+        
+    # 4. Filtrage final des arêtes (les deux extrémités doivent être dans valid_nodes)
+    if len(valid_nodes) > 0 and len(i_v) > 0:
+        keep_node_mask = np.zeros(N, dtype=bool)
+        keep_node_mask[valid_nodes] = True
+        
+        final_edge_mask = keep_node_mask[i_v] & keep_node_mask[j_v]
+        i_v = i_v[final_edge_mask]
+        j_v = j_v[final_edge_mask]
+        S_v = S_v[final_edge_mask]
+        d_v = d_v[final_edge_mask]
+    else:
+        i_v, j_v, S_v, d_v = np.array([]), np.array([]), np.array([]), np.array([])
     
     # Remapping des index (0 à N_valid - 1)
     remap = np.full(N, -1, dtype=np.int32)

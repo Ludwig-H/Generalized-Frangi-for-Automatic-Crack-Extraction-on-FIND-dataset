@@ -33,9 +33,9 @@ Pour éviter l'explosion mémoire $\mathcal{O}(N^2)$ (erreur de type `OutOfMemor
 3. Les résultats alimentent une matrice creuse (`scipy.sparse.coo_matrix`), minimisant drastiquement l'empreinte VRAM et RAM.
 
 ### C. Extraction Topologique Optmisée (Squelettisation Rapide)
-Pour garantir un temps d'exécution minimal tout en préservant l'algorithme :
-1. **Seuillage Dual et Voisinage :** La carte des candidats est pré-filtrée. Ensuite, les voisinages sont extraits **massivement en parallèle via la méthode tensorielle `unfold` de PyTorch**.
-2. **Topologie Hybride :** La plus grande composante et l'Arbre Couvrant (MST) sont calculés avec SciPy (très rapide sur CPU).
+Pour garantir un temps d'exécution minimal et une robustesse accrue tout en préservant l'algorithme :
+1. **Sparsification Adaptative (Seuillage Dual $\tau$) :** La méthode a été repensée pour un filtrage adaptatif extrêmement robuste. Les voisinages sont extraits **massivement en parallèle via la méthode tensorielle `unfold` de PyTorch**. Ensuite, nous appliquons un double seuillage basé sur une fraction $\tau$ : on ne retient d'abord que les $\tau$\% d'arêtes ayant la plus forte similarité. Pour évaluer un noeud, sa similarité devient la valeur maximale de ses arêtes adjacentes. Nous ne conservons ensuite que les $\tau \times N$ noeuds (avec $N$ le nombre total de pixels) les plus pertinents. Cette propagation de confiance des arêtes vers les noeuds isole et détruit le bruit.
+2. **Topologie Hybride :** C'est uniquement sur ce sous-ensemble de noeuds et d'arêtes ultra-épuré que la plus grande composante et l'Arbre Couvrant (MST) sont calculés avec SciPy (très rapide sur CPU).
 3. **Weighted Betweenness Centrality sur GPU :** Le calcul de centralité a été réintégré et **porté sur GPU** en utilisant les opérations tensorielles vectorisées de PyTorch (`index_add_`). Seule la boucle de transmission des masses réside en Python, l'essentiel du coût calculatoire profite du GPU pour extraire le squelette principal.
 
 ## 3. Utilisation
