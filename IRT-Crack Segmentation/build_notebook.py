@@ -232,8 +232,8 @@ Cette fonction exécute la pipeline optimisée :
 
 add_code("""from scipy.sparse import coo_matrix
 
-def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[1, 3, 5, 7], R=6, 
-                             ss=2.0, si=0.25, sa=0.125, τ=0.25, device='cuda'):
+def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[1, 3, 5, 7], R=3, 
+                             ss=2.0, si=0.25, sa=0.125, τ=0.20, device='cuda'):
     import time
     t0 = time.time()
     
@@ -410,12 +410,12 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[1, 3, 5, 7], R=6,
                               (np.concatenate([i_mapped, j_mapped]), np.concatenate([j_mapped, i_mapped]))), 
                              shape=(N_valid, N_valid)).tocsr()
     
-    # Isolation des composantes connexes de taille significative (> N_total / 1000)
+    # Isolation des composantes connexes de taille significative (> N_total / 500)
     n_comp, labels = connected_components(sparse_dist, directed=False)
     counts = np.bincount(labels)
     
     N_total = H * W
-    min_size = N_total / 1000.0
+    min_size = N_total / 500.0
     
     valid_components = np.where(counts > min_size)[0]
     
