@@ -135,7 +135,8 @@ class IRTCrackDataset(Dataset):
         }
 
 # Initialisation
-dataset = IRTCrackDataset(dest_dir)""")
+# Comme l'extraction ZIP se fait dans '.', on lance la recherche depuis le répertoire courant
+dataset = IRTCrackDataset('.')""")
 
 add_md("""## 2. Calcul Hessien Multi-échelles sur GPU
 
