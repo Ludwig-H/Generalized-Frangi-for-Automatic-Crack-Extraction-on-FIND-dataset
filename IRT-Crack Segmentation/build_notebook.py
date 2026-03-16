@@ -101,8 +101,12 @@ class IRTCrackDataset(Dataset):
         self.gt_dir  = self.root_dir / '04-Ground Truth'
         
         # Étape de cartographie (Sparse index)
-        vis_paths = list(self.vis_dir.glob('*.png'))
-        self.identifiants = sorted([p.stem for p in vis_paths])
+        vis_paths = list(self.vis_dir.glob('*.*'))
+        vis_paths = [p for p in vis_paths if p.suffix.lower() in ['.png', '.jpg', '.jpeg']]
+        
+        # Stocker les extensions pour chaque identifiant
+        self.extensions = {p.stem: p.suffix for p in vis_paths}
+        self.identifiants = sorted(list(self.extensions.keys()))
         print(f"Dataset chargé avec {len(self.identifiants)} images.")
 
     def __len__(self):
@@ -110,11 +114,12 @@ class IRTCrackDataset(Dataset):
 
     def __getitem__(self, idx):
         id_courant = self.identifiants[idx]
+        ext = self.extensions[id_courant]
         
         # Résolution des chemins avec asymétrie d'extension
-        path_vis = self.vis_dir / f"{id_courant}.png"
-        path_ir  = self.ir_dir / f"{id_courant}.png"
-        path_fus = self.fus_dir / f"{id_courant}.png"
+        path_vis = self.vis_dir / f"{id_courant}{ext}"
+        path_ir  = self.ir_dir / f"{id_courant}{ext}"
+        path_fus = self.fus_dir / f"{id_courant}{ext}"
         path_gt  = self.gt_dir / f"{id_courant}.jpg"
         
         # Chargement en N&B
@@ -530,44 +535,64 @@ def thicken(skel: np.ndarray, pixels: int = 3) -> np.ndarray:
 
 def compute_metrics(pred_mask, gt_mask):
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    A = torch.from_numpy(pred_mask).bool().to(device)
-    B = torch.from_numpy(gt_mask).bool().to(device)
     
-    inter = torch.logical_and(A, B).sum().float()
-    union = torch.logical_or(A, B).sum().float()
+    # Support direct tensor input to éviter transfers
+    A = pred_mask.clone().detach().bool().to(device) if isinstance(pred_mask, torch.Tensor) else torch.from_numpy(pred_mask).bool().to(device)
+    B = gt_mask.clone().detach().bool().to(device) if isinstance(gt_mask, torch.Tensor) else torch.from_numpy(gt_mask).bool().to(device)
+    
+    # Bitwise ops (plus rapide sur GPU)
+    inter = (A & B).sum().float()
+    union = (A | B).sum().float()
     jaccard = (inter / (union + 1e-9)).item()
     
-    fp = torch.logical_and(torch.logical_not(A), B).sum().float()
-    fn = torch.logical_and(A, torch.logical_not(B)).sum().float()
+    not_A = ~A
+    not_B = ~B
+    fp = (not_A & B).sum().float()
+    fn = (A & not_B).sum().float()
     tversky = (inter / (inter + 1.0 * fn + 0.5 * fp + 1e-9)).item()
     
     return jaccard, tversky
 
-def wasserstein_distance_skeletons(A: np.ndarray, B: np.ndarray, max_samples: int = 2000) -> float:
-    Ay, Ax = np.nonzero(A>0); By, Bx = np.nonzero(B>0)
-    if len(Ay)==0 and len(By)==0: return 0.0
-    if len(Ay)==0: return float(len(By))
-    if len(By)==0: return float(len(Ay))
-    A_pts = np.column_stack([Ay,Ax]).astype(np.float32)
-    B_pts = np.column_stack([By,Bx]).astype(np.float32)
-    if A_pts.shape[0] > max_samples:
-        idx = np.random.choice(A_pts.shape[0], size=max_samples, replace=False); A_pts = A_pts[idx]
-    if B_pts.shape[0] > max_samples:
-        idx = np.random.choice(B_pts.shape[0], size=max_samples, replace=False); B_pts = B_pts[idx]
+def wasserstein_distance_skeletons(A, B, max_samples: int = 2000) -> float:
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    
+    # Transfert initial (ou conservation) sur GPU
+    A_t = A.clone().detach().to(device) if isinstance(A, torch.Tensor) else torch.from_numpy(A).to(device)
+    B_t = B.clone().detach().to(device) if isinstance(B, torch.Tensor) else torch.from_numpy(B).to(device)
+    
+    # Extraction des coordonnées non-nulles directement sur GPU
+    A_pts = torch.nonzero(A_t > 0).float()
+    B_pts = torch.nonzero(B_t > 0).float()
+    
     na, nb = A_pts.shape[0], B_pts.shape[0]
+    
+    if na == 0 and nb == 0: return 0.0
+    if na == 0: return float(nb)
+    if nb == 0: return float(na)
+    
+    # Échantillonnage aléatoire GPU
+    if na > max_samples:
+        idx = torch.randperm(na, device=device)[:max_samples]
+        A_pts = A_pts[idx]
+        na = max_samples
+        
+    if nb > max_samples:
+        idx = torch.randperm(nb, device=device)[:max_samples]
+        B_pts = B_pts[idx]
+        nb = max_samples
+        
+    # Calcul de la matrice de coût sur le GPU (Accélération fulgurante de cdist)
+    M_t = torch.cdist(A_pts, B_pts, p=2.0)
+    
+    # Transfert minimal vers CPU pour ot.emd2 (solveur exact C++)
+    M = M_t.cpu().numpy().astype(np.float64)
     a = np.ones((na,), dtype=np.float64) / float(na)
     b = np.ones((nb,), dtype=np.float64) / float(nb)
     
-    # Calcul de la matrice de coût sur le GPU (Accélération fulgurante de cdist)
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    A_t = torch.from_numpy(A_pts).to(device)
-    B_t = torch.from_numpy(B_pts).to(device)
-    M_t = torch.cdist(A_t, B_t, p=2.0)
-    M = M_t.cpu().numpy().astype(np.float64)
-    
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        emd_cost = ot.emd2(a,b,M)
+        emd_cost = ot.emd2(a, b, M)
+        
     return float(emd_cost)
 
 # Prendre un échantillon
@@ -595,16 +620,25 @@ sk_gt_thick_sample = thicken(sk_gt_sample, pixels=3)
 pred_sample = skeleton.astype(np.uint8)
 sk_pred_thick_sample = thicken(pred_sample, pixels=3)
 
+import time
+if device == 'cuda': torch.cuda.synchronize()
+t_metrics_start = time.time()
+
 j_sample, t_sample = compute_metrics(sk_pred_thick_sample, sk_gt_thick_sample)
 w_sample = wasserstein_distance_skeletons(sk_pred_thick_sample, sk_gt_thick_sample)
 
-print("--- Metrics for sample ---")
+if device == 'cuda': torch.cuda.synchronize()
+t_metrics_end = time.time()
+t_metrics = t_metrics_end - t_metrics_start
+
+print(f"--- Metrics for sample: {sample['id']} ---")
 print(f"Jaccard (IoU): {j_sample:.4f}")
 print(f"Tversky:       {t_sample:.4f}")
 print(f"Wasserstein:   {w_sample:.4f}")
 print("--- Timings ---")
 for k, v in timings.items():
     print(f"{k}: {v*1000:.2f} ms")
+print(f"6. Metrics Calc: {t_metrics*1000:.2f} ms")
 print("--------------------------")
 
 fig, axes = plt.subplots(2, 4, figsize=(24, 12))
