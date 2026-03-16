@@ -386,6 +386,7 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[1, 3, 5, 7], R=10,
                                  shape=(N, N)).tocsr()
     sparse_dist = sparse_dist_full[valid_nodes, :][:, valid_nodes]
     
+    orig_coords_cpu = coords.cpu().numpy().astype(int)
     coords = coords[valid_nodes]
     N_valid = len(valid_nodes)
     
@@ -472,8 +473,7 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[1, 3, 5, 7], R=10,
     
     # Projection de la similarité max par noeud sur l'image
     sim_img = np.zeros((H, W), dtype=np.float32)
-    coords_all = coords.cpu().numpy().astype(int)
-    sim_img[coords_all[:, 0], coords_all[:, 1]] = node_sim_max
+    sim_img[orig_coords_cpu[:, 0], orig_coords_cpu[:, 1]] = node_sim_max
     
     if device == 'cuda': torch.cuda.synchronize()
     t_end = time.time()
