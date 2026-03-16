@@ -464,63 +464,6 @@ add_md("""## 4. Visualisation Complète (Inspection Visuelle)
 
 Nous allons illustrer le processus complet sur un échantillon pour observer l'apport de la fusion et le rôle de la centralité.""")
 
-add_code("""# Prendre un échantillon
-sample = dataset[10] # e.g. LAB00030
-imgs = {
-    'visible': sample['visible'],
-    'infrared': sample['infrared']
-}
-
-# Fusion : 50% Visible, 50% Infrarouge
-weights = {'visible': 0.5, 'infrared': 0.5}
-
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
-frangi_response, similarity_img, centrality = extract_frangi_graph_gpu(imgs, weights, device=device)
-
-# Seuillage final adaptatif pour extraire le squelette
-# On garde les chemins majeurs (centralité élevée)
-skeleton = (centrality > 0.05).astype(np.float32)
-
-fig, axes = plt.subplots(2, 4, figsize=(24, 12))
-
-axes[0, 0].imshow(sample['visible'].numpy(), cmap='gray')
-axes[0, 0].set_title('Modalité : Visible')
-
-axes[0, 1].imshow(sample['infrared'].numpy(), cmap='gray')
-axes[0, 1].set_title('Modalité : Infrarouge (IR)')
-
-axes[0, 2].imshow(frangi_response, cmap='magma')
-axes[0, 2].set_title('Réponse Frangi Multi-échelles (Fused Λ2)')
-
-axes[0, 3].imshow(sample['gt'].numpy(), cmap='gray')
-axes[0, 3].set_title('Ground Truth (Binarisé)')
-
-axes[1, 0].imshow(similarity_img, cmap='magma')
-axes[1, 0].set_title('Similarité Frangi-Graph (Max)')
-
-axes[1, 1].imshow(centrality, cmap='hot')
-axes[1, 1].set_title('Betweenness Centrality (Graph)')
-
-# Superposition : Image fusion en fond + Squelette extrait en Rouge + GT en Vert
-fused_bg = sample['fusion'].numpy()
-axes[1, 2].imshow(fused_bg, cmap='gray', alpha=0.5)
-axes[1, 2].imshow(skeleton, cmap='Reds', alpha=np.where(skeleton > 0, 1.0, 0.0))
-axes[1, 2].imshow(sample['gt'].numpy(), cmap='Greens', alpha=np.where(sample['gt'].numpy() > 0, 0.5, 0.0))
-axes[1, 2].set_title('Superposition (Rouge: Prédiction, Vert: GT)')
-
-axes[1, 3].imshow(skeleton, cmap='gray')
-axes[1, 3].set_title('Squelette Extrait (Binaire)')
-
-for ax in axes.flat:
-    ax.axis('off')
-
-plt.tight_layout()
-plt.show()""")
-
-add_md("""## 5. Évaluation des Métriques (Jaccard / Tversky)
-
-Calcul des métriques sur un batch d'images pour valider l'approche sur le benchmark.""")
-
 add_code("""!pip install -q POT
 import ot
 from skimage.morphology import skeletonize, disk, dilation
@@ -571,12 +514,29 @@ def wasserstein_distance_skeletons(A: np.ndarray, B: np.ndarray, max_samples: in
         emd_cost = ot.emd2(a,b,M)
     return float(emd_cost)
 
-# --- 1. Metrics for the single sample example ---
+# Prendre un échantillon
+sample = dataset[10] # e.g. LAB00030
+imgs = {
+    'visible': sample['visible'],
+    'infrared': sample['infrared']
+}
+
+# Fusion : 50% Visible, 50% Infrarouge
+weights = {'visible': 0.5, 'infrared': 0.5}
+
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+frangi_response, similarity_img, centrality = extract_frangi_graph_gpu(imgs, weights, device=device)
+
+# Seuillage final adaptatif pour extraire le squelette
+# On garde les chemins majeurs (centralité élevée)
+skeleton = (centrality > 0.05).astype(np.float32)
+
+# --- Metrics and Thickening for the single sample example ---
 gt_arr_sample = sample['gt'].numpy().astype(np.uint8)
 sk_gt_sample = skeletonize_lee(gt_arr_sample)
 sk_gt_thick_sample = thicken(sk_gt_sample, pixels=3)
 
-pred_sample = (centrality > 0.05).astype(np.uint8)
+pred_sample = skeleton.astype(np.uint8)
 sk_pred_thick_sample = thicken(pred_sample, pixels=3)
 
 j_sample, t_sample = compute_metrics(sk_pred_thick_sample, sk_gt_thick_sample)
@@ -588,7 +548,49 @@ print(f"Tversky:       {t_sample:.4f}")
 print(f"Wasserstein:   {w_sample:.4f}")
 print("--------------------------")
 
-# --- 2. Batch Evaluation ---
+fig, axes = plt.subplots(2, 4, figsize=(24, 12))
+
+axes[0, 0].imshow(sample['visible'].numpy(), cmap='gray')
+axes[0, 0].set_title('Modalité : Visible')
+
+axes[0, 1].imshow(sample['infrared'].numpy(), cmap='gray')
+axes[0, 1].set_title('Modalité : Infrarouge (IR)')
+
+axes[0, 2].imshow(frangi_response, cmap='magma')
+axes[0, 2].set_title('Réponse Frangi Multi-échelles (Fused Λ2)')
+
+axes[0, 3].imshow(sample['gt'].numpy(), cmap='gray')
+axes[0, 3].set_title('Ground Truth (Binarisé)')
+
+axes[1, 0].imshow(similarity_img, cmap='magma')
+axes[1, 0].set_title('Similarité Frangi-Graph (Max)')
+
+axes[1, 1].imshow(centrality, cmap='hot')
+axes[1, 1].set_title('Betweenness Centrality (Graph)')
+
+# Superposition : Image fusion en fond + Squelette extrait en Rouge + GT en Vert
+fused_bg = sample['fusion'].numpy()
+axes[1, 2].imshow(fused_bg, cmap='gray', alpha=0.5)
+axes[1, 2].imshow(skeleton, cmap='Reds', alpha=np.where(skeleton > 0, 1.0, 0.0))
+axes[1, 2].imshow(sample['gt'].numpy(), cmap='Greens', alpha=np.where(sample['gt'].numpy() > 0, 0.5, 0.0))
+axes[1, 2].set_title('Superposition (Rouge: Prédiction, Vert: GT)')
+
+axes[1, 3].imshow(fused_bg, cmap='gray', alpha=0.5)
+axes[1, 3].imshow(sk_pred_thick_sample, cmap='Reds', alpha=np.where(sk_pred_thick_sample > 0, 1.0, 0.0))
+axes[1, 3].imshow(sk_gt_thick_sample, cmap='Greens', alpha=np.where(sk_gt_thick_sample > 0, 0.5, 0.0))
+axes[1, 3].set_title('Squelettes Grossis (Rouge: Pred, Vert: GT)')
+
+for ax in axes.flat:
+    ax.axis('off')
+
+plt.tight_layout()
+plt.show()""")
+
+add_md("""## 5. Évaluation des Métriques (Jaccard / Tversky)
+
+Calcul des métriques sur un batch d'images pour valider l'approche sur le benchmark.""")
+
+add_code("""# --- Batch Evaluation ---
 # Évaluation sur 20 images pour démonstration rapide
 num_eval = min(20, len(dataset))
 jaccard_scores = []
