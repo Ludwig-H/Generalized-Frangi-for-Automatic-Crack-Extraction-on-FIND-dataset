@@ -233,7 +233,7 @@ Cette fonction exécute la pipeline optimisée :
 add_code("""from scipy.sparse import coo_matrix
 
 def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[1, 3, 5, 7], R=5, 
-                             ss=2.0, si=0.25, sa=0.125, τ=0.08, device='cuda'):
+                             ss=2.0, si=0.25, sa=0.125, τ=0.10, device='cuda'):
     import time
     t0 = time.time()
     
@@ -372,7 +372,7 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[1, 3, 5, 7], R=5,
     np.maximum.at(node_sim_max, i_cpu, S_cpu)
     np.maximum.at(node_sim_max, j_cpu, S_cpu)
         
-    # Seuillage strict des top tau % (ex: 8%)
+    # Seuillage strict des top tau % (ex: 10%)
     num_to_keep = max(1, int(N * τ))
     if N > num_to_keep:
         threshold_sim = np.partition(node_sim_max, -num_to_keep)[-num_to_keep]
