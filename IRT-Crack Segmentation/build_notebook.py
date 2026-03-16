@@ -575,9 +575,21 @@ axes[1, 2].set_title('Squelette Prédit (Brut)')
 # Superposition Métriques : GT brute (Bleu) + GT Squelette grossi (Vert) + Pred grossi (Rouge)
 # On met un fond noir pour bien faire ressortir les couleurs
 axes[1, 3].imshow(np.zeros_like(skeleton), cmap='gray')
-axes[1, 3].imshow(sample['gt'].numpy(), cmap='Blues', alpha=np.where(sample['gt'].numpy() > 0, 0.4, 0.0))
-axes[1, 3].imshow(sk_gt_thick_sample, cmap='Greens', alpha=np.where(sk_gt_thick_sample > 0, 0.6, 0.0))
-axes[1, 3].imshow(sk_pred_thick_sample, cmap='Reds', alpha=np.where(sk_pred_thick_sample > 0, 0.6, 0.0))
+
+# Création de masques RGBA pour maîtriser parfaitement la couleur et la transparence
+h, w = skeleton.shape
+rgba_gt = np.zeros((h, w, 4), dtype=np.float32)
+rgba_gt[sample['gt'].numpy() > 0] = [0.0, 0.4, 1.0, 0.3] # Bleu transparent
+
+rgba_gt_skel = np.zeros((h, w, 4), dtype=np.float32)
+rgba_gt_skel[sk_gt_thick_sample > 0] = [0.0, 1.0, 0.0, 0.4] # Vert transparent
+
+rgba_pred = np.zeros((h, w, 4), dtype=np.float32)
+rgba_pred[sk_pred_thick_sample > 0] = [1.0, 0.0, 0.0, 0.4] # Rouge transparent
+
+axes[1, 3].imshow(rgba_gt)
+axes[1, 3].imshow(rgba_gt_skel)
+axes[1, 3].imshow(rgba_pred)
 axes[1, 3].set_title('Éval (Bleu: GT, Vert: GT Squelette, Rouge: Pred)')
 
 for ax in axes.flat:
