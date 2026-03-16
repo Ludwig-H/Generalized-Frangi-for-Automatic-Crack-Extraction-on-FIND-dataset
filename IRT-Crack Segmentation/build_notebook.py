@@ -280,49 +280,75 @@ def extract_frangi_graph_gpu(imgs_dict, weights, scales=[1, 3, 5, 7], R=10,
     if N == 0:
         return np.zeros_like(max_S_global.cpu().numpy()), np.zeros_like(max_S_global.cpu().numpy())
     
-    # 3. Calcul de Similarité O(N²) sur GPU (A100 encaisse facilement N=20000)
-    dist_matrix = torch.cdist(coords, coords)
-    adj_mask = (dist_matrix <= R) & (dist_matrix > 0)
+    # 3. Calcul du graphe creux (Sparse) pour éviter les erreurs OutOfMemory
+    # On utilise KDTree (sur CPU, très rapide pour ce rayon) pour trouver les paires
+    from scipy.spatial import cKDTree
     
-    S_ij_max = torch.zeros((N, N), device=device)
+    coords_cpu = coords.cpu().numpy()
+    tree = cKDTree(coords_cpu)
+    
+    # pairs est une liste de tuples d'indices (i, j)
+    pairs = tree.query_pairs(R)
+    
+    if not pairs:
+        return np.zeros_like(max_S_global.cpu().numpy()), np.zeros_like(max_S_global.cpu().numpy())
+    
+    pairs = np.array(list(pairs))
+    i_idx = pairs[:, 0]
+    j_idx = pairs[:, 1]
+    
+    # Distances euclidiennes pour ces paires
+    dist_ij = np.linalg.norm(coords_cpu[i_idx] - coords_cpu[j_idx], axis=1)
+    dist_ij_t = torch.tensor(dist_ij, device=device, dtype=torch.float32)
+    
+    i_idx_t = torch.tensor(i_idx, device=device, dtype=torch.long)
+    j_idx_t = torch.tensor(j_idx, device=device, dtype=torch.long)
+    
+    S_ij_max = torch.zeros(len(pairs), device=device, dtype=torch.float32)
     
     for RB, S_norm, theta, mask_pos in scale_data:
         rb_c = RB[candidates_mask]
         s_c  = S_norm[candidates_mask]
         t_c  = theta[candidates_mask]
         
-        # Terme d'Élongation (S_shape)
-        rb_sum = rb_c.unsqueeze(1) + rb_c.unsqueeze(0)
+        # Calcul uniquement sur les arêtes valides
+        rb_sum = rb_c[i_idx_t] + rb_c[j_idx_t]
         S_shape = torch.exp(-0.5 * (rb_sum / ss)**2)
         
-        # Terme d'Intensité/Contraste (S_int)
-        s_prod = s_c.unsqueeze(1) * s_c.unsqueeze(0)
+        s_prod = s_c[i_idx_t] * s_c[j_idx_t]
         S_int = 1 - torch.exp(-0.5 * (s_prod / si)**2)
         
-        # Terme d'Alignement Topologique (S_align)
-        dt = t_c.unsqueeze(1) - t_c.unsqueeze(0)
+        dt = t_c[i_idx_t] - t_c[j_idx_t]
         S_align = torch.exp(-0.5 * (torch.sin(dt) / sa)**2)
         
-        # Similarité conjointe
         S_ij = S_shape * S_int * S_align
-        S_ij[~adj_mask] = 0
         
         S_ij_max = torch.max(S_ij_max, S_ij)
         
     # Transformation en distance pour le MST (Equation 6 Eusipco)
-    d_ij = (1 - S_ij_max) * dist_matrix
-    d_ij[S_ij_max == 0] = 0
+    d_ij = (1 - S_ij_max) * dist_ij_t
     
     # Passage CPU pour MST
     d_ij_cpu = d_ij.cpu().numpy()
-    sparse_dist = csr_matrix(d_ij_cpu)
+    
+    # Construction de la matrice creuse (Sparse Matrix)
+    from scipy.sparse import coo_matrix
+    
+    sparse_dist = coo_matrix((d_ij_cpu, (i_idx, j_idx)), shape=(N, N)).tocsr()
+    # Le graphe est non-orienté, on ajoute la transposée
+    sparse_dist = sparse_dist + sparse_dist.T
     
     # 4. MST et Centralité
     mst = minimum_spanning_tree(sparse_dist)
     order, preds = breadth_first_order(mst, i_start=0, directed=False, return_predecessors=True)
     
+    # Calcul du poids des noeuds (proxy de confiance locale) : max(S_ij) pour chaque noeud
     S_cpu = S_ij_max.cpu().numpy()
-    node_weights = S_cpu.max(axis=1) # Proxy de confiance locale
+    S_sparse = coo_matrix((S_cpu, (i_idx, j_idx)), shape=(N, N)).tocsr()
+    S_sparse = S_sparse + S_sparse.T
+    node_weights = np.squeeze(np.asarray(S_sparse.max(axis=1).todense()))
+    if np.isscalar(node_weights) or node_weights.size == 0:
+        node_weights = np.ones(N)
     
     # Accumulation des plus courts chemins (Betweenness Centrality sur Arbre)
     subtree_mass = node_weights.copy()
