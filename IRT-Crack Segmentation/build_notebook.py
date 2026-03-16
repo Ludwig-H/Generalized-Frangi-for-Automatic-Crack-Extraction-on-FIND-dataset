@@ -410,89 +410,94 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[1, 3, 5, 7], R=6,
                               (np.concatenate([i_mapped, j_mapped]), np.concatenate([j_mapped, i_mapped]))), 
                              shape=(N_valid, N_valid)).tocsr()
     
-    # Isolation de la plus grande composante connexe
+    # Isolation des composantes connexes de taille significative (> N_total / 1000)
     n_comp, labels = connected_components(sparse_dist, directed=False)
-    if n_comp > 1:
-        counts = np.bincount(labels)
-        largest_comp = np.argmax(counts)
-        mask_largest = (labels == largest_comp)
-        nodes_largest = np.where(mask_largest)[0]
-    else:
-        nodes_largest = np.arange(N_valid)
-        
-    if len(nodes_largest) == 0:
-        return max_S_global.cpu().numpy(), np.zeros((H, W)), np.zeros((H, W)), {}
-        
-    sparse_dist_largest = sparse_dist[nodes_largest, :][:, nodes_largest]
-    S_sparse_largest = S_sparse[nodes_largest, :][:, nodes_largest]
+    counts = np.bincount(labels)
     
-    # Minimum Spanning Tree (SciPy, très optimisé en C, sur CPU)
-    mst = minimum_spanning_tree(sparse_dist_largest)
-    order, preds = breadth_first_order(mst, i_start=0, directed=False, return_predecessors=True)
+    N_total = H * W
+    min_size = N_total / 1000.0
     
-    if device == 'cuda': torch.cuda.synchronize()
-    t_mst = time.time()
+    valid_components = np.where(counts > min_size)[0]
     
-    # Weighted Betweenness Centrality implémentée sur GPU via PyTorch
-    N_L = len(nodes_largest)
-    valid_mask = preds >= 0
-    p_valid = preds[valid_mask]
-    i_valid = np.arange(N_L)[valid_mask]
-    
-    W_parent_np = np.zeros(N_L, dtype=np.float32)
-    
-    # Extraction robuste des poids : on utilise COO pour chercher les correspondances, ou une simple boucle/list comprehension
-    # car l'indexation de tableaux dans scipy.sparse CSR peut retourner un produit extérieur (NxN) selon la version.
-    S_coo_largest = S_sparse_largest.tocoo()
-    # On convertit en dictionnaire pour un accès O(1)
-    # Les paires (p, i) sont les arêtes de l'arbre
-    import scipy.sparse as sp
-    # Le plus performant:
-    weights_dict = {(r, c): v for r, c, v in zip(S_coo_largest.row, S_coo_largest.col, S_coo_largest.data)}
-    for idx, (p, i) in enumerate(zip(p_valid, i_valid)):
-        W_parent_np[i] = weights_dict.get((p, i), 0.0)
-
-
-    
-    # 2e Optimisation : Accumulation sur CPU pur (NumPy très rapide pour les boucles)
-    E_mass_np = np.zeros(N_L, dtype=np.float32)
-    
-    # Accumulation depuis les feuilles
-    for i in order[::-1]:
-        p = preds[i]
-        if p >= 0:
-            E_mass_np[p] += E_mass_np[i] + W_parent_np[i]
-            
-    M_total = E_mass_np[order[0]]
-    
-    # Transfert vers le GPU (une seule fois) pour les calculs tensoriels finaux
-    W_parent = torch.tensor(W_parent_np, dtype=torch.float32, device=device)
-    E_mass = torch.tensor(E_mass_np, dtype=torch.float32, device=device)
-    
-    # Vectorisation des opérations de Betweenness (sur GPU)
-    child_branch_mass = W_parent + E_mass
-    p_valid_t = torch.tensor(p_valid, dtype=torch.long, device=device)
-    i_valid_t = torch.tensor(i_valid, dtype=torch.long, device=device)
-    
-    sum_masses_children = torch.zeros(N_L, dtype=torch.float32, device=device)
-    sum_masses_children.index_add_(0, p_valid_t, child_branch_mass[i_valid_t])
-    
-    parent_branch_mass = torch.clamp(M_total - sum_masses_children, min=0.0)
-    
-    val_child = child_branch_mass * (M_total - child_branch_mass)
-    sum_val_child = torch.zeros(N_L, dtype=torch.float32, device=device)
-    sum_val_child.index_add_(0, p_valid_t, val_child[i_valid_t])
-    
-    val_parent = parent_branch_mass * (M_total - parent_branch_mass)
-    centrality = (sum_val_child + val_parent) / 2.0
-    
-    if centrality.max() > 0:
-        centrality /= centrality.max()
-        
-    # Re-projection sur l'image
     cent_img = np.zeros((H, W), dtype=np.float32)
-    coords_largest = coords[nodes_largest].cpu().numpy().astype(int)
-    cent_img[coords_largest[:, 0], coords_largest[:, 1]] = centrality.cpu().numpy()
+    
+    if len(valid_components) > 0:
+        t_mst = 0
+        t_bet_start = time.time()
+        
+        for comp_id in valid_components:
+            mask_comp = (labels == comp_id)
+            nodes_comp = np.where(mask_comp)[0]
+            
+            sparse_dist_comp = sparse_dist[nodes_comp, :][:, nodes_comp]
+            S_sparse_comp = S_sparse[nodes_comp, :][:, nodes_comp]
+            
+            # Minimum Spanning Tree (SciPy, très optimisé en C, sur CPU)
+            t_mst_start = time.time()
+            mst = minimum_spanning_tree(sparse_dist_comp)
+            order, preds = breadth_first_order(mst, i_start=0, directed=False, return_predecessors=True)
+            t_mst += (time.time() - t_mst_start)
+            
+            # Weighted Betweenness Centrality implémentée sur GPU via PyTorch
+            N_L = len(nodes_comp)
+            valid_mask_preds = preds >= 0
+            p_valid = preds[valid_mask_preds]
+            i_valid = np.arange(N_L)[valid_mask_preds]
+            
+            W_parent_np = np.zeros(N_L, dtype=np.float32)
+            
+            # Extraction robuste des poids
+            S_coo_comp = S_sparse_comp.tocoo()
+            import scipy.sparse as sp
+            weights_dict = {(r, c): v for r, c, v in zip(S_coo_comp.row, S_coo_comp.col, S_coo_comp.data)}
+            for idx, (p, i) in enumerate(zip(p_valid, i_valid)):
+                W_parent_np[i] = weights_dict.get((p, i), 0.0)
+
+            # 2e Optimisation : Accumulation sur CPU pur (NumPy très rapide pour les boucles)
+            E_mass_np = np.zeros(N_L, dtype=np.float32)
+            
+            # Accumulation depuis les feuilles
+            for i in order[::-1]:
+                p = preds[i]
+                if p >= 0:
+                    E_mass_np[p] += E_mass_np[i] + W_parent_np[i]
+                    
+            M_total = E_mass_np[order[0]]
+            
+            # Transfert vers le GPU pour les calculs tensoriels finaux
+            W_parent = torch.tensor(W_parent_np, dtype=torch.float32, device=device)
+            E_mass = torch.tensor(E_mass_np, dtype=torch.float32, device=device)
+            
+            # Vectorisation des opérations de Betweenness (sur GPU)
+            child_branch_mass = W_parent + E_mass
+            p_valid_t = torch.tensor(p_valid, dtype=torch.long, device=device)
+            i_valid_t = torch.tensor(i_valid, dtype=torch.long, device=device)
+            
+            sum_masses_children = torch.zeros(N_L, dtype=torch.float32, device=device)
+            sum_masses_children.index_add_(0, p_valid_t, child_branch_mass[i_valid_t])
+            
+            parent_branch_mass = torch.clamp(M_total - sum_masses_children, min=0.0)
+            
+            val_child = child_branch_mass * (M_total - child_branch_mass)
+            sum_val_child = torch.zeros(N_L, dtype=torch.float32, device=device)
+            sum_val_child.index_add_(0, p_valid_t, val_child[i_valid_t])
+            
+            val_parent = parent_branch_mass * (M_total - parent_branch_mass)
+            centrality = (sum_val_child + val_parent) / 2.0
+            
+            if centrality.max() > 0:
+                centrality /= centrality.max()
+                
+            # Re-projection sur l'image
+            coords_comp = coords[nodes_comp].cpu().numpy().astype(int)
+            cent_img[coords_comp[:, 0], coords_comp[:, 1]] = centrality.cpu().numpy()
+            
+        if device == 'cuda': torch.cuda.synchronize()
+        t_mst_total = t_mst
+        t_bet_total = time.time() - t_bet_start - t_mst_total
+    else:
+        t_mst_total = 0
+        t_bet_total = 0
     
     # Projection de la similarité max par noeud sur l'image
     sim_img = np.zeros((H, W), dtype=np.float32)
@@ -505,8 +510,8 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[1, 3, 5, 7], R=6,
         "1. Hessian Fusion": t_hessian - t0,
         "2. Graph Unfold": t_unfold - t_hessian,
         "3. Frangi Similarity": t_sim - t_unfold,
-        "4. MST (CPU)": t_mst - t_sim,
-        "5. Betweenness (GPU)": t_end - t_mst,
+        "4. MST (CPU)": t_mst_total,
+        "5. Betweenness (GPU)": t_bet_total,
         "Total": t_end - t0
     }
     
