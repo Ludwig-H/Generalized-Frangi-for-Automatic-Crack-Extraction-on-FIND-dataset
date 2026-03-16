@@ -35,6 +35,8 @@ import os
 import zipfile
 import gdown
 
+use_zip = True # @param {type:"boolean"}
+
 # Option 1 (Recommandée) : Téléchargement du fichier ZIP (plus rapide)
 zip_file_id = '1HhVmtQwB56VMuIBcAjvv-J-BN3o9m2vL'
 zip_path = 'IRT-Crack-Dataset.zip'
@@ -43,9 +45,13 @@ zip_path = 'IRT-Crack-Dataset.zip'
 folder_id = '18yq9IFOSOvO7O95NVtZ3hpG9_KDdpJcO'
 dest_dir = 'IRT-Crack-Dataset'
 
-use_zip = True # Mettre à False pour utiliser le téléchargement par dossier
+def check_dataset_exists():
+    from pathlib import Path
+    for path in Path('.').rglob('01-Visible Image'):
+        return True
+    return False
 
-if not os.path.exists(dest_dir) and not os.path.exists('IRT-Crack Segmentation'):
+if not check_dataset_exists():
     if use_zip:
         print("Téléchargement du dataset (ZIP) depuis Google Drive...")
         gdown.download(id=zip_file_id, output=zip_path, quiet=False)
