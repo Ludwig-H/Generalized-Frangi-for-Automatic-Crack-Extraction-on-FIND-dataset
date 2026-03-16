@@ -232,7 +232,7 @@ Cette fonction exécute la pipeline optimisée :
 
 add_code("""from scipy.sparse import coo_matrix
 
-def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[3, 5, 7, 9, 11], R=3,
+def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[3, 5, 7, 9, 11], R=5,
                              ss=2.0, si=0.25, sa=0.125, τ=0.15, device='cuda'):
     import time
     t0 = time.time()
@@ -415,7 +415,7 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[3, 5, 7, 9, 11], R=3,
     counts = np.bincount(labels)
     
     N_total = H * W
-    min_size = N_total / 200.0
+    min_size = N_total / 100.0
 
     valid_components = np.where(counts > min_size)[0]    
     cent_img = np.zeros((H, W), dtype=np.float32)
