@@ -223,7 +223,7 @@ Cette fonction exécute la pipeline optimisée :
 1. **Fusion au niveau Hessien** en sommant pondérément les modalités (Intensité, Range/IR) normalisées.
 2. **Réponse Frangi Multi-échelles** pour isoler les "Dark Ridges".
 3. **Voisinage via Unfold (GPU)** pour calculer les similarités instantanément sans boucles.
-4. **Seuillage Direct (Top 5%)** : On extrait les nœuds avec la meilleure similarité (suppression du MST pour maximiser la vitesse).""")
+4. **Topologie Hybride (MST CPU + Centralité GPU)** : L'extraction de l'arbre se fait avec SciPy sur CPU, mais le calcul de *Weighted Betweenness Centrality* est transféré et vectorisé sur le GPU PyTorch avec `index_add_`.""")
 
 add_code("""from scipy.sparse import coo_matrix
 
@@ -349,23 +349,29 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[1, 3, 5, 7], R=10,
     if device == 'cuda': torch.cuda.synchronize()
     t_sim = time.time()
         
-    # 4. Piste 3 : Suppression du parcours MST, seuillage direct (à tau = 5% par défaut)
+    # 4. Extraction Topologique (MST CPU + Centralité GPU PyTorch)
+    # Transformation en distance (Eq. 6) vectorisée sur GPU
+    dist_ij_t = torch.norm(coords[i_idx_t] - coords[j_idx_t], dim=1)
+    d_ij = (1 - S_ij_max) * dist_ij_t + 1e-8
+    
     S_cpu = S_ij_max.cpu().numpy()
+    d_cpu = d_ij.cpu().numpy()
     i_cpu = i_idx_t.cpu().numpy()
     j_cpu = j_idx_t.cpu().numpy()
     
     import numpy as np
+    from scipy.sparse.csgraph import minimum_spanning_tree, breadth_first_order, connected_components
     
-    # Création de la matrice creuse symétrique pour trouver la similarité max par noeud
-    S_sparse = coo_matrix((np.concatenate([S_cpu, S_cpu]), 
+    # Création de la matrice creuse symétrique
+    S_sparse_full = coo_matrix((np.concatenate([S_cpu, S_cpu]), 
                            (np.concatenate([i_cpu, j_cpu]), np.concatenate([j_cpu, i_cpu]))), 
                           shape=(N, N)).tocsr()
                           
-    node_sim_max = np.squeeze(np.asarray(S_sparse.max(axis=1).todense()))
+    node_sim_max = np.squeeze(np.asarray(S_sparse_full.max(axis=1).todense()))
     if np.isscalar(node_sim_max) or node_sim_max.size == 0:
         node_sim_max = np.zeros(N)
         
-    # Seuillage strict des top tau % (5%)
+    # Seuillage strict des top tau % (ex: 5%)
     num_to_keep = max(1, int(N * τ))
     if N > num_to_keep:
         threshold_sim = np.partition(node_sim_max, -num_to_keep)[-num_to_keep]
@@ -373,15 +379,89 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[1, 3, 5, 7], R=10,
     else:
         valid_nodes = np.arange(N)
         
+    S_sparse = S_sparse_full[valid_nodes, :][:, valid_nodes]
+    
+    sparse_dist_full = coo_matrix((np.concatenate([d_cpu, d_cpu]), 
+                                  (np.concatenate([i_cpu, j_cpu]), np.concatenate([j_cpu, i_cpu]))), 
+                                 shape=(N, N)).tocsr()
+    sparse_dist = sparse_dist_full[valid_nodes, :][:, valid_nodes]
+    
+    coords = coords[valid_nodes]
+    N_valid = len(valid_nodes)
+    
+    # Isolation de la plus grande composante connexe
+    n_comp, labels = connected_components(sparse_dist, directed=False)
+    if n_comp > 1:
+        counts = np.bincount(labels)
+        largest_comp = np.argmax(counts)
+        mask_largest = (labels == largest_comp)
+        nodes_largest = np.where(mask_largest)[0]
+    else:
+        nodes_largest = np.arange(N_valid)
+        
+    if len(nodes_largest) == 0:
+        return max_S_global.cpu().numpy(), np.zeros((H, W)), np.zeros((H, W)), {}
+        
+    sparse_dist_largest = sparse_dist[nodes_largest, :][:, nodes_largest]
+    S_sparse_largest = S_sparse[nodes_largest, :][:, nodes_largest]
+    
+    # Minimum Spanning Tree (SciPy, très optimisé en C, sur CPU)
+    mst = minimum_spanning_tree(sparse_dist_largest)
+    order, preds = breadth_first_order(mst, i_start=0, directed=False, return_predecessors=True)
+    
+    if device == 'cuda': torch.cuda.synchronize()
+    t_mst = time.time()
+    
+    # Weighted Betweenness Centrality implémentée sur GPU via PyTorch
+    N_L = len(nodes_largest)
+    valid_mask = preds >= 0
+    p_valid = preds[valid_mask]
+    i_valid = np.arange(N_L)[valid_mask]
+    
+    W_parent_np = np.zeros(N_L, dtype=np.float32)
+    W_parent_np[i_valid] = np.asarray(S_sparse_largest[p_valid, i_valid]).flatten()
+    
+    # Transfert vers le GPU
+    W_parent = torch.tensor(W_parent_np, dtype=torch.float32, device=device)
+    E_mass = torch.zeros(N_L, dtype=torch.float32, device=device)
+    
+    # Accumulation depuis les feuilles
+    for i in order[::-1]:
+        p = preds[i]
+        if p >= 0:
+            E_mass[p] += E_mass[i] + W_parent[i]
+            
+    M_total = E_mass[order[0]]
+    
+    # Vectorisation des opérations de Betweenness (sur GPU)
+    child_branch_mass = W_parent + E_mass
+    p_valid_t = torch.tensor(p_valid, dtype=torch.long, device=device)
+    i_valid_t = torch.tensor(i_valid, dtype=torch.long, device=device)
+    
+    sum_masses_children = torch.zeros(N_L, dtype=torch.float32, device=device)
+    sum_masses_children.index_add_(0, p_valid_t, child_branch_mass[i_valid_t])
+    
+    parent_branch_mass = torch.clamp(M_total - sum_masses_children, min=0.0)
+    
+    val_child = child_branch_mass * (M_total - child_branch_mass)
+    sum_val_child = torch.zeros(N_L, dtype=torch.float32, device=device)
+    sum_val_child.index_add_(0, p_valid_t, val_child[i_valid_t])
+    
+    val_parent = parent_branch_mass * (M_total - parent_branch_mass)
+    centrality = (sum_val_child + val_parent) / 2.0
+    
+    if centrality.max() > 0:
+        centrality /= centrality.max()
+        
+    # Re-projection sur l'image
+    cent_img = np.zeros((H, W), dtype=np.float32)
+    coords_largest = coords[nodes_largest].cpu().numpy().astype(int)
+    cent_img[coords_largest[:, 0], coords_largest[:, 1]] = centrality.cpu().numpy()
+    
     # Projection de la similarité max par noeud sur l'image
     sim_img = np.zeros((H, W), dtype=np.float32)
     coords_all = coords.cpu().numpy().astype(int)
     sim_img[coords_all[:, 0], coords_all[:, 1]] = node_sim_max
-    
-    # Création du masque binaire du squelette (top tau % de la similarité)
-    skeleton = np.zeros((H, W), dtype=np.float32)
-    coords_valid = coords[valid_nodes].cpu().numpy().astype(int)
-    skeleton[coords_valid[:, 0], coords_valid[:, 1]] = 1.0
     
     if device == 'cuda': torch.cuda.synchronize()
     t_end = time.time()
@@ -390,11 +470,12 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[1, 3, 5, 7], R=10,
         "1. Hessian Fusion": t_hessian - t0,
         "2. Graph Unfold": t_unfold - t_hessian,
         "3. Frangi Similarity": t_sim - t_unfold,
-        "4. Thresholding": t_end - t_sim,
+        "4. MST (CPU)": t_mst - t_sim,
+        "5. Betweenness (GPU)": t_end - t_mst,
         "Total": t_end - t0
     }
     
-    return max_S_global.cpu().numpy(), sim_img, skeleton, timings""")
+    return max_S_global.cpu().numpy(), sim_img, cent_img, timings""")
 
 add_md("""## 4. Visualisation Complète (Inspection Visuelle)
 
@@ -461,12 +542,11 @@ imgs = {
 weights = {'visible': 0.5, 'infrared': 0.5}
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-frangi_response, similarity_img, skeleton, timings = extract_frangi_graph_gpu(imgs, weights, device=device)
+frangi_response, similarity_img, centrality, timings = extract_frangi_graph_gpu(imgs, weights, device=device)
 
 # Seuillage final adaptatif pour extraire le squelette
 # On garde les chemins majeurs (centralité élevée)
-# Note: extract_frangi_graph_gpu now returns the thresholded skeleton directly
-# skeleton = (centrality > 0.05).astype(np.float32)
+skeleton = (centrality > 0.05).astype(np.float32)
 
 # --- Metrics and Thickening for the single sample example ---
 gt_arr_sample = sample['gt'].numpy().astype(np.uint8)
@@ -505,8 +585,8 @@ axes[0, 3].set_title('Ground Truth (Binarisé)')
 axes[1, 0].imshow(similarity_img, cmap='magma')
 axes[1, 0].set_title('Similarité Frangi-Graph (Max)')
 
-axes[1, 1].imshow(skeleton, cmap='hot')
-axes[1, 1].set_title('Squelette (Top 5% Similarité)')
+axes[1, 1].imshow(centrality, cmap='hot')
+axes[1, 1].set_title('Betweenness Centrality (Graph GPU)')
 
 # Squelette Brut
 axes[1, 2].imshow(skeleton, cmap='gray')
@@ -554,9 +634,9 @@ for i in range(num_eval):
     sample_i = dataset[i]
     imgs_i = {'visible': sample_i['visible'], 'infrared': sample_i['infrared']}
     
-    _, _, skeleton_i, _ = extract_frangi_graph_gpu(imgs_i, weights, device=device)
+    _, _, centrality_i, _ = extract_frangi_graph_gpu(imgs_i, weights, device=device)
     
-    pred_i = skeleton_i.astype(np.uint8)
+    pred_i = (centrality_i > 0.05).astype(np.uint8)
     sk_pred_thick_i = thicken(pred_i, pixels=3)
     
     gt_arr_i = sample_i['gt'].numpy().astype(np.uint8)
