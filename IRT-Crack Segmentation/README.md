@@ -34,10 +34,11 @@ Pour éviter l'explosion mémoire $\mathcal{O}(N^2)$ (erreur de type `OutOfMemor
 
 ### C. Extraction Topologique (Squelettisation)
 Une fois la matrice d'affinité spatiale construite sur le GPU :
-1. Elle est basculée sur le CPU.
-2. La plus grande composante connexe est isolée rigoureusement (`connected_components`).
-3. Un Arbre Couvrant de Poids Minimum (MST - *Minimum Spanning Tree*) est calculé via SciPy sur ce sous-graphe majeur.
-4. La Centralité d'Intermédiarité Pondérée (*Weighted Betweenness Centrality*) est calculée à la lettre en accumulant la masse des sous-arbres pour chaque nœud (Eq. 7 du papier) afin d'élaguer l'arbre et ne conserver que le "backbone" continu de la fissure.
+1. **Seuillage Dual (Dual Thresholding) :** La carte des candidats est d'abord pré-filtrée par un seuil léger sur la courbure, puis on calcule la similarité spatiale maximale de chaque nœud. Seule une proportion $\tau = 0.1$ des nœuds (ceux ayant la plus forte similarité) est conservée pour former le graphe final.
+2. Le graphe est basculé sur le CPU.
+3. La plus grande composante connexe est isolée rigoureusement (`connected_components`).
+4. Un Arbre Couvrant de Poids Minimum (MST - *Minimum Spanning Tree*) est calculé via SciPy sur ce sous-graphe majeur.
+5. La Centralité d'Intermédiarité Pondérée (*Weighted Betweenness Centrality*) est calculée à la lettre en accumulant la masse des sous-arbres pour chaque nœud (Eq. 7 du papier) afin d'élaguer l'arbre et ne conserver que le "backbone" continu de la fissure.
 
 ## 3. Utilisation
 
@@ -52,4 +53,5 @@ Une fois la matrice d'affinité spatiale construite sur le GPU :
 
 ## 4. Pistes d'expérimentation futures
 * Ajuster le dictionnaire `weights = {'visible': 0.5, 'infrared': 0.5}` pour mesurer l'impact isolée de chaque capteur (ex: `1.0` / `0.0`).
-* Explorer d'autres méthodes d'extraction topologique (ex: *Dual Thresholding* tel que décrit dans l'Étape 1 du papier EUSIPCO).
+* Ajuster la proportion $\tau$ (ex: `0.05`, `0.2`) pour analyser la sensibilité de l'étape de seuillage dual sur le bruit environnant.
+* Explorer l'algorithme d'élagage adaptatif de l'arbre couvrant (Étape 4 du papier EUSIPCO) pour garantir une épaisseur de 1 pixel parfaite.

@@ -211,39 +211,39 @@ class FrangiHessianGPU:
         mask_minus_bigger = abs_l_minus > abs_l_plus
         
         # Pour les structures sombres (dark ridges), on cherche la courbure max positive
-        l2 = torch.where(mask_minus_bigger, l_minus, l_plus)
-        l1 = torch.where(mask_minus_bigger, l_plus, l_minus)
+        λ2 = torch.where(mask_minus_bigger, l_minus, l_plus)
+        λ1 = torch.where(mask_minus_bigger, l_plus, l_minus)
 
-        theta = 0.5 * torch.atan2(2 * ixy, ixx - iyy)
-        return l1, l2, theta""")
+        θ = 0.5 * torch.atan2(2 * ixy, ixx - iyy)
+        return λ1, λ2, θ""")
 
 add_md("""## 3. Fusion Multimodale et Construction du Graphe (Frangi Graph)
 
 Cette fonction exécute la pipeline décrite dans l'article :
 1. **Fusion au niveau Hessien** en sommant pondérément les modalités (Intensité, Range/IR) normalisées.
 2. **Réponse Frangi Multi-échelles** pour isoler les "Dark Ridges".
-3. **Métrique de similarité Frangi** calculée sur un graphe creux (Sparse) généré par `scipy.spatial.cKDTree` pour éviter l'explosion mémoire en O(N²).
+3. **Métrique de similarité Frangi** calculée sur un graphe creux et **Seuillage Dual** (on ne garde que la proportion τ de nœuds ayant la meilleure similarité max). (Sparse) généré par `scipy.spatial.cKDTree` pour éviter l'explosion mémoire en O(N²).
 4. **Extraction Topologique (MST + Centralité)** calculée efficacement via SciPy.""")
 
 add_code("""from scipy.sparse import coo_matrix
 from scipy.sparse.csgraph import minimum_spanning_tree, breadth_first_order, connected_components
 
-def extract_frangi_graph_gpu(imgs_dict, weights, scales=[1, 3, 5, 7], R=10, 
-                             ss=2.0, si=0.25, sa=0.125, device='cuda'):
+def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[1, 3, 5, 7], R=10, 
+                             ss=2.0, si=0.25, sa=0.125, τ=0.1, device='cuda'):
     
-    fh = FrangiHessianGPU(scales, device=device)
+    fh = FrangiHessianGPU(Σ, device=device)
     
     scale_data = []
     max_S_global = None
     H, W = None, None
     
     # 1. Fusion Multimodale par échelle
-    for s in scales:
+    for σ in Σ:
         fused_ixx = None
         
         for mod, w in weights.items():
             if w > 0:
-                ixx, ixy, iyy = fh.compute_hessian(imgs_dict[mod], s)
+                ixx, ixy, iyy = fh.compute_hessian(imgs_dict[mod], σ)
                 if H is None:
                     H, W = ixx.shape
                 
@@ -263,24 +263,24 @@ def extract_frangi_graph_gpu(imgs_dict, weights, scales=[1, 3, 5, 7], R=10,
                     fused_ixy += w * (ixy / max_norm)
                     fused_iyy += w * (iyy / max_norm)
                     
-        l1, l2, theta = fh.compute_eigenvalues_and_vectors(fused_ixx, fused_ixy, fused_iyy)
+        λ1, λ2, θ = fh.compute_eigenvalues_and_vectors(fused_ixx, fused_ixy, fused_iyy)
         
         # Filtre de Frangi (hypothèse: "Dark Ridges" -> l2 > 0)
-        mask_pos = l2 > 0
-        RB = torch.zeros_like(l2)
-        RB[mask_pos] = torch.abs(l1[mask_pos]) / (l2[mask_pos] + 1e-8)
+        mask_pos = λ2 > 0
+        R_B = torch.zeros_like(λ2)
+        R_B[mask_pos] = torch.abs(λ1[mask_pos]) / (λ2[mask_pos] + 1e-8)
         
-        S_norm = torch.zeros_like(l2)
-        S_norm[mask_pos] = l2[mask_pos]
+        S_norm = torch.zeros_like(λ2)
+        S_norm[mask_pos] = λ2[mask_pos]
         
         if max_S_global is None: max_S_global = S_norm.clone()
         else: max_S_global = torch.max(max_S_global, S_norm)
             
-        scale_data.append((RB, S_norm, theta, mask_pos))
+        scale_data.append((R_B, S_norm, θ, mask_pos))
         
-    # 2. Seuillage pour définir les nœuds du graphe
-    thresh = max_S_global.max() * 0.1 # (Étape 1: Dual Thresholding sera raffinée plus tard)
-    candidates_mask = max_S_global > thresh
+    # 2. Étape 1a : Premier seuillage (léger) sur la réponse brute λ2
+    τ_1 = max_S_global.max() * 0.01 
+    candidates_mask = max_S_global > τ_1
     coords = torch.nonzero(candidates_mask).float() # (N, 2)
     N = coords.shape[0]
     
@@ -332,10 +332,10 @@ def extract_frangi_graph_gpu(imgs_dict, weights, scales=[1, 3, 5, 7], R=10,
     
     S_ij_max = torch.zeros(len(i_idx_t), device=device, dtype=torch.float32)
     
-    for RB, S_norm, theta, mask_pos in scale_data:
-        rb_c = RB[candidates_mask]
+    for R_B, S_norm, θ, mask_pos in scale_data:
+        rb_c = R_B[candidates_mask]
         s_c  = S_norm[candidates_mask]
-        t_c  = theta[candidates_mask]
+        t_c  = θ[candidates_mask]
         
         rb_sum = rb_c[i_idx_t] + rb_c[j_idx_t]
         S_shape = torch.exp(-0.5 * (rb_sum / ss)**2)
@@ -357,11 +357,34 @@ def extract_frangi_graph_gpu(imgs_dict, weights, scales=[1, 3, 5, 7], R=10,
     j_idx_cpu = j_idx_t.cpu().numpy()
     S_cpu = S_ij_max.cpu().numpy()
     
-    sparse_dist = coo_matrix((d_ij_cpu, (i_idx_cpu, j_idx_cpu)), shape=(N, N)).tocsr()
-    sparse_dist = sparse_dist + sparse_dist.T
+    S_sparse_full = coo_matrix((S_cpu, (i_idx_cpu, j_idx_cpu)), shape=(N, N)).tocsr()
+    S_sparse_full = S_sparse_full + S_sparse_full.T
     
-    S_sparse = coo_matrix((S_cpu, (i_idx_cpu, j_idx_cpu)), shape=(N, N)).tocsr()
-    S_sparse = S_sparse + S_sparse.T
+    # Étape 1b : Seuillage Dual basé sur la similarité
+    # On ne garde qu'une proportion τ des noeuds ayant la plus grande similarité max
+    import numpy as np
+    node_sim_max = np.squeeze(np.asarray(S_sparse_full.max(axis=1).todense()))
+    if np.isscalar(node_sim_max) or node_sim_max.size == 0:
+        node_sim_max = np.zeros(N)
+        
+    num_to_keep = max(1, int(N * τ))
+    if N > num_to_keep:
+        threshold_sim = np.partition(node_sim_max, -num_to_keep)[-num_to_keep]
+        valid_nodes = np.where(node_sim_max >= threshold_sim)[0]
+    else:
+        valid_nodes = np.arange(N)
+        
+    # Extraction du sous-graphe correspondant aux noeuds valides
+    S_sparse = S_sparse_full[valid_nodes, :][:, valid_nodes]
+    
+    d_ij_cpu = d_ij.cpu().numpy()
+    sparse_dist_full = coo_matrix((d_ij_cpu, (i_idx_cpu, j_idx_cpu)), shape=(N, N)).tocsr()
+    sparse_dist_full = sparse_dist_full + sparse_dist_full.T
+    sparse_dist = sparse_dist_full[valid_nodes, :][:, valid_nodes]
+    
+    # Mise à jour des structures
+    coords = coords[valid_nodes]
+    N_valid = len(valid_nodes)
     
     # 4. Extraction Topologique rigoureuse selon l'article
     # a. Isolation de la plus grande composante connexe
@@ -372,7 +395,7 @@ def extract_frangi_graph_gpu(imgs_dict, weights, scales=[1, 3, 5, 7], R=10,
         mask_largest = (labels == largest_comp)
         nodes_largest = np.where(mask_largest)[0]
     else:
-        nodes_largest = np.arange(N)
+        nodes_largest = np.arange(N_valid)
         
     if len(nodes_largest) == 0:
         return max_S_global.cpu().numpy(), np.zeros((H, W)), np.zeros((H, W))
@@ -430,7 +453,7 @@ def extract_frangi_graph_gpu(imgs_dict, weights, scales=[1, 3, 5, 7], R=10,
     # Projection de la similarité max par noeud
     node_similarity = np.squeeze(np.asarray(S_sparse.max(axis=1).todense()))
     if np.isscalar(node_similarity) or node_similarity.size == 0:
-        node_similarity = np.zeros(N)
+        node_similarity = np.zeros(N_valid)
     sim_img = np.zeros((H, W), dtype=np.float32)
     coords_all = coords.cpu().numpy().astype(int)
     sim_img[coords_all[:, 0], coords_all[:, 1]] = node_similarity
