@@ -219,17 +219,16 @@ class FrangiHessianGPU:
 
 add_md("""## 3. Fusion Multimodale et Construction du Graphe (Frangi Graph)
 
-Cette fonction exécute la pipeline décrite dans l'article :
+Cette fonction exécute la pipeline optimisée :
 1. **Fusion au niveau Hessien** en sommant pondérément les modalités (Intensité, Range/IR) normalisées.
 2. **Réponse Frangi Multi-échelles** pour isoler les "Dark Ridges".
-3. **Métrique de similarité Frangi** calculée sur un graphe creux et **Seuillage Dual** (on ne garde que la proportion τ de nœuds ayant la meilleure similarité max). (Sparse) généré par `scipy.spatial.cKDTree` pour éviter l'explosion mémoire en O(N²).
-4. **Extraction Topologique (MST + Centralité)** calculée efficacement via SciPy.""")
+3. **Voisinage via Unfold (GPU)** pour calculer les similarités instantanément sans boucles.
+4. **Seuillage Direct (Top 5%)** : On extrait les nœuds avec la meilleure similarité (suppression du MST pour maximiser la vitesse).""")
 
 add_code("""from scipy.sparse import coo_matrix
-from scipy.sparse.csgraph import minimum_spanning_tree, breadth_first_order, connected_components
 
 def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[1, 3, 5, 7], R=10, 
-                             ss=2.0, si=0.25, sa=0.125, τ=0.1, device='cuda'):
+                             ss=2.0, si=0.25, sa=0.125, τ=0.05, device='cuda'):
     
     fh = FrangiHessianGPU(Σ, device=device)
     
@@ -248,7 +247,6 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[1, 3, 5, 7], R=10,
                     H, W = ixx.shape
                 
                 # Normalisation stricte par la norme spectrale maximale (Eq. 1 du papier Eusipco)
-                # Max(|lambda1|, |lambda2|) = (|trace| + disc) / 2
                 trace = ixx + iyy
                 disc = torch.sqrt((ixx - iyy)**2 + 4 * ixy**2)
                 spectral_norm_local = (torch.abs(trace) + disc) / 2.0
@@ -287,48 +285,39 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[1, 3, 5, 7], R=10,
     if N == 0:
         return np.zeros((H, W)), np.zeros((H, W)), np.zeros((H, W))
     
-    # 3. Graphe creux (Sparse) généré EXCLUSIVEMENT sur GPU via convolutions/décalages (Optimisation)
-    # Permet de se passer du kdtree sur CPU et d'éviter les transferts de mémoire lents.
+    # 3. Graphe creux (Sparse) généré EXCLUSIVEMENT sur GPU via unfold (Piste 1: Ultra-rapide)
     index_map = torch.full((H, W), -1, dtype=torch.long, device=device)
     index_map[candidates_mask] = torch.arange(N, device=device)
     
-    i_indices = []
-    j_indices = []
-    dists = []
+    # Padding pour l'extraction des patchs (rayon R)
+    padded_index_map = torch.nn.functional.pad(index_map.unsqueeze(0).unsqueeze(0).float(), (R, R, R, R), value=-1).long()
     
-    for dy in range(0, R+1):
-        for dx in range(-R, R+1):
-            if dy == 0 and dx <= 0:
-                continue
-            d_sq = dx**2 + dy**2
-            if d_sq <= R**2:
-                y_start, y_end = max(0, -dy), min(H, H-dy)
-                x_start, x_end = max(0, -dx), min(W, W-dx)
-                
-                overlap = candidates_mask[y_start:y_end, x_start:x_end] & candidates_mask[y_start+dy:y_end+dy, x_start+dx:x_end+dx]
-                
-                if not overlap.any():
-                    continue
-                    
-                y1_ov, x1_ov = torch.nonzero(overlap, as_tuple=True)
-                y1 = y1_ov + y_start
-                x1 = x1_ov + x_start
-                y2 = y1 + dy
-                x2 = x1 + dx
-                
-                idx1 = index_map[y1, x1]
-                idx2 = index_map[y2, x2]
-                
-                i_indices.append(idx1)
-                j_indices.append(idx2)
-                dists.append(torch.full((len(idx1),), math.sqrt(d_sq), device=device))
+    # Fenêtrage glissant pour obtenir tous les voisinages en un coup
+    patches = padded_index_map[0, 0].unfold(0, 2*R+1, 1).unfold(1, 2*R+1, 1) # (H, W, 2R+1, 2R+1)
     
-    if len(i_indices) == 0:
+    # Récupération des voisinages uniquement pour nos candidats
+    y_coords, x_coords = torch.nonzero(candidates_mask, as_tuple=True)
+    cand_patches = patches[y_coords, x_coords] # (N, 2R+1, 2R+1)
+    
+    # Création du masque géométrique valide (demi-cercle pour éviter les arêtes en double)
+    dy, dx = torch.meshgrid(torch.arange(-R, R+1, device=device), torch.arange(-R, R+1, device=device), indexing='ij')
+    dist_sq = dx**2 + dy**2
+    valid_dist_mask = (dist_sq <= R**2) & (dist_sq > 0)
+    half_mask = (dy > 0) | ((dy == 0) & (dx > 0))
+    valid_mask = valid_dist_mask & half_mask # (2R+1, 2R+1)
+    
+    # Filtrage des voisins valides
+    valid_neighbors = cand_patches[:, valid_mask] # (N, M)
+    
+    # Création des arêtes
+    source_idx = torch.arange(N, device=device).unsqueeze(1).expand(-1, valid_neighbors.shape[1])
+    valid_pairs_mask = valid_neighbors != -1
+    
+    i_idx_t = source_idx[valid_pairs_mask]
+    j_idx_t = valid_neighbors[valid_pairs_mask]
+    
+    if len(i_idx_t) == 0:
         return max_S_global.cpu().numpy(), np.zeros((H, W)), np.zeros((H, W))
-    
-    i_idx_t = torch.cat(i_indices)
-    j_idx_t = torch.cat(j_indices)
-    dist_ij_t = torch.cat(dists)
     
     S_ij_max = torch.zeros(len(i_idx_t), device=device, dtype=torch.float32)
     
@@ -349,24 +338,23 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[1, 3, 5, 7], R=10,
         S_ij = S_shape * S_int * S_align
         S_ij_max = torch.max(S_ij_max, S_ij)
         
-    # Transformation en distance pour le MST (Eq. 6 Eusipco)
-    d_ij = (1 - S_ij_max) * dist_ij_t + 1e-8 # epsilon pour garantir la positivité stricte
-    
-    d_ij_cpu = d_ij.cpu().numpy()
-    i_idx_cpu = i_idx_t.cpu().numpy()
-    j_idx_cpu = j_idx_t.cpu().numpy()
+    # 4. Piste 3 : Suppression du parcours MST, seuillage direct (à tau = 5% par défaut)
     S_cpu = S_ij_max.cpu().numpy()
+    i_cpu = i_idx_t.cpu().numpy()
+    j_cpu = j_idx_t.cpu().numpy()
     
-    S_sparse_full = coo_matrix((S_cpu, (i_idx_cpu, j_idx_cpu)), shape=(N, N)).tocsr()
-    S_sparse_full = S_sparse_full + S_sparse_full.T
-    
-    # Étape 1b : Seuillage Dual basé sur la similarité
-    # On ne garde qu'une proportion τ des noeuds ayant la plus grande similarité max
     import numpy as np
-    node_sim_max = np.squeeze(np.asarray(S_sparse_full.max(axis=1).todense()))
+    
+    # Création de la matrice creuse symétrique pour trouver la similarité max par noeud
+    S_sparse = coo_matrix((np.concatenate([S_cpu, S_cpu]), 
+                           (np.concatenate([i_cpu, j_cpu]), np.concatenate([j_cpu, i_cpu]))), 
+                          shape=(N, N)).tocsr()
+                          
+    node_sim_max = np.squeeze(np.asarray(S_sparse.max(axis=1).todense()))
     if np.isscalar(node_sim_max) or node_sim_max.size == 0:
         node_sim_max = np.zeros(N)
         
+    # Seuillage strict des top tau % (5%)
     num_to_keep = max(1, int(N * τ))
     if N > num_to_keep:
         threshold_sim = np.partition(node_sim_max, -num_to_keep)[-num_to_keep]
@@ -374,91 +362,17 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[1, 3, 5, 7], R=10,
     else:
         valid_nodes = np.arange(N)
         
-    # Extraction du sous-graphe correspondant aux noeuds valides
-    S_sparse = S_sparse_full[valid_nodes, :][:, valid_nodes]
-    
-    d_ij_cpu = d_ij.cpu().numpy()
-    sparse_dist_full = coo_matrix((d_ij_cpu, (i_idx_cpu, j_idx_cpu)), shape=(N, N)).tocsr()
-    sparse_dist_full = sparse_dist_full + sparse_dist_full.T
-    sparse_dist = sparse_dist_full[valid_nodes, :][:, valid_nodes]
-    
-    # Mise à jour des structures
-    coords = coords[valid_nodes]
-    N_valid = len(valid_nodes)
-    
-    # 4. Extraction Topologique rigoureuse selon l'article
-    # a. Isolation de la plus grande composante connexe
-    n_comp, labels = connected_components(sparse_dist, directed=False)
-    if n_comp > 1:
-        counts = np.bincount(labels)
-        largest_comp = np.argmax(counts)
-        mask_largest = (labels == largest_comp)
-        nodes_largest = np.where(mask_largest)[0]
-    else:
-        nodes_largest = np.arange(N_valid)
-        
-    if len(nodes_largest) == 0:
-        return max_S_global.cpu().numpy(), np.zeros((H, W)), np.zeros((H, W))
-        
-    sparse_dist_largest = sparse_dist[nodes_largest, :][:, nodes_largest]
-    S_sparse_largest = S_sparse[nodes_largest, :][:, nodes_largest]
-    
-    # b. Minimum Spanning Tree
-    mst = minimum_spanning_tree(sparse_dist_largest)
-    
-    # c. Weighted Betweenness Centrality exacte (Eq. 7 Eusipco) vectorisée
-    order, preds = breadth_first_order(mst, i_start=0, directed=False, return_predecessors=True)
-    
-    N_L = len(nodes_largest)
-    E_mass = np.zeros(N_L)
-    W_parent = np.zeros(N_L)
-    
-    valid_mask = preds >= 0
-    p_valid = preds[valid_mask]
-    i_valid = np.arange(N_L)[valid_mask]
-    
-    # Extraction vectorisée des poids des parents (S_sparse_largest est symétrique)
-    W_parent[i_valid] = np.asarray(S_sparse_largest[p_valid, i_valid]).flatten()
-    
-    # Accumulation des masses (somme des similarités S_ij) depuis les feuilles vers la racine
-    for i in order[::-1]:
-        p = preds[i]
-        if p >= 0:
-            E_mass[p] += E_mass[i] + W_parent[i]
-            
-    M_total = E_mass[order[0]]
-    
-    # Calcul de la centralité 100% vectorisé pour chaque noeud
-    child_branch_mass = W_parent + E_mass
-    sum_masses_children = np.zeros(N_L)
-    np.add.at(sum_masses_children, p_valid, child_branch_mass[i_valid])
-    
-    parent_branch_mass = np.maximum(0, M_total - sum_masses_children)
-    
-    val_child = child_branch_mass * (M_total - child_branch_mass)
-    sum_val_child = np.zeros(N_L)
-    np.add.at(sum_val_child, p_valid, val_child[i_valid])
-    
-    val_parent = parent_branch_mass * (M_total - parent_branch_mass)
-    centrality = (sum_val_child + val_parent) / 2.0
-        
-    if centrality.max() > 0:
-        centrality /= centrality.max()
-        
-    # Re-projection sur l'image
-    cent_img = np.zeros((H, W), dtype=np.float32)
-    coords_largest = coords[nodes_largest].cpu().numpy().astype(int)
-    cent_img[coords_largest[:, 0], coords_largest[:, 1]] = centrality
-    
-    # Projection de la similarité max par noeud
-    node_similarity = np.squeeze(np.asarray(S_sparse.max(axis=1).todense()))
-    if np.isscalar(node_similarity) or node_similarity.size == 0:
-        node_similarity = np.zeros(N_valid)
+    # Projection de la similarité max par noeud sur l'image
     sim_img = np.zeros((H, W), dtype=np.float32)
     coords_all = coords.cpu().numpy().astype(int)
-    sim_img[coords_all[:, 0], coords_all[:, 1]] = node_similarity
+    sim_img[coords_all[:, 0], coords_all[:, 1]] = node_sim_max
     
-    return max_S_global.cpu().numpy(), sim_img, cent_img""")
+    # Création du masque binaire du squelette (top tau % de la similarité)
+    skeleton = np.zeros((H, W), dtype=np.float32)
+    coords_valid = coords[valid_nodes].cpu().numpy().astype(int)
+    skeleton[coords_valid[:, 0], coords_valid[:, 1]] = 1.0
+    
+    return max_S_global.cpu().numpy(), sim_img, skeleton""")
 
 add_md("""## 4. Visualisation Complète (Inspection Visuelle)
 
@@ -525,11 +439,12 @@ imgs = {
 weights = {'visible': 0.5, 'infrared': 0.5}
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-frangi_response, similarity_img, centrality = extract_frangi_graph_gpu(imgs, weights, device=device)
+frangi_response, similarity_img, skeleton = extract_frangi_graph_gpu(imgs, weights, device=device)
 
 # Seuillage final adaptatif pour extraire le squelette
 # On garde les chemins majeurs (centralité élevée)
-skeleton = (centrality > 0.05).astype(np.float32)
+# Note: extract_frangi_graph_gpu now returns the thresholded skeleton directly
+# skeleton = (centrality > 0.05).astype(np.float32)
 
 # --- Metrics and Thickening for the single sample example ---
 gt_arr_sample = sample['gt'].numpy().astype(np.uint8)
@@ -565,21 +480,21 @@ axes[0, 3].set_title('Ground Truth (Binarisé)')
 axes[1, 0].imshow(similarity_img, cmap='magma')
 axes[1, 0].set_title('Similarité Frangi-Graph (Max)')
 
-axes[1, 1].imshow(centrality, cmap='hot')
-axes[1, 1].set_title('Betweenness Centrality (Graph)')
+axes[1, 1].imshow(skeleton, cmap='hot')
+axes[1, 1].set_title('Squelette (Top 5% Similarité)')
 
 # Squelette Brut
 axes[1, 2].imshow(skeleton, cmap='gray')
 axes[1, 2].set_title('Squelette Prédit (Brut)')
 
-# Superposition Métriques : GT brute (Bleu) + GT Squelette grossi (Vert) + Pred grossi (Rouge)
+# Superposition Métriques : GT brute (Blanc) + GT Squelette grossi (Vert) + Pred grossi (Rouge)
 # On met un fond noir pour bien faire ressortir les couleurs
 axes[1, 3].imshow(np.zeros_like(skeleton), cmap='gray')
 
 # Création de masques RGBA pour maîtriser parfaitement la couleur et la transparence
 h, w = skeleton.shape
 rgba_gt = np.zeros((h, w, 4), dtype=np.float32)
-rgba_gt[sample['gt'].numpy() > 0] = [0.0, 0.4, 1.0, 0.3] # Bleu transparent
+rgba_gt[sample['gt'].numpy() > 0] = [1.0, 1.0, 1.0, 0.3] # Blanc transparent
 
 rgba_gt_skel = np.zeros((h, w, 4), dtype=np.float32)
 rgba_gt_skel[sk_gt_thick_sample > 0] = [0.0, 1.0, 0.0, 0.4] # Vert transparent
@@ -590,7 +505,7 @@ rgba_pred[sk_pred_thick_sample > 0] = [1.0, 0.0, 0.0, 0.4] # Rouge transparent
 axes[1, 3].imshow(rgba_gt)
 axes[1, 3].imshow(rgba_gt_skel)
 axes[1, 3].imshow(rgba_pred)
-axes[1, 3].set_title('Éval (Bleu: GT, Vert: GT Squelette, Rouge: Pred)')
+axes[1, 3].set_title('Éval (Blanc: GT, Vert: GT Squelette, Rouge: Pred)')
 
 for ax in axes.flat:
     ax.axis('off')
@@ -614,9 +529,9 @@ for i in range(num_eval):
     sample_i = dataset[i]
     imgs_i = {'visible': sample_i['visible'], 'infrared': sample_i['infrared']}
     
-    _, _, centrality_i = extract_frangi_graph_gpu(imgs_i, weights, device=device)
+    _, _, skeleton_i = extract_frangi_graph_gpu(imgs_i, weights, device=device)
     
-    pred_i = (centrality_i > 0.05).astype(np.uint8)
+    pred_i = skeleton_i.astype(np.uint8)
     sk_pred_thick_i = thicken(pred_i, pixels=3)
     
     gt_arr_i = sample_i['gt'].numpy().astype(np.uint8)

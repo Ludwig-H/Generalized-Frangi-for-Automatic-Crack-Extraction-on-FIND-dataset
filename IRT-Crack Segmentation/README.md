@@ -32,13 +32,11 @@ Pour éviter l'explosion mémoire $\mathcal{O}(N^2)$ (erreur de type `OutOfMemor
 2. Le calcul intensif des tenseurs de similarité par PyTorch n'est effectué **que sur ces arêtes locales** instantanément.
 3. Les résultats alimentent une matrice creuse (`scipy.sparse.coo_matrix`), minimisant drastiquement l'empreinte VRAM et RAM.
 
-### C. Extraction Topologique (Squelettisation)
-Une fois la matrice d'affinité spatiale construite sur le GPU :
-1. **Seuillage Dual (Dual Thresholding) :** La carte des candidats est d'abord pré-filtrée par un seuil léger sur la courbure, puis on calcule la similarité spatiale maximale de chaque nœud. Seule une proportion $\tau = 0.1$ des nœuds (ceux ayant la plus forte similarité) est conservée pour former le graphe final.
-2. Le graphe est basculé sur le CPU.
-3. La plus grande composante connexe est isolée rigoureusement (`connected_components`).
-4. Un Arbre Couvrant de Poids Minimum (MST - *Minimum Spanning Tree*) est calculé via SciPy sur ce sous-graphe majeur.
-5. La Centralité d'Intermédiarité Pondérée (*Weighted Betweenness Centrality*) est calculée à la lettre en accumulant la masse des sous-arbres pour chaque nœud (Eq. 7 du papier) afin d'élaguer l'arbre et ne conserver que le "backbone" continu de la fissure.
+### C. Extraction Topologique Optmisée (Squelettisation Rapide)
+Pour garantir un temps d'exécution inférieur à la seconde, l'étape d'extraction (anciennement basée sur le MST et la Centralité) a été optimisée :
+1. **Seuillage Dual (Dual Thresholding) et Voisinage :** La carte des candidats est pré-filtrée. Ensuite, les voisinages sont extraits **massivement en parallèle via la méthode tensorielle `unfold` de PyTorch**. Cela évite toutes les boucles Python et permet de calculer les similarités locales instantanément sur le GPU.
+2. **Suppression du passage par le CPU (SciPy) :** La recherche du MST et de la "Weighted Betweenness Centrality" via SciPy constituait un goulot d'étranglement majeur. Elle a été retirée au profit d'un seuillage direct.
+3. **Squelettisation par Similarité Max :** La similarité spatiale maximale de chaque nœud est calculée via une matrice creuse légère. Seule la proportion $\tau = 0.05$ (les top 5% des nœuds ayant la plus forte similarité) est conservée et directement transformée en masque de fissure binaire.
 
 ## 3. Utilisation
 
