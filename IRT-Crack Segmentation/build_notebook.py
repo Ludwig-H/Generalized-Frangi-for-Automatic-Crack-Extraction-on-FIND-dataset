@@ -225,8 +225,8 @@ Cette fonction exécute la pipeline décrite dans l'article :
 3. **Métrique de similarité Frangi** calculée sur un graphe creux (Sparse) généré par `scipy.spatial.cKDTree` pour éviter l'explosion mémoire en O(N²).
 4. **Extraction Topologique (MST + Centralité)** calculée efficacement via SciPy.""")
 
-add_code("""from scipy.sparse import csr_matrix
-from scipy.sparse.csgraph import minimum_spanning_tree, breadth_first_order
+add_code("""from scipy.sparse import coo_matrix
+from scipy.sparse.csgraph import minimum_spanning_tree, breadth_first_order, connected_components
 
 def extract_frangi_graph_gpu(imgs_dict, weights, scales=[1, 3, 5, 7], R=10, 
                              ss=2.0, si=0.25, sa=0.125, device='cuda'):
@@ -234,8 +234,8 @@ def extract_frangi_graph_gpu(imgs_dict, weights, scales=[1, 3, 5, 7], R=10,
     fh = FrangiHessianGPU(scales, device=device)
     
     scale_data = []
-    # On stockera la réponse Frangi maximale sur toutes les échelles
     max_S_global = None
+    H, W = None, None
     
     # 1. Fusion Multimodale par échelle
     for s in scales:
@@ -244,8 +244,15 @@ def extract_frangi_graph_gpu(imgs_dict, weights, scales=[1, 3, 5, 7], R=10,
         for mod, w in weights.items():
             if w > 0:
                 ixx, ixy, iyy = fh.compute_hessian(imgs_dict[mod], s)
-                # Normalisation par la norme spectrale approximée
-                max_norm = torch.max(torch.abs(ixx + iyy)) + 1e-8
+                if H is None:
+                    H, W = ixx.shape
+                
+                # Normalisation stricte par la norme spectrale maximale (Eq. 1 du papier Eusipco)
+                # Max(|lambda1|, |lambda2|) = (|trace| + disc) / 2
+                trace = ixx + iyy
+                disc = torch.sqrt((ixx - iyy)**2 + 4 * ixy**2)
+                spectral_norm_local = (torch.abs(trace) + disc) / 2.0
+                max_norm = torch.max(spectral_norm_local) + 1e-8
                 
                 if fused_ixx is None:
                     fused_ixx = w * (ixx / max_norm)
@@ -272,46 +279,64 @@ def extract_frangi_graph_gpu(imgs_dict, weights, scales=[1, 3, 5, 7], R=10,
         scale_data.append((RB, S_norm, theta, mask_pos))
         
     # 2. Seuillage pour définir les nœuds du graphe
-    thresh = max_S_global.max() * 0.1 # Seuil adaptatif, e.g. 10% de l'intensité max
+    thresh = max_S_global.max() * 0.1 # (Étape 1: Dual Thresholding sera raffinée plus tard)
     candidates_mask = max_S_global > thresh
     coords = torch.nonzero(candidates_mask).float() # (N, 2)
     N = coords.shape[0]
     
     if N == 0:
-        return np.zeros_like(max_S_global.cpu().numpy()), np.zeros_like(max_S_global.cpu().numpy())
+        return np.zeros((H, W)), np.zeros((H, W))
     
-    # 3. Calcul du graphe creux (Sparse) pour éviter les erreurs OutOfMemory
-    # On utilise KDTree (sur CPU, très rapide pour ce rayon) pour trouver les paires
-    from scipy.spatial import cKDTree
+    # 3. Graphe creux (Sparse) généré EXCLUSIVEMENT sur GPU via convolutions/décalages (Optimisation)
+    # Permet de se passer du kdtree sur CPU et d'éviter les transferts de mémoire lents.
+    index_map = torch.full((H, W), -1, dtype=torch.long, device=device)
+    index_map[candidates_mask] = torch.arange(N, device=device)
     
-    coords_cpu = coords.cpu().numpy()
-    tree = cKDTree(coords_cpu)
+    i_indices = []
+    j_indices = []
+    dists = []
     
-    # pairs est une liste de tuples d'indices (i, j)
-    pairs = tree.query_pairs(R)
+    for dy in range(0, R+1):
+        for dx in range(-R, R+1):
+            if dy == 0 and dx <= 0:
+                continue
+            d_sq = dx**2 + dy**2
+            if d_sq <= R**2:
+                y_start, y_end = max(0, -dy), min(H, H-dy)
+                x_start, x_end = max(0, -dx), min(W, W-dx)
+                
+                overlap = candidates_mask[y_start:y_end, x_start:x_end] & candidates_mask[y_start+dy:y_end+dy, x_start+dx:x_end+dx]
+                
+                if not overlap.any():
+                    continue
+                    
+                y1_ov, x1_ov = torch.nonzero(overlap, as_tuple=True)
+                y1 = y1_ov + y_start
+                x1 = x1_ov + x_start
+                y2 = y1 + dy
+                x2 = x1 + dx
+                
+                idx1 = index_map[y1, x1]
+                idx2 = index_map[y2, x2]
+                
+                i_indices.append(idx1)
+                j_indices.append(idx2)
+                dists.append(torch.full((len(idx1),), math.sqrt(d_sq), device=device))
     
-    if not pairs:
-        return np.zeros_like(max_S_global.cpu().numpy()), np.zeros_like(max_S_global.cpu().numpy())
+    if len(i_indices) == 0:
+        return max_S_global.cpu().numpy(), np.zeros((H, W))
     
-    pairs = np.array(list(pairs))
-    i_idx = pairs[:, 0]
-    j_idx = pairs[:, 1]
+    i_idx_t = torch.cat(i_indices)
+    j_idx_t = torch.cat(j_indices)
+    dist_ij_t = torch.cat(dists)
     
-    # Distances euclidiennes pour ces paires
-    dist_ij = np.linalg.norm(coords_cpu[i_idx] - coords_cpu[j_idx], axis=1)
-    dist_ij_t = torch.tensor(dist_ij, device=device, dtype=torch.float32)
-    
-    i_idx_t = torch.tensor(i_idx, device=device, dtype=torch.long)
-    j_idx_t = torch.tensor(j_idx, device=device, dtype=torch.long)
-    
-    S_ij_max = torch.zeros(len(pairs), device=device, dtype=torch.float32)
+    S_ij_max = torch.zeros(len(i_idx_t), device=device, dtype=torch.float32)
     
     for RB, S_norm, theta, mask_pos in scale_data:
         rb_c = RB[candidates_mask]
         s_c  = S_norm[candidates_mask]
         t_c  = theta[candidates_mask]
         
-        # Calcul uniquement sur les arêtes valides
         rb_sum = rb_c[i_idx_t] + rb_c[j_idx_t]
         S_shape = torch.exp(-0.5 * (rb_sum / ss)**2)
         
@@ -322,52 +347,91 @@ def extract_frangi_graph_gpu(imgs_dict, weights, scales=[1, 3, 5, 7], R=10,
         S_align = torch.exp(-0.5 * (torch.sin(dt) / sa)**2)
         
         S_ij = S_shape * S_int * S_align
-        
         S_ij_max = torch.max(S_ij_max, S_ij)
         
-    # Transformation en distance pour le MST (Equation 6 Eusipco)
-    d_ij = (1 - S_ij_max) * dist_ij_t
+    # Transformation en distance pour le MST (Eq. 6 Eusipco)
+    d_ij = (1 - S_ij_max) * dist_ij_t + 1e-8 # epsilon pour garantir la positivité stricte
     
-    # Passage CPU pour MST
     d_ij_cpu = d_ij.cpu().numpy()
+    i_idx_cpu = i_idx_t.cpu().numpy()
+    j_idx_cpu = j_idx_t.cpu().numpy()
+    S_cpu = S_ij_max.cpu().numpy()
     
-    # Construction de la matrice creuse (Sparse Matrix)
-    from scipy.sparse import coo_matrix
-    
-    sparse_dist = coo_matrix((d_ij_cpu, (i_idx, j_idx)), shape=(N, N)).tocsr()
-    # Le graphe est non-orienté, on ajoute la transposée
+    sparse_dist = coo_matrix((d_ij_cpu, (i_idx_cpu, j_idx_cpu)), shape=(N, N)).tocsr()
     sparse_dist = sparse_dist + sparse_dist.T
     
-    # 4. MST et Centralité
-    mst = minimum_spanning_tree(sparse_dist)
+    S_sparse = coo_matrix((S_cpu, (i_idx_cpu, j_idx_cpu)), shape=(N, N)).tocsr()
+    S_sparse = S_sparse + S_sparse.T
+    
+    # 4. Extraction Topologique rigoureuse selon l'article
+    # a. Isolation de la plus grande composante connexe
+    n_comp, labels = connected_components(sparse_dist, directed=False)
+    if n_comp > 1:
+        counts = np.bincount(labels)
+        largest_comp = np.argmax(counts)
+        mask_largest = (labels == largest_comp)
+        nodes_largest = np.where(mask_largest)[0]
+    else:
+        nodes_largest = np.arange(N)
+        
+    if len(nodes_largest) == 0:
+        return max_S_global.cpu().numpy(), np.zeros((H, W))
+        
+    sparse_dist_largest = sparse_dist[nodes_largest, :][:, nodes_largest]
+    S_sparse_largest = S_sparse[nodes_largest, :][:, nodes_largest]
+    
+    # b. Minimum Spanning Tree
+    mst = minimum_spanning_tree(sparse_dist_largest)
+    
+    # c. Weighted Betweenness Centrality exacte (Eq. 7 Eusipco)
     order, preds = breadth_first_order(mst, i_start=0, directed=False, return_predecessors=True)
     
-    # Calcul du poids des noeuds (proxy de confiance locale) : max(S_ij) pour chaque noeud
-    S_cpu = S_ij_max.cpu().numpy()
-    S_sparse = coo_matrix((S_cpu, (i_idx, j_idx)), shape=(N, N)).tocsr()
-    S_sparse = S_sparse + S_sparse.T
-    node_weights = np.squeeze(np.asarray(S_sparse.max(axis=1).todense()))
-    if np.isscalar(node_weights) or node_weights.size == 0:
-        node_weights = np.ones(N)
+    N_L = len(nodes_largest)
+    E_mass = np.zeros(N_L)
+    W_parent = np.zeros(N_L)
+    children = {i: [] for i in range(N_L)}
     
-    # Accumulation des plus courts chemins (Betweenness Centrality sur Arbre)
-    subtree_mass = node_weights.copy()
+    for i in range(N_L):
+        p = preds[i]
+        if p >= 0:
+            children[p].append(i)
+            
+    # Accumulation des masses (somme des similarités S_ij) depuis les feuilles vers la racine
     for i in order[::-1]:
-        if i != 0:
-            p = preds[i]
-            if p >= 0:
-                subtree_mass[p] += subtree_mass[i]
-                
-    total_mass = subtree_mass[0]
-    centrality = subtree_mass * (total_mass - subtree_mass)
+        p = preds[i]
+        if p >= 0:
+            w = S_sparse_largest[p, i]
+            W_parent[i] = w
+            E_mass[p] += E_mass[i] + w
+            
+    M_total = E_mass[order[0]]
+    centrality = np.zeros(N_L)
+    
+    # Calcul de la centralité pour chaque noeud
+    for i in range(N_L):
+        masses = []
+        sum_masses = 0
+        for c in children[i]:
+            m_c = W_parent[c] + E_mass[c]
+            masses.append(m_c)
+            sum_masses += m_c
+            
+        m_p = M_total - sum_masses
+        if m_p > 0:
+            masses.append(m_p)
+            
+        c_val = 0.0
+        for m in masses:
+            c_val += m * (M_total - m)
+        centrality[i] = c_val / 2.0
+        
     if centrality.max() > 0:
         centrality /= centrality.max()
         
     # Re-projection sur l'image
-    H, W = imgs_dict['visible'].shape
     cent_img = np.zeros((H, W), dtype=np.float32)
-    rows, cols = coords[:, 0].cpu().numpy().astype(int), coords[:, 1].cpu().numpy().astype(int)
-    cent_img[rows, cols] = centrality
+    coords_largest = coords[nodes_largest].cpu().numpy().astype(int)
+    cent_img[coords_largest[:, 0], coords_largest[:, 1]] = centrality
     
     return max_S_global.cpu().numpy(), cent_img""")
 

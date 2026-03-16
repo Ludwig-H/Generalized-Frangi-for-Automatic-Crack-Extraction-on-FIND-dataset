@@ -27,16 +27,17 @@ Contrairement aux approches par apprentissage profond qui fusionnent les "featur
 
 ### B. Graphe de Similarité Frangi
 Pour dépasser le simple filtrage pixel par pixel, nous construisons un graphe géométrique. Le calcul de la similarité (qui combine l'élongation spatiale, le contraste d'intensité et l'alignement angulaire topologique) implique de comparer chaque pixel candidat à ses voisins de rayon $R$.
-Pour éviter l'explosion mémoire $\mathcal{O}(N^2)$ (erreur de type `OutOfMemoryError`), l'architecture du graphe a été optimisée et rendue **creuse (Sparse)** :
-1. Une recherche des plus proches voisins (K-NN) est effectuée ultra-rapidement via `scipy.spatial.cKDTree` pour isoler uniquement les paires valides dans le rayon $R$.
-2. Le calcul intensif des tenseurs de similarité par PyTorch n'est effectué **que sur ces arêtes locales**.
+Pour éviter l'explosion mémoire $\mathcal{O}(N^2)$ (erreur de type `OutOfMemoryError`) et s'affranchir de la lenteur des K-NN sur CPU, l'architecture du graphe a été optimisée sur GPU :
+1. Le voisinage est exploré de façon purement vectorielle via des **décalages spatiaux (shifts)** et des masques bit-à-bit sur la grille (évitant tout transfert lent vers le CPU).
+2. Le calcul intensif des tenseurs de similarité par PyTorch n'est effectué **que sur ces arêtes locales** instantanément.
 3. Les résultats alimentent une matrice creuse (`scipy.sparse.coo_matrix`), minimisant drastiquement l'empreinte VRAM et RAM.
 
 ### C. Extraction Topologique (Squelettisation)
 Une fois la matrice d'affinité spatiale construite sur le GPU :
 1. Elle est basculée sur le CPU.
-2. Un Arbre Couvrant de Poids Minimum (MST - *Minimum Spanning Tree*) est calculé via SciPy.
-3. La Centralité d'Intermédiarité Pondérée (*Weighted Betweenness Centrality*) est accumulée pour élaguer l'arbre et ne conserver que le "backbone" (squelette majeur) continu de la fissure.
+2. La plus grande composante connexe est isolée rigoureusement (`connected_components`).
+3. Un Arbre Couvrant de Poids Minimum (MST - *Minimum Spanning Tree*) est calculé via SciPy sur ce sous-graphe majeur.
+4. La Centralité d'Intermédiarité Pondérée (*Weighted Betweenness Centrality*) est calculée à la lettre en accumulant la masse des sous-arbres pour chaque nœud (Eq. 7 du papier) afin d'élaguer l'arbre et ne conserver que le "backbone" continu de la fissure.
 
 ## 3. Utilisation
 
