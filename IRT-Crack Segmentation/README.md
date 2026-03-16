@@ -52,4 +52,4 @@ Une fois la matrice d'affinité spatiale construite sur le GPU :
 
 ## 4. Pistes d'expérimentation futures
 * Ajuster le dictionnaire `weights = {'visible': 0.5, 'infrared': 0.5}` pour mesurer l'impact isolée de chaque capteur (ex: `1.0` / `0.0`).
-* Évaluer l'algorithme sur le dataset entier avec la distance de Wasserstein (nécessite une fonction d'évaluation spatiale supplémentaire sur les squelettes).
+* Explorer d'autres méthodes d'extraction topologique (ex: *Dual Thresholding* tel que décrit dans l'Étape 1 du papier EUSIPCO).
