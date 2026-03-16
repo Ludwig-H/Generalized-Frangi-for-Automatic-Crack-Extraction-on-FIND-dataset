@@ -412,7 +412,7 @@ from scipy.sparse import coo_matrix
 
 def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[4, 6, 8, 10, 12], R=3,
 
-                             ss=2.0, si=0.25, sa=0.125, τ=0.15, device='cuda'):
+                             ss=2.0, si=0.25, sa=0.125, τ=0.20, device='cuda'):
 
     import time
 
@@ -690,7 +690,7 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[4, 6, 8, 10, 12], R=3,
 
         
 
-    # Seuillage strict des top tau % (ex: 15%)
+    # Seuillage strict des top tau % (ex: 20%)
 
     num_to_keep = max(1, int(N * τ))
 
