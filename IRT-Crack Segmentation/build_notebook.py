@@ -233,7 +233,7 @@ Cette fonction exécute la pipeline optimisée :
 add_code("""from scipy.sparse import coo_matrix
 
 def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[1, 3, 5, 7], R=3, 
-                             ss=2.0, si=0.25, sa=0.125, τ=0.20, device='cuda'):
+                             ss=2.0, si=0.25, sa=0.125, τ=0.15, device='cuda'):
     import time
     t0 = time.time()
     
@@ -293,7 +293,7 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[1, 3, 5, 7], R=3,
     N = coords.shape[0]
     
     if N == 0:
-        return np.zeros((H, W)), np.zeros((H, W)), np.zeros((H, W))
+        return np.zeros((H, W)), np.zeros((H, W)), np.zeros((H, W)), {}, {'tau_mask': np.zeros((H, W)), 'comp_mask': np.zeros((H, W))}
     
     # 3. Graphe creux (Sparse) généré EXCLUSIVEMENT sur GPU via unfold (Piste 1: Ultra-rapide)
     index_map = torch.full((H, W), -1, dtype=torch.long, device=device)
@@ -327,7 +327,7 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[1, 3, 5, 7], R=3,
     j_idx_t = valid_neighbors[valid_pairs_mask]
     
     if len(i_idx_t) == 0:
-        return max_S_global.cpu().numpy(), np.zeros((H, W)), np.zeros((H, W)), {}
+        return max_S_global.cpu().numpy(), np.zeros((H, W)), np.zeros((H, W)), {}, {'tau_mask': np.zeros((H, W)), 'comp_mask': np.zeros((H, W))}
     
     if device == 'cuda': torch.cuda.synchronize()
     t_unfold = time.time()
@@ -410,16 +410,19 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[1, 3, 5, 7], R=3,
                               (np.concatenate([i_mapped, j_mapped]), np.concatenate([j_mapped, i_mapped]))), 
                              shape=(N_valid, N_valid)).tocsr()
     
-    # Isolation des composantes connexes de taille significative (> N_total / 500)
+    # Isolation des composantes connexes de taille significative (> N_total / 100)
     n_comp, labels = connected_components(sparse_dist, directed=False)
     counts = np.bincount(labels)
     
     N_total = H * W
-    min_size = N_total / 500.0
+    min_size = N_total / 100.0
     
     valid_components = np.where(counts > min_size)[0]
     
     cent_img = np.zeros((H, W), dtype=np.float32)
+    comp_mask = np.zeros((H, W), dtype=np.float32)
+    tau_mask = np.zeros((H, W), dtype=np.float32)
+    tau_mask[orig_coords_cpu[valid_nodes, 0], orig_coords_cpu[valid_nodes, 1]] = 1.0
     
     if len(valid_components) > 0:
         t_mst = 0
@@ -491,6 +494,7 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[1, 3, 5, 7], R=3,
             # Re-projection sur l'image
             coords_comp = coords[nodes_comp].cpu().numpy().astype(int)
             cent_img[coords_comp[:, 0], coords_comp[:, 1]] = centrality.cpu().numpy()
+            comp_mask[coords_comp[:, 0], coords_comp[:, 1]] = 1.0
             
         if device == 'cuda': torch.cuda.synchronize()
         t_mst_total = t_mst
@@ -515,7 +519,7 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[1, 3, 5, 7], R=3,
         "Total": t_end - t0
     }
     
-    return max_S_global.cpu().numpy(), sim_img, cent_img, timings""")
+    return max_S_global.cpu().numpy(), sim_img, cent_img, timings, {'tau_mask': tau_mask, 'comp_mask': comp_mask}""")
 
 add_md("""## 4. Visualisation Complète (Inspection Visuelle)
 
@@ -619,7 +623,7 @@ imgs = {
 weights = {'visible': 0.7, 'infrared': 0.3}
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-frangi_response, similarity_img, centrality, timings = extract_frangi_graph_gpu(imgs, weights, device=device)
+frangi_response, similarity_img, centrality, timings, diagnostics = extract_frangi_graph_gpu(imgs, weights, device=device)
 
 # Seuillage final adaptatif pour extraire le squelette
 # On garde les chemins majeurs (centralité élevée)
@@ -654,7 +658,7 @@ for k, v in timings.items():
 print(f"6. Metrics Calc: {t_metrics*1000:.2f} ms")
 print("--------------------------")
 
-fig, axes = plt.subplots(2, 4, figsize=(24, 12))
+fig, axes = plt.subplots(3, 3, figsize=(24, 18))
 
 axes[0, 0].imshow(sample['visible'].numpy(), cmap='gray')
 axes[0, 0].set_title('Modalité : Visible')
@@ -665,25 +669,38 @@ axes[0, 1].set_title('Modalité : Infrarouge (IR)')
 axes[0, 2].imshow(frangi_response, cmap='magma')
 axes[0, 2].set_title('Réponse Frangi Multi-échelles (Fused Λ2)')
 
-axes[0, 3].imshow(sample['gt'].numpy(), cmap='gray')
-axes[0, 3].set_title('Ground Truth (Binarisé)')
-
 axes[1, 0].imshow(similarity_img, cmap='magma')
 axes[1, 0].set_title('Similarité Frangi-Graph (Max)')
 
-axes[1, 1].imshow(centrality, cmap='hot')
-axes[1, 1].set_title('Betweenness Centrality (Graph GPU)')
+# Nouveau plot: Noeuds retenus (τ) et Composantes Connexes
+axes[1, 1].imshow(np.zeros_like(skeleton), cmap='gray') # Fond noir
+# Création de masques colorés pour la transparence
+h, w = skeleton.shape
+rgba_tau = np.zeros((h, w, 4), dtype=np.float32)
+rgba_tau[diagnostics['tau_mask'] > 0] = [1.0, 1.0, 1.0, 0.3] # Noeuds en blanc transparent
+
+rgba_comp = np.zeros((h, w, 4), dtype=np.float32)
+rgba_comp[diagnostics['comp_mask'] > 0] = [0.0, 0.5, 1.0, 0.8] # Composantes en bleu transparent
+
+axes[1, 1].imshow(rgba_tau)
+axes[1, 1].imshow(rgba_comp)
+axes[1, 1].set_title('Filtrage: Noeuds (τ) & Composantes')
+
+axes[1, 2].imshow(centrality, cmap='hot')
+axes[1, 2].set_title('Betweenness Centrality (Graph GPU)')
+
+axes[2, 0].imshow(sample['gt'].numpy(), cmap='gray')
+axes[2, 0].set_title('Ground Truth (Binarisé)')
 
 # Squelette Brut
-axes[1, 2].imshow(skeleton, cmap='gray')
-axes[1, 2].set_title('Squelette Prédit (Brut)')
+axes[2, 1].imshow(skeleton, cmap='gray')
+axes[2, 1].set_title('Squelette Prédit (Brut)')
 
 # Superposition Métriques : GT brute (Blanc) + GT Squelette grossi (Vert) + Pred grossi (Rouge)
 # On met un fond noir pour bien faire ressortir les couleurs
-axes[1, 3].imshow(np.zeros_like(skeleton), cmap='gray')
+axes[2, 2].imshow(np.zeros_like(skeleton), cmap='gray')
 
 # Création de masques RGBA pour maîtriser parfaitement la couleur et la transparence
-h, w = skeleton.shape
 rgba_gt = np.zeros((h, w, 4), dtype=np.float32)
 rgba_gt[sample['gt'].numpy() > 0] = [1.0, 1.0, 1.0, 0.3] # Blanc transparent
 
@@ -693,10 +710,10 @@ rgba_gt_skel[sk_gt_thick_sample > 0] = [0.0, 1.0, 0.0, 0.4] # Vert transparent
 rgba_pred = np.zeros((h, w, 4), dtype=np.float32)
 rgba_pred[sk_pred_thick_sample > 0] = [1.0, 0.0, 0.0, 0.4] # Rouge transparent
 
-axes[1, 3].imshow(rgba_gt)
-axes[1, 3].imshow(rgba_gt_skel)
-axes[1, 3].imshow(rgba_pred)
-axes[1, 3].set_title('Éval (Blanc: GT, Vert: GT Squelette, Rouge: Pred)')
+axes[2, 2].imshow(rgba_gt)
+axes[2, 2].imshow(rgba_gt_skel)
+axes[2, 2].imshow(rgba_pred)
+axes[2, 2].set_title('Éval (Blanc: GT, Vert: GT Squelette, Rouge: Pred)')
 
 for ax in axes.flat:
     ax.axis('off')
@@ -720,7 +737,7 @@ for i in range(num_eval):
     sample_i = dataset[i]
     imgs_i = {'visible': sample_i['visible'], 'infrared': sample_i['infrared']}
     
-    _, _, centrality_i, _ = extract_frangi_graph_gpu(imgs_i, weights, device=device)
+    _, _, centrality_i, _, _ = extract_frangi_graph_gpu(imgs_i, weights, device=device)
     
     pred_i = (centrality_i > 0.025).astype(np.uint8)
     sk_pred_thick_i = thicken(pred_i, pixels=3)
