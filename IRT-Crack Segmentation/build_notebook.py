@@ -32,15 +32,34 @@ Ce Colab implémente l'approche non supervisée décrite dans l'article EUSIPCO 
 
 add_code("""!pip install -q gdown
 import os
+import zipfile
+import gdown
 
+# Option 1 (Recommandée) : Téléchargement du fichier ZIP (plus rapide)
+zip_file_id = '1HhVmtQwB56VMuIBcAjvv-J-BN3o9m2vL'
+zip_path = 'IRT-Crack-Dataset.zip'
+
+# Option 2 : Téléchargement dossier par dossier (plus lent)
 folder_id = '18yq9IFOSOvO7O95NVtZ3hpG9_KDdpJcO'
 dest_dir = 'IRT-Crack-Dataset'
 
-if not os.path.exists(dest_dir):
-    print("Téléchargement du dataset depuis Google Drive...")
-    import gdown
-    gdown.download_folder(id=folder_id, output=dest_dir, quiet=False, use_cookies=False)
-    print("Téléchargement terminé.")
+use_zip = True # Mettre à False pour utiliser le téléchargement par dossier
+
+if not os.path.exists(dest_dir) and not os.path.exists('IRT-Crack Segmentation'):
+    if use_zip:
+        print("Téléchargement du dataset (ZIP) depuis Google Drive...")
+        gdown.download(id=zip_file_id, output=zip_path, quiet=False)
+        print("Extraction du ZIP...")
+        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+            zip_ref.extractall('.')
+        print("Extraction terminée.")
+        # Nettoyage du zip pour libérer de l'espace
+        if os.path.exists(zip_path):
+            os.remove(zip_path)
+    else:
+        print("Téléchargement du dataset (Dossier) depuis Google Drive...")
+        gdown.download_folder(id=folder_id, output=dest_dir, quiet=False, use_cookies=False)
+        print("Téléchargement terminé.")
 else:
     print("Dataset déjà présent.")""")
 
