@@ -229,6 +229,8 @@ add_code("""from scipy.sparse import coo_matrix
 
 def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[1, 3, 5, 7], R=10, 
                              ss=2.0, si=0.25, sa=0.125, τ=0.05, device='cuda'):
+    import time
+    t0 = time.time()
     
     fh = FrangiHessianGPU(Σ, device=device)
     
@@ -276,6 +278,9 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[1, 3, 5, 7], R=10,
             
         scale_data.append((R_B, S_norm, θ, mask_pos))
         
+    if device == 'cuda': torch.cuda.synchronize()
+    t_hessian = time.time()
+        
     # 2. Étape 1a : Premier seuillage (léger) sur la réponse brute λ2
     τ_1 = max_S_global.max() * 0.01 
     candidates_mask = max_S_global > τ_1
@@ -317,7 +322,10 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[1, 3, 5, 7], R=10,
     j_idx_t = valid_neighbors[valid_pairs_mask]
     
     if len(i_idx_t) == 0:
-        return max_S_global.cpu().numpy(), np.zeros((H, W)), np.zeros((H, W))
+        return max_S_global.cpu().numpy(), np.zeros((H, W)), np.zeros((H, W)), {}
+    
+    if device == 'cuda': torch.cuda.synchronize()
+    t_unfold = time.time()
     
     S_ij_max = torch.zeros(len(i_idx_t), device=device, dtype=torch.float32)
     
@@ -337,6 +345,9 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[1, 3, 5, 7], R=10,
         
         S_ij = S_shape * S_int * S_align
         S_ij_max = torch.max(S_ij_max, S_ij)
+        
+    if device == 'cuda': torch.cuda.synchronize()
+    t_sim = time.time()
         
     # 4. Piste 3 : Suppression du parcours MST, seuillage direct (à tau = 5% par défaut)
     S_cpu = S_ij_max.cpu().numpy()
@@ -372,7 +383,18 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[1, 3, 5, 7], R=10,
     coords_valid = coords[valid_nodes].cpu().numpy().astype(int)
     skeleton[coords_valid[:, 0], coords_valid[:, 1]] = 1.0
     
-    return max_S_global.cpu().numpy(), sim_img, skeleton""")
+    if device == 'cuda': torch.cuda.synchronize()
+    t_end = time.time()
+    
+    timings = {
+        "1. Hessian Fusion": t_hessian - t0,
+        "2. Graph Unfold": t_unfold - t_hessian,
+        "3. Frangi Similarity": t_sim - t_unfold,
+        "4. Thresholding": t_end - t_sim,
+        "Total": t_end - t0
+    }
+    
+    return max_S_global.cpu().numpy(), sim_img, skeleton, timings""")
 
 add_md("""## 4. Visualisation Complète (Inspection Visuelle)
 
@@ -439,7 +461,7 @@ imgs = {
 weights = {'visible': 0.5, 'infrared': 0.5}
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-frangi_response, similarity_img, skeleton = extract_frangi_graph_gpu(imgs, weights, device=device)
+frangi_response, similarity_img, skeleton, timings = extract_frangi_graph_gpu(imgs, weights, device=device)
 
 # Seuillage final adaptatif pour extraire le squelette
 # On garde les chemins majeurs (centralité élevée)
@@ -461,6 +483,9 @@ print("--- Metrics for sample ---")
 print(f"Jaccard (IoU): {j_sample:.4f}")
 print(f"Tversky:       {t_sample:.4f}")
 print(f"Wasserstein:   {w_sample:.4f}")
+print("--- Timings ---")
+for k, v in timings.items():
+    print(f"{k}: {v*1000:.2f} ms")
 print("--------------------------")
 
 fig, axes = plt.subplots(2, 4, figsize=(24, 12))
@@ -529,7 +554,7 @@ for i in range(num_eval):
     sample_i = dataset[i]
     imgs_i = {'visible': sample_i['visible'], 'infrared': sample_i['infrared']}
     
-    _, _, skeleton_i = extract_frangi_graph_gpu(imgs_i, weights, device=device)
+    _, _, skeleton_i, _ = extract_frangi_graph_gpu(imgs_i, weights, device=device)
     
     pred_i = skeleton_i.astype(np.uint8)
     sk_pred_thick_i = thicken(pred_i, pixels=3)
