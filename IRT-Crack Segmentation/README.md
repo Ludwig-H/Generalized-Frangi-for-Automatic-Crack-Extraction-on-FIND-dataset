@@ -51,5 +51,5 @@ Pour garantir un temps d'exécution minimal tout en préservant l'algorithme :
 
 ## 4. Pistes d'expérimentation futures
 * Ajuster le dictionnaire `weights = {'visible': 0.5, 'infrared': 0.5}` pour mesurer l'impact isolée de chaque capteur (ex: `1.0` / `0.0`).
-* Ajuster la proportion $\tau$ (ex: `0.05`, `0.2`) pour analyser la sensibilité de l'étape de seuillage dual sur le bruit environnant.
+* Ajuster la proportion $\tau$ (ex: `0.10`, `0.2`) pour analyser la sensibilité de l'étape de seuillage dual sur le bruit environnant.
 * Explorer l'algorithme d'élagage adaptatif de l'arbre couvrant (Étape 4 du papier EUSIPCO) pour garantir une épaisseur de 1 pixel parfaite.
