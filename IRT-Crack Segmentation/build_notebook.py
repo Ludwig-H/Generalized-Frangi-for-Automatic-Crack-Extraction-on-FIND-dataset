@@ -285,7 +285,7 @@ def extract_frangi_graph_gpu(imgs_dict, weights, scales=[1, 3, 5, 7], R=10,
     N = coords.shape[0]
     
     if N == 0:
-        return np.zeros((H, W)), np.zeros((H, W))
+        return np.zeros((H, W)), np.zeros((H, W)), np.zeros((H, W))
     
     # 3. Graphe creux (Sparse) généré EXCLUSIVEMENT sur GPU via convolutions/décalages (Optimisation)
     # Permet de se passer du kdtree sur CPU et d'éviter les transferts de mémoire lents.
@@ -324,7 +324,7 @@ def extract_frangi_graph_gpu(imgs_dict, weights, scales=[1, 3, 5, 7], R=10,
                 dists.append(torch.full((len(idx1),), math.sqrt(d_sq), device=device))
     
     if len(i_indices) == 0:
-        return max_S_global.cpu().numpy(), np.zeros((H, W))
+        return max_S_global.cpu().numpy(), np.zeros((H, W)), np.zeros((H, W))
     
     i_idx_t = torch.cat(i_indices)
     j_idx_t = torch.cat(j_indices)
@@ -375,7 +375,7 @@ def extract_frangi_graph_gpu(imgs_dict, weights, scales=[1, 3, 5, 7], R=10,
         nodes_largest = np.arange(N)
         
     if len(nodes_largest) == 0:
-        return max_S_global.cpu().numpy(), np.zeros((H, W))
+        return max_S_global.cpu().numpy(), np.zeros((H, W)), np.zeros((H, W))
         
     sparse_dist_largest = sparse_dist[nodes_largest, :][:, nodes_largest]
     S_sparse_largest = S_sparse[nodes_largest, :][:, nodes_largest]
@@ -433,7 +433,15 @@ def extract_frangi_graph_gpu(imgs_dict, weights, scales=[1, 3, 5, 7], R=10,
     coords_largest = coords[nodes_largest].cpu().numpy().astype(int)
     cent_img[coords_largest[:, 0], coords_largest[:, 1]] = centrality
     
-    return max_S_global.cpu().numpy(), cent_img""")
+    # Projection de la similarité max par noeud
+    node_similarity = np.squeeze(np.asarray(S_sparse.max(axis=1).todense()))
+    if np.isscalar(node_similarity) or node_similarity.size == 0:
+        node_similarity = np.zeros(N)
+    sim_img = np.zeros((H, W), dtype=np.float32)
+    coords_all = coords.cpu().numpy().astype(int)
+    sim_img[coords_all[:, 0], coords_all[:, 1]] = node_similarity
+    
+    return max_S_global.cpu().numpy(), sim_img, cent_img""")
 
 add_md("""## 4. Visualisation Complète (Inspection Visuelle)
 
@@ -450,13 +458,13 @@ imgs = {
 weights = {'visible': 0.5, 'infrared': 0.5}
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-frangi_response, centrality = extract_frangi_graph_gpu(imgs, weights, device=device)
+frangi_response, similarity_img, centrality = extract_frangi_graph_gpu(imgs, weights, device=device)
 
 # Seuillage final adaptatif pour extraire le squelette
 # On garde les chemins majeurs (centralité élevée)
 skeleton = (centrality > 0.05).astype(np.float32)
 
-fig, axes = plt.subplots(2, 3, figsize=(18, 12))
+fig, axes = plt.subplots(2, 4, figsize=(24, 12))
 
 axes[0, 0].imshow(sample['visible'].numpy(), cmap='gray')
 axes[0, 0].set_title('Modalité : Visible')
@@ -464,11 +472,14 @@ axes[0, 0].set_title('Modalité : Visible')
 axes[0, 1].imshow(sample['infrared'].numpy(), cmap='gray')
 axes[0, 1].set_title('Modalité : Infrarouge (IR)')
 
-axes[0, 2].imshow(sample['gt'].numpy(), cmap='gray')
-axes[0, 2].set_title('Ground Truth (Binarisé)')
+axes[0, 2].imshow(frangi_response, cmap='magma')
+axes[0, 2].set_title('Réponse Frangi Multi-échelles (Fused Λ2)')
 
-axes[1, 0].imshow(frangi_response, cmap='magma')
-axes[1, 0].set_title('Réponse Frangi Multi-échelles (Fused Λ2)')
+axes[0, 3].imshow(sample['gt'].numpy(), cmap='gray')
+axes[0, 3].set_title('Ground Truth (Binarisé)')
+
+axes[1, 0].imshow(similarity_img, cmap='magma')
+axes[1, 0].set_title('Similarité Frangi-Graph (Max)')
 
 axes[1, 1].imshow(centrality, cmap='hot')
 axes[1, 1].set_title('Betweenness Centrality (Graph)')
@@ -479,6 +490,8 @@ axes[1, 2].imshow(fused_bg, cmap='gray', alpha=0.5)
 axes[1, 2].imshow(skeleton, cmap='Reds', alpha=np.where(skeleton > 0, 1.0, 0.0))
 axes[1, 2].imshow(sample['gt'].numpy(), cmap='Greens', alpha=np.where(sample['gt'].numpy() > 0, 0.5, 0.0))
 axes[1, 2].set_title('Superposition (Rouge: Prédiction, Vert: GT)')
+
+axes[1, 3].axis('off')
 
 for ax in axes.flat:
     ax.axis('off')
@@ -512,7 +525,7 @@ for i in range(num_eval):
     sample = dataset[i]
     imgs = {'visible': sample['visible'], 'infrared': sample['infrared']}
     
-    _, centrality = extract_frangi_graph_gpu(imgs, weights, device=device)
+    _, _, centrality = extract_frangi_graph_gpu(imgs, weights, device=device)
     
     # Dilatation du squelette pour comparaison avec le GT (qui a souvent une épaisseur de quelques pixels)
     pred = (centrality > 0.05).astype(np.uint8)
