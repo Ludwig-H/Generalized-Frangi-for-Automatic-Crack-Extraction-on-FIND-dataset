@@ -703,14 +703,14 @@ add_md("""## 5. Évaluation des Métriques (Jaccard / Tversky)
 
 Calcul des métriques sur un batch d'images pour valider l'approche sur le benchmark.""")
 
-add_code("""# --- Batch Evaluation ---
-# Évaluation sur 20 images pour démonstration rapide
-num_eval = min(20, len(dataset))
-jaccard_scores = []
-tversky_scores = []
-wasserstein_scores = []
+add_code("""# --- Batch Evaluation on ALL Images ---
+import pandas as pd
+from IPython.display import display
 
-print(f"Évaluation sur {num_eval} images...")
+num_eval = len(dataset)
+results = []
+
+print(f"Évaluation sur l'ensemble du dataset ({num_eval} images)...")
 for i in range(num_eval):
     sample_i = dataset[i]
     imgs_i = {'visible': sample_i['visible'], 'infrared': sample_i['infrared']}
@@ -727,13 +727,34 @@ for i in range(num_eval):
     j, t = compute_metrics(sk_pred_thick_i, sk_gt_thick_i)
     w = wasserstein_distance_skeletons(sk_pred_thick_i, sk_gt_thick_i)
     
-    jaccard_scores.append(j)
-    tversky_scores.append(t)
-    wasserstein_scores.append(w)
+    file_id = sample_i['id']
+    # On récupère l'extension originale depuis le dataset
+    file_name = f"{file_id}{dataset.extensions[file_id]}"
+    
+    results.append({
+        'File Name': file_name,
+        'ID': file_id,
+        'Jaccard (IoU)': j,
+        'Tversky': t,
+        'Wasserstein': w
+    })
 
-print(f"Jaccard (IoU) Moyen : {np.mean(jaccard_scores):.4f} ± {np.std(jaccard_scores):.4f}")
-print(f"Tversky Moyen       : {np.mean(tversky_scores):.4f} ± {np.std(tversky_scores):.4f}")
-print(f"Wasserstein Moyen   : {np.mean(wasserstein_scores):.4f} ± {np.std(wasserstein_scores):.4f}")""")
+# Création d'un DataFrame pour l'export et l'affichage stylisé
+df_results = pd.DataFrame(results)
+
+# Export en CSV
+csv_filename = "evaluation_results.csv"
+df_results.to_csv(csv_filename, index=False)
+print(f"\\nRésultats sauvegardés dans {csv_filename}\\n")
+
+# Affichage du tableau
+display(df_results)
+
+# Affichage des statistiques globales
+print("\\n--- Statistiques Globales ---")
+print(f"Jaccard (IoU) Moyen : {df_results['Jaccard (IoU)'].mean():.4f} ± {df_results['Jaccard (IoU)'].std():.4f}")
+print(f"Tversky Moyen       : {df_results['Tversky'].mean():.4f} ± {df_results['Tversky'].std():.4f}")
+print(f"Wasserstein Moyen   : {df_results['Wasserstein'].mean():.4f} ± {df_results['Wasserstein'].std():.4f}")""")
 
 notebook = {
     "cells": cells,
