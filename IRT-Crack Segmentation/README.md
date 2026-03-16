@@ -26,7 +26,7 @@ Contrairement aux approches par apprentissage profond qui fusionnent les "featur
 5. Les valeurs propres et vecteurs propres sont extraits de cette Hessienne fusionnée pour annuler le bruit décorrélé entre les capteurs.
 
 ### B. Graphe de Similarité Frangi
-Pour dépasser le simple filtrage pixel par pixel, nous construisons un graphe géométrique. Le calcul de la similarité (qui combine l'élongation spatiale, le contraste d'intensité et l'alignement angulaire topologique) implique de comparer chaque pixel candidat à ses voisins de rayon $R=5$ pixels, sur plusieurs échelles $\Sigma=[3, 5, 7, 9, 11]$.
+Pour dépasser le simple filtrage pixel par pixel, nous construisons un graphe géométrique. Le calcul de la similarité (qui combine l'élongation spatiale, le contraste d'intensité et l'alignement angulaire topologique) implique de comparer chaque pixel candidat à ses voisins de rayon $R=5$ pixels, sur plusieurs échelles $\Sigma=[5, 10, 15]$.
 Pour éviter l'explosion mémoire $\mathcal{O}(N^2)$ (erreur de type `OutOfMemoryError`) et s'affranchir de la lenteur des K-NN sur CPU, l'architecture du graphe a été optimisée sur GPU :
 1. Le voisinage est exploré de façon purement vectorielle via des **décalages spatiaux (shifts)** et des masques bit-à-bit sur la grille (évitant tout transfert lent vers le CPU).
 2. Le calcul intensif des tenseurs de similarité par PyTorch n'est effectué **que sur ces arêtes locales** instantanément.
@@ -51,5 +51,5 @@ Pour garantir un temps d'exécution minimal tout en préservant l'algorithme :
 
 ## 4. Pistes d'expérimentation futures
 * Ajuster le dictionnaire `weights = {'visible': 0.7, 'infrared': 0.3}` pour mesurer l'impact isolée de chaque capteur (ex: `1.0` / `0.0`).
-* Ajuster la proportion $\tau$ (ex: `0.10`, `0.3`) pour analyser la sensibilité de l'étape de seuillage dual sur le bruit environnant.
+* Ajuster la proportion $\tau$ (ex: `0.15`, `0.3`) pour analyser la sensibilité de l'étape de seuillage dual sur le bruit environnant.
 * Explorer l'algorithme d'élagage adaptatif de l'arbre couvrant (Étape 4 du papier EUSIPCO) pour garantir une épaisseur de 1 pixel parfaite.
