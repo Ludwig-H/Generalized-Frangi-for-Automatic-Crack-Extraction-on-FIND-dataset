@@ -652,7 +652,7 @@ frangi_response, similarity_img, centrality, timings, diagnostics = extract_fran
 
 # Seuillage final adaptatif pour extraire le squelette
 # On garde les chemins majeurs (centralité élevée)
-skeleton = (centrality > 0.05).astype(np.float32)
+skeleton = (centrality > 0.025).astype(np.float32)
 
 # --- Metrics and Thickening for the single sample example ---
 gt_arr_sample = sample['gt'].numpy().astype(np.uint8)
@@ -764,7 +764,7 @@ for i in range(num_eval):
     
     _, _, centrality_i, _, _ = extract_frangi_graph_gpu(imgs_i, weights, device=device)
     
-    pred_i = (centrality_i > 0.05).astype(np.uint8)
+    pred_i = (centrality_i > 0.025).astype(np.uint8)
     sk_pred_thick_i = thicken(pred_i, pixels=3)
     
     gt_arr_i = sample_i['gt'].numpy().astype(np.uint8)

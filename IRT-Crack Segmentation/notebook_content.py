@@ -828,7 +828,7 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[1, 3, 5, 7, 9, 11], R=3,
 
     N_total = H * W
 
-    min_size = N_total / 100.0
+    min_size = N_total / 200.0
 
     
 
@@ -1248,7 +1248,7 @@ frangi_response, similarity_img, centrality, timings, diagnostics = extract_fran
 
 # On garde les chemins majeurs (centralité élevée)
 
-skeleton = (centrality > 0.05).astype(np.float32)
+skeleton = (centrality > 0.025).astype(np.float32)
 
 
 
@@ -1468,7 +1468,7 @@ for i in range(num_eval):
 
     
 
-    pred_i = (centrality_i > 0.05).astype(np.uint8)
+    pred_i = (centrality_i > 0.025).astype(np.uint8)
 
     sk_pred_thick_i = thicken(pred_i, pixels=3)
 
