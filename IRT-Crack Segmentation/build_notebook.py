@@ -233,7 +233,7 @@ Cette fonction exécute la pipeline optimisée :
 
 add_code("""from scipy.sparse import coo_matrix
 
-def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[2, 4, 6, 8, 10], R=3,
+def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[1, 3, 5, 7, 9, 11], R=3,
                              ss=2.0, si=0.25, sa=0.125, τ=0.15, device='cuda'):
     import time
     t0 = time.time()
