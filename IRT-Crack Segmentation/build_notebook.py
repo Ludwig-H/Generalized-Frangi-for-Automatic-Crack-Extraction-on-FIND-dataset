@@ -419,7 +419,19 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[1, 3, 5, 7], R=10,
     i_valid = np.arange(N_L)[valid_mask]
     
     W_parent_np = np.zeros(N_L, dtype=np.float32)
-    W_parent_np[i_valid] = np.asarray(S_sparse_largest[p_valid, i_valid]).flatten()
+    
+    # Extraction robuste des poids : on utilise COO pour chercher les correspondances, ou une simple boucle/list comprehension
+    # car l'indexation de tableaux dans scipy.sparse CSR peut retourner un produit extérieur (NxN) selon la version.
+    S_coo_largest = S_sparse_largest.tocoo()
+    # On convertit en dictionnaire pour un accès O(1)
+    # Les paires (p, i) sont les arêtes de l'arbre
+    import scipy.sparse as sp
+    # Le plus performant:
+    weights_dict = {(r, c): v for r, c, v in zip(S_coo_largest.row, S_coo_largest.col, S_coo_largest.data)}
+    for idx, (p, i) in enumerate(zip(p_valid, i_valid)):
+        W_parent_np[i] = weights_dict.get((p, i), 0.0)
+
+
     
     # Transfert vers le GPU
     W_parent = torch.tensor(W_parent_np, dtype=torch.float32, device=device)
