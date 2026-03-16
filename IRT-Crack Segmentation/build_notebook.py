@@ -27,7 +27,7 @@ Ce Colab implémente l'approche non supervisée décrite dans l'article EUSIPCO 
 ### Caractéristiques de l'implémentation :
 - Chargement robuste des données (indexation creuse, asymétrie PNG/JPG).
 - Calculs matriciels Hessiens et Valeurs Propres 100% sur GPU (`torch.Tensor`).
-- Construction du graphe (Similarités géométriques O(N²)) accélérée par `torch.cdist`.
+- Construction du graphe creux (Sparse) économe en VRAM via les K-Nearest Neighbors (`scipy.spatial.cKDTree`).
 - Algorithme d'extraction topologique (Arbre Couvrant de Poids Minimum + Centralité).""")
 
 add_code("""!pip install -q gdown
@@ -222,7 +222,7 @@ add_md("""## 3. Fusion Multimodale et Construction du Graphe (Frangi Graph)
 Cette fonction exécute la pipeline décrite dans l'article :
 1. **Fusion au niveau Hessien** en sommant pondérément les modalités (Intensité, Range/IR) normalisées.
 2. **Réponse Frangi Multi-échelles** pour isoler les "Dark Ridges".
-3. **Métrique de similarité Frangi** calculée de manière dense sur les candidats (O(N²)) accélérée sur GPU via `torch.cdist`.
+3. **Métrique de similarité Frangi** calculée sur un graphe creux (Sparse) généré par `scipy.spatial.cKDTree` pour éviter l'explosion mémoire en O(N²).
 4. **Extraction Topologique (MST + Centralité)** calculée efficacement via SciPy.""")
 
 add_code("""from scipy.sparse import csr_matrix
