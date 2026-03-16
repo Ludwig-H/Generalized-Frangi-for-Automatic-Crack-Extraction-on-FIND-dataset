@@ -568,17 +568,17 @@ axes[1, 0].set_title('Similarité Frangi-Graph (Max)')
 axes[1, 1].imshow(centrality, cmap='hot')
 axes[1, 1].set_title('Betweenness Centrality (Graph)')
 
-# Superposition : Image fusion en fond + Squelette extrait en Rouge + GT en Vert
-fused_bg = sample['fusion'].numpy()
-axes[1, 2].imshow(fused_bg, cmap='gray', alpha=0.5)
-axes[1, 2].imshow(skeleton, cmap='Reds', alpha=np.where(skeleton > 0, 1.0, 0.0))
-axes[1, 2].imshow(sample['gt'].numpy(), cmap='Greens', alpha=np.where(sample['gt'].numpy() > 0, 0.5, 0.0))
-axes[1, 2].set_title('Superposition (Rouge: Prédiction, Vert: GT)')
+# Squelette Brut
+axes[1, 2].imshow(skeleton, cmap='gray')
+axes[1, 2].set_title('Squelette Prédit (Brut)')
 
-axes[1, 3].imshow(fused_bg, cmap='gray', alpha=0.5)
-axes[1, 3].imshow(sk_pred_thick_sample, cmap='Reds', alpha=np.where(sk_pred_thick_sample > 0, 1.0, 0.0))
-axes[1, 3].imshow(sk_gt_thick_sample, cmap='Greens', alpha=np.where(sk_gt_thick_sample > 0, 0.5, 0.0))
-axes[1, 3].set_title('Squelettes Grossis (Rouge: Pred, Vert: GT)')
+# Superposition Métriques : GT brute (Bleu) + GT Squelette grossi (Vert) + Pred grossi (Rouge)
+# On met un fond noir pour bien faire ressortir les couleurs
+axes[1, 3].imshow(np.zeros_like(skeleton), cmap='gray')
+axes[1, 3].imshow(sample['gt'].numpy(), cmap='Blues', alpha=np.where(sample['gt'].numpy() > 0, 0.4, 0.0))
+axes[1, 3].imshow(sk_gt_thick_sample, cmap='Greens', alpha=np.where(sk_gt_thick_sample > 0, 0.6, 0.0))
+axes[1, 3].imshow(sk_pred_thick_sample, cmap='Reds', alpha=np.where(sk_pred_thick_sample > 0, 0.6, 0.0))
+axes[1, 3].set_title('Éval (Bleu: GT, Vert: GT Squelette, Rouge: Pred)')
 
 for ax in axes.flat:
     ax.axis('off')
