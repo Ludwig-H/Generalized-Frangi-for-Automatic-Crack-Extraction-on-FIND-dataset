@@ -613,7 +613,7 @@ plt.show()""")
 
 add_md("""## 5. Analyse de sensibilité des paramètres
 
-Nous allons faire varier paramètre par paramètre : `R, ss, si, sa, τ` et `Σ` (réduit à `\\sigma_0`).
+Nous allons faire varier paramètre par paramètre : `R, ss, si, sa, τ`, `τ_c` (le seuil de centralité) et `Σ` (réduit à `σ_0`).
 Les autres paramètres resteront constants.
 
 Nous chargeons d'abord le dataset en RAM pour une exécution ultra-rapide.""")
@@ -634,7 +634,8 @@ default_params = {
     'si': 0.25,
     'sa': 0.125,
     'τ': 0.15,
-    'sigma_0': 3.0
+    'σ_0': 3.0,
+    'τ_c': 0.025
 }
 
 # nb_pas = 5
@@ -644,7 +645,8 @@ param_ranges = {
     'si': np.linspace(0.05, 1.0, 5).tolist(),
     'sa': np.linspace(0.05, 1.0, 5).tolist(),
     'τ': np.linspace(0.01, 0.3, 5).tolist(),
-    'sigma_0': np.linspace(1.0, 15.0, 5).tolist()
+    'τ_c': np.linspace(0.005, 0.1, 5).tolist(),
+    'σ_0': np.linspace(1.0, 15.0, 5).tolist()
 }
 
 os.makedirs("sensitivity_results", exist_ok=True)
@@ -654,9 +656,9 @@ def evaluate_dataset(params):
     j_list, t_list, w_list = [], [], []
     individual_results = []
     
-    sigma_val = params['sigma_0']
+    sigma_val = params['σ_0']
     
-    for sample in tqdm(all_data, desc=f"Éval images (Σ={sigma_val:.1f}, R={params['R']}, ss={params['ss']:.2f}, si={params['si']:.2f}, sa={params['sa']:.2f}, τ={params['τ']:.2f})", leave=False):
+    for sample in tqdm(all_data, desc=f"Éval images (Σ={sigma_val:.1f}, R={params['R']}, ss={params['ss']:.2f}, si={params['si']:.2f}, sa={params['sa']:.2f}, τ={params['τ']:.2f}, τ_c={params['τ_c']:.3f})", leave=False):
         imgs_i = {'visible': sample['visible']}
         weights_i = {'visible': 1.0}
         
@@ -671,7 +673,7 @@ def evaluate_dataset(params):
             device=device
         )
         
-        pred_i = (centrality_i > 0.025).astype(np.uint8)
+        pred_i = (centrality_i > params['τ_c']).astype(np.uint8)
         sk_pred_thick_i = thicken(pred_i, pixels=3)
         
         gt_arr_i = sample['gt'].numpy().astype(np.uint8)
