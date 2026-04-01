@@ -637,14 +637,14 @@ default_params = {
     'sigma_0': 3.0
 }
 
-# nb_pas = 15
+# nb_pas = 5
 param_ranges = {
-    'R': np.linspace(1, 15, 15, dtype=int).tolist(),
-    'ss': np.linspace(0.1, 5.0, 15).tolist(),
-    'si': np.linspace(0.05, 1.0, 15).tolist(),
-    'sa': np.linspace(0.05, 1.0, 15).tolist(),
-    'τ': np.linspace(0.01, 0.3, 15).tolist(),
-    'sigma_0': np.linspace(1.0, 15.0, 15).tolist()
+    'R': np.linspace(1, 15, 5, dtype=int).tolist(),
+    'ss': np.linspace(0.1, 5.0, 5).tolist(),
+    'si': np.linspace(0.05, 1.0, 5).tolist(),
+    'sa': np.linspace(0.05, 1.0, 5).tolist(),
+    'τ': np.linspace(0.01, 0.3, 5).tolist(),
+    'sigma_0': np.linspace(1.0, 15.0, 5).tolist()
 }
 
 os.makedirs("sensitivity_results", exist_ok=True)
