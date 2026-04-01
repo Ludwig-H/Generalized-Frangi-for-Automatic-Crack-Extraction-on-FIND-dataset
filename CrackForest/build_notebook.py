@@ -581,21 +581,29 @@ axes[0, 3].set_title('Ground Truth (Brut)')
 axes[1, 0].imshow(centrality, cmap='hot')
 axes[1, 0].set_title('Betweenness Centrality (Graph GPU)')
 
-axes[1, 1].imshow(skeleton, cmap='gray')
-axes[1, 1].set_title('Squelette Prédit (Brut)')
-
-axes[1, 2].imshow(np.zeros_like(skeleton), cmap='gray')
+axes[1, 1].imshow(np.zeros_like(skeleton), cmap='gray')
 h, w = skeleton.shape
+rgba_tau = np.zeros((h, w, 4), dtype=np.float32)
+rgba_tau[diagnostics['tau_mask'] > 0] = [1.0, 1.0, 1.0, 0.3]
+rgba_comp = np.zeros((h, w, 4), dtype=np.float32)
+rgba_comp[diagnostics['comp_mask'] > 0] = [0.0, 0.5, 1.0, 0.8]
+axes[1, 1].imshow(rgba_tau)
+axes[1, 1].imshow(rgba_comp)
+axes[1, 1].set_title('Filtrage: Noeuds (τ) & Composantes')
 
+axes[1, 2].imshow(skeleton, cmap='gray')
+axes[1, 2].set_title('Squelette Prédit (Brut)')
+
+axes[1, 3].imshow(np.zeros_like(skeleton), cmap='gray')
 rgba_gt_skel = np.zeros((h, w, 4), dtype=np.float32)
 rgba_gt_skel[sk_gt_thick_sample > 0] = [0.0, 1.0, 0.0, 0.4] # Vert transparent
 
 rgba_pred = np.zeros((h, w, 4), dtype=np.float32)
 rgba_pred[sk_pred_thick_sample > 0] = [1.0, 0.0, 0.0, 0.4] # Rouge transparent
 
-axes[1, 2].imshow(rgba_gt_skel)
-axes[1, 2].imshow(rgba_pred)
-axes[1, 2].set_title('Éval (Vert: GT Squelette, Rouge: Pred)')
+axes[1, 3].imshow(rgba_gt_skel)
+axes[1, 3].imshow(rgba_pred)
+axes[1, 3].set_title('Éval (Vert: GT Squelette, Rouge: Pred)')
 
 for ax in axes.flat:
     ax.axis('off')
