@@ -176,8 +176,8 @@ Application de la réponse Frangi et sparsification.""")
 
 add_code("""from scipy.sparse import coo_matrix
 
-def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=7,
-                             ss=1.0, si=0.25, sa=0.5, τ=0.3, device='cuda'):
+def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=5,
+                             ss=1.0, si=0.25, sa=0.5, τ=0.3, min_rel_size=200.0, device='cuda'):
     import time
     t0 = time.time()
     
@@ -363,7 +363,7 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=7,
     n_comp, labels = connected_components(sparse_dist, directed=False)
     counts = np.bincount(labels)
     
-    min_size = N_total / 200.0
+    min_size = N_total / min_rel_size
     valid_components = np.where(counts > min_size)[0]
     
     cent_img = np.zeros((H, W), dtype=np.float32)
@@ -613,7 +613,7 @@ plt.show()""")
 
 add_md("""## 5. Analyse de sensibilité des paramètres
 
-Nous allons faire varier paramètre par paramètre : `R, ss, si, sa, τ`, `τ_c` (le seuil de centralité) et `Σ` (réduit à `σ_0`).
+Nous allons faire varier paramètre par paramètre : `R, ss, si, sa, τ`, `τ_c` (le seuil de centralité), `min_rel_size` (taille relative minimale d'une composante) et `Σ` (réduit à `σ_0`).
 Les autres paramètres resteront constants.
 
 Nous chargeons d'abord le dataset en RAM pour une exécution ultra-rapide.""")
@@ -629,24 +629,26 @@ for i in range(len(dataset)):
 print("Terminé.")
 
 default_params = {
-    'R': 7,
+    'R': 5,
     'ss': 1.0,
     'si': 0.25,
     'sa': 0.5,
     'τ': 0.3,
     'σ_0': 5.0,
-    'τ_c': 0.025
+    'τ_c': 0.025,
+    'min_rel_size': 200.0
 }
 
 # nb_pas = 5
 param_ranges = {
-    'R': np.linspace(3, 11, 5, dtype=int).tolist(),
+    'R': np.linspace(1, 9, 5, dtype=int).tolist(),
     'ss': np.linspace(0.5, 1.5, 5).tolist(),
     'si': np.linspace(0.1, 0.4, 5).tolist(),
     'sa': np.linspace(0.2, 0.8, 5).tolist(),
     'τ': np.linspace(0.1, 0.5, 5).tolist(),
     'τ_c': np.linspace(0.005, 0.045, 5).tolist(),
-    'σ_0': np.linspace(2.0, 8.0, 5).tolist()
+    'σ_0': np.linspace(2.0, 8.0, 5).tolist(),
+    'min_rel_size': np.linspace(50.0, 400.0, 5).tolist()
 }
 
 os.makedirs("sensitivity_results", exist_ok=True)
@@ -658,7 +660,7 @@ def evaluate_dataset(params):
     
     sigma_val = params['σ_0']
     
-    for sample in tqdm(all_data, desc=f"Éval images (Σ={sigma_val:.1f}, R={params['R']}, ss={params['ss']:.2f}, si={params['si']:.2f}, sa={params['sa']:.2f}, τ={params['τ']:.2f}, τ_c={params['τ_c']:.3f})", leave=False):
+    for sample in tqdm(all_data, desc=f"Éval images (Σ={sigma_val:.1f}, R={params['R']}, ss={params['ss']:.2f}, si={params['si']:.2f}, sa={params['sa']:.2f}, τ={params['τ']:.2f}, τ_c={params['τ_c']:.3f}, min_rel_size={params['min_rel_size']:.1f})", leave=False):
         imgs_i = {'visible': sample['visible']}
         weights_i = {'visible': 1.0}
         
@@ -669,7 +671,8 @@ def evaluate_dataset(params):
             ss=params['ss'], 
             si=params['si'], 
             sa=params['sa'], 
-            τ=params['τ'], 
+            τ=params['τ'],
+            min_rel_size=params['min_rel_size'],
             device=device
         )
         
