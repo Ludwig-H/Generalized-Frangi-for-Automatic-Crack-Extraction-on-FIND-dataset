@@ -461,7 +461,21 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[3.0], R=3,
 add_md("""## 4. Visualisation sur un échantillon CrackForest""")
 
 add_code("""import ot
+from skimage.morphology import skeletonize, disk, dilation
 import warnings
+
+def skeletonize_lee(binary_mask: np.ndarray) -> np.ndarray:
+    import cv2
+    m = (binary_mask > 0).astype(np.uint8)
+    
+    # Lissage morphologique pour gommer les irrégularités de contour 
+    # (cela élimine la grande majorité des petites branches parasites du squelette)
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+    m = cv2.morphologyEx(m, cv2.MORPH_CLOSE, kernel)
+    m = cv2.morphologyEx(m, cv2.MORPH_OPEN, kernel)
+    
+    sk = skeletonize(m>0)
+    return sk.astype(np.uint8)
 
 def thicken(skel: np.ndarray, pixels: int = 3) -> np.ndarray:
     if pixels <= 1: return skel.astype(np.uint8)
@@ -536,7 +550,8 @@ frangi_response, similarity_img, centrality, timings, diagnostics = extract_fran
 skeleton = (centrality > 0.025).astype(np.float32)
 
 gt_arr_sample = sample['gt'].numpy().astype(np.uint8)
-sk_gt_thick_sample = thicken(gt_arr_sample, pixels=3)
+sk_gt_sample = skeletonize_lee(gt_arr_sample)
+sk_gt_thick_sample = thicken(sk_gt_sample, pixels=3)
 
 pred_sample = skeleton.astype(np.uint8)
 sk_pred_thick_sample = thicken(pred_sample, pixels=3)
@@ -549,7 +564,7 @@ print(f"Jaccard (IoU): {j_sample:.4f}")
 print(f"Tversky:       {t_sample:.4f}")
 print(f"Wasserstein:   {w_sample:.4f}")
 
-fig, axes = plt.subplots(2, 3, figsize=(24, 12))
+fig, axes = plt.subplots(2, 4, figsize=(32, 12))
 
 axes[0, 0].imshow(sample['visible'].numpy(), cmap='gray')
 axes[0, 0].set_title('Modalité : Visible')
@@ -559,6 +574,9 @@ axes[0, 1].set_title('Réponse Frangi Multi-échelles (Fused Λ2)')
 
 axes[0, 2].imshow(similarity_img, cmap='magma')
 axes[0, 2].set_title('Similarité Frangi-Graph (Max)')
+
+axes[0, 3].imshow(sample['gt'].numpy(), cmap='gray')
+axes[0, 3].set_title('Ground Truth (Brut)')
 
 axes[1, 0].imshow(centrality, cmap='hot')
 axes[1, 0].set_title('Betweenness Centrality (Graph GPU)')
@@ -649,7 +667,8 @@ def evaluate_dataset(params):
         sk_pred_thick_i = thicken(pred_i, pixels=3)
         
         gt_arr_i = sample['gt'].numpy().astype(np.uint8)
-        sk_gt_thick_i = thicken(gt_arr_i, pixels=3)
+        sk_gt_i = skeletonize_lee(gt_arr_i)
+        sk_gt_thick_i = thicken(sk_gt_i, pixels=3)
         
         j, t = compute_metrics(sk_pred_thick_i, sk_gt_thick_i)
         w = wasserstein_distance_skeletons(sk_pred_thick_i, sk_gt_thick_i)
