@@ -587,7 +587,7 @@ plt.show()""")
 
 add_md("""## 5. Analyse de sensibilité des paramètres
 
-Nous allons faire varier paramètre par paramètre : `R, ss, si, sa, τ` et `Σ` (réduit à `\sigma_0`).
+Nous allons faire varier paramètre par paramètre : `R, ss, si, sa, τ` et `Σ` (réduit à `\\sigma_0`).
 Les autres paramètres resteront constants.
 
 Nous chargeons d'abord le dataset en RAM pour une exécution ultra-rapide.""")
@@ -624,12 +624,13 @@ param_ranges = {
 os.makedirs("sensitivity_results", exist_ok=True)
 
 def evaluate_dataset(params):
+    import time
     j_list, t_list, w_list = [], [], []
     individual_results = []
     
     sigma_val = params['sigma_0']
     
-    for sample in all_data:
+    for sample in tqdm(all_data, desc=f"Éval images (Σ={sigma_val:.1f}, R={params['R']}, ss={params['ss']:.2f}, si={params['si']:.2f}, sa={params['sa']:.2f}, τ={params['τ']:.2f})", leave=False):
         imgs_i = {'visible': sample['visible']}
         weights_i = {'visible': 1.0}
         
@@ -665,16 +666,24 @@ def evaluate_dataset(params):
         
     return np.mean(j_list), np.std(j_list), np.mean(t_list), np.std(t_list), np.mean(w_list), np.std(w_list), individual_results
 
+import time
 for param_name, values in param_ranges.items():
-    print(f"\\n--- Analyse de sensibilité pour {param_name} ---")
+    print(f"\\n{'='*60}\\n--- Analyse de sensibilité pour {param_name} ---\\n{'='*60}")
     results_summary = []
     all_individual_results = []
     
-    for val in tqdm(values, desc=f"Variation de {param_name}"):
+    t0_param = time.time()
+    
+    for val in values:
+        t0_val = time.time()
+        
         current_params = copy.deepcopy(default_params)
         current_params[param_name] = val
         
         j_mean, j_std, t_mean, t_std, w_mean, w_std, ind_res = evaluate_dataset(current_params)
+        
+        t_val = time.time() - t0_val
+        print(f"[{param_name} = {val}] évalué en {t_val:.2f}s : Jaccard={j_mean:.4f}±{j_std:.4f} | Tversky={t_mean:.4f}±{t_std:.4f} | Wasserstein={w_mean:.4f}±{w_std:.4f}")
         
         results_summary.append({
             param_name: val,
@@ -687,6 +696,9 @@ for param_name, values in param_ranges.items():
             res_copy = res.copy()
             res_copy[param_name] = val
             all_individual_results.append(res_copy)
+            
+    t_param = time.time() - t0_param
+    print(f"--- Fin de l'analyse pour {param_name} (Temps total : {t_param:.2f}s) ---")
             
     # Sauvegarde CSV
     df_summary = pd.DataFrame(results_summary)
