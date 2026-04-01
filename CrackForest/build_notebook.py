@@ -176,8 +176,8 @@ Application de la réponse Frangi et sparsification.""")
 
 add_code("""from scipy.sparse import coo_matrix
 
-def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=5,
-                             ss=1.0, si=0.25, sa=0.5, τ=0.3, min_rel_size=200.0, device='cuda'):
+def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
+                             ss=1.0, si=0.25, sa=0.3, τ=0.2, min_rel_size=150.0, device='cuda'):
     import time
     t0 = time.time()
     
@@ -629,26 +629,26 @@ for i in range(len(dataset)):
 print("Terminé.")
 
 default_params = {
-    'R': 5,
+    'R': 3,
     'ss': 1.0,
     'si': 0.25,
-    'sa': 0.5,
-    'τ': 0.3,
+    'sa': 0.3,
+    'τ': 0.2,
     'σ_0': 5.0,
     'τ_c': 0.025,
-    'min_rel_size': 200.0
+    'min_rel_size': 150.0
 }
 
-# nb_pas = 5
+# nb_pas = 15
 param_ranges = {
-    'R': np.linspace(1, 9, 5, dtype=int).tolist(),
-    'ss': np.linspace(0.5, 1.5, 5).tolist(),
-    'si': np.linspace(0.1, 0.4, 5).tolist(),
-    'sa': np.linspace(0.2, 0.8, 5).tolist(),
-    'τ': np.linspace(0.1, 0.5, 5).tolist(),
-    'τ_c': np.linspace(0.005, 0.045, 5).tolist(),
-    'σ_0': np.linspace(2.0, 8.0, 5).tolist(),
-    'min_rel_size': np.linspace(50.0, 400.0, 5).tolist()
+    'R': np.linspace(1, 15, 15, dtype=int).tolist(),
+    'ss': np.linspace(0.1, 3.0, 15).tolist(),
+    'si': np.linspace(0.05, 1.0, 15).tolist(),
+    'sa': np.linspace(0.05, 1.0, 15).tolist(),
+    'τ': np.linspace(0.01, 0.5, 15).tolist(),
+    'τ_c': np.linspace(0.005, 0.1, 15).tolist(),
+    'σ_0': np.linspace(1.0, 15.0, 15).tolist(),
+    'min_rel_size': np.linspace(50.0, 500.0, 15).tolist()
 }
 
 os.makedirs("sensitivity_results", exist_ok=True)
