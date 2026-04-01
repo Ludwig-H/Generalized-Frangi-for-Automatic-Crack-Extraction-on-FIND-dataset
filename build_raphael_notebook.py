@@ -1,0 +1,744 @@
+import json
+import os
+
+cells = []
+
+def add_md(text):
+    cells.append({
+        "cell_type": "markdown",
+        "metadata": {},
+        "source": [line + "\n" for line in text.split("\n")]
+    })
+
+def add_code(text):
+    cells.append({
+        "cell_type": "code",
+        "execution_count": None,
+        "metadata": {},
+        "source": [line + "\n" for line in text.split("\n")],
+        "outputs": []
+    })
+
+add_md("""# Extraction de Fissures via Frangi Graph Généralisé sur GPU (A100)
+## Benchmark : Raphael
+
+Ce Colab implémente l'approche non supervisée décrite dans l'article EUSIPCO **"Multi-Modal, Training-Free Crack Extraction via Generalized Frangi Graph"**, adaptée pour le dataset Raphael.
+
+### Caractéristiques de l'implémentation :
+- Chargement robuste des données (modalités visible et thermique en niveaux de gris).
+- Gestion de la vérité terrain avec transparence (Alpha channel).
+- Calculs matriciels Hessiens et Valeurs Propres 100% sur GPU (`torch.Tensor`).
+- Construction du graphe creux (Sparse) économe en VRAM.
+- Algorithme d'extraction topologique (Arbre Couvrant de Poids Minimum + Centralité).""")
+
+add_code("""!pip install -q gdown
+import os
+import gdown
+from pathlib import Path
+
+folder_id = '1d79CVf9Vqgwwjqn6b2gbc40eu2MM7B7-'
+dest_dir = 'Raphael-Dataset'
+
+def check_dataset_exists():
+    for path in Path('.').rglob('Fissure 1'):
+        return True
+    return False
+
+if not check_dataset_exists():
+    print("Téléchargement du dataset Raphael depuis Google Drive...")
+    gdown.download_folder(id=folder_id, output=dest_dir, quiet=False, use_cookies=False)
+    print("Téléchargement terminé.")
+else:
+    print("Dataset déjà présent.")""")
+
+add_md("""## 1. Dataloader Rigoureux
+
+Nous respectons la topologie du dataset Raphael avec une classe PyTorch personnalisée :
+- Modalités : Visible et Thermique (JET convertie en N&B).
+- Vérité terrain : Image avec transparence (les pixels de fissure apparaissent en noir, on utilise le canal alpha).""")
+
+add_code("""import torch
+import numpy as np
+import cv2
+from pathlib import Path
+from torch.utils.data import Dataset
+import matplotlib.pyplot as plt
+
+class RaphaelDataset(Dataset):
+    def __init__(self, root_dir):
+        self.root_dir = None
+        for path in Path(root_dir).rglob('Fissure 1'):
+            self.root_dir = path.parent
+            break
+            
+        if self.root_dir is None:
+            raise FileNotFoundError("Structure du dataset non trouvée. Veuillez relancer la cellule de téléchargement.")
+            
+        # Trouver tous les dossiers Fissure
+        self.fissure_dirs = sorted(list(self.root_dir.glob('Fissure *')))
+        print(f"Dataset chargé avec {len(self.fissure_dirs)} fissures.")
+
+    def __len__(self):
+        return len(self.fissure_dirs)
+
+    def __getitem__(self, idx):
+        fissure_dir = self.fissure_dirs[idx]
+        fissure_name = fissure_dir.name
+        
+        # Extraction du numéro pour construire les noms de fichiers
+        # Par exemple "Fissure 1" -> "fissure1"
+        num = fissure_name.split(' ')[-1]
+        prefix = f"fissure{num}"
+        
+        path_vis = fissure_dir / f"{prefix}_visible.png"
+        path_ir = fissure_dir / f"{prefix}_thermique.png"
+        path_gt = fissure_dir / f"{prefix}_verite_terrain.png"
+        
+        if not path_ir.exists():
+             # Fallback if typo in filename
+             path_ir = fissure_dir / f"{prefix}_visible.png" 
+             
+        # Chargement et conversion en N&B (Niveaux de gris)
+        img_vis = cv2.imread(str(path_vis), cv2.IMREAD_COLOR)
+        if img_vis is not None:
+            img_vis = cv2.cvtColor(img_vis, cv2.COLOR_BGR2GRAY)
+        else:
+            raise FileNotFoundError(f"Image {path_vis} introuvable.")
+            
+        img_ir = cv2.imread(str(path_ir), cv2.IMREAD_COLOR)
+        if img_ir is not None:
+            img_ir = cv2.cvtColor(img_ir, cv2.COLOR_BGR2GRAY)
+        else:
+            raise FileNotFoundError(f"Image {path_ir} introuvable.")
+            
+        # Chargement de la vérité terrain (image transparente)
+        img_gt = cv2.imread(str(path_gt), cv2.IMREAD_UNCHANGED)
+        if img_gt is not None:
+            if img_gt.shape[-1] == 4:
+                # Les pixels de la fissure sont noirs, le fond est transparent
+                # Canal alpha > 0 signifie qu'il y a un pixel dessiné (fissure)
+                alpha_channel = img_gt[:, :, 3]
+                gt_clean = (alpha_channel > 0).astype(np.float32)
+            else:
+                # Si pas de canal alpha, on suppose que les noirs sont la fissure
+                gray_gt = cv2.cvtColor(img_gt, cv2.COLOR_BGR2GRAY)
+                gt_clean = (gray_gt < 127).astype(np.float32)
+        else:
+            raise FileNotFoundError(f"Image {path_gt} introuvable.")
+            
+        # Normalisation
+        vis_t = torch.from_numpy(img_vis).float() / 255.0
+        ir_t  = torch.from_numpy(img_ir).float() / 255.0
+        gt_t = torch.from_numpy(gt_clean)
+        
+        return {
+            'id': fissure_name,
+            'visible': vis_t,
+            'infrared': ir_t,
+            'gt': gt_t
+        }
+
+dataset = RaphaelDataset('.')""")
+
+add_md("""## 2. Calcul Hessien Multi-échelles sur GPU""")
+
+add_code("""import torch.nn.functional as F
+import math
+
+class FrangiHessianGPU:
+    def __init__(self, scales, device='cuda' if torch.cuda.is_available() else 'cpu'):
+        self.scales = scales
+        self.device = device
+        self.kernels = self._precompute_kernels()
+
+    def _precompute_kernels(self):
+        kernels = {}
+        for s in self.scales:
+            size = int(math.ceil(4 * s)) * 2 + 1
+            x = torch.arange(-size // 2 + 1, size // 2 + 1, dtype=torch.float32, device=self.device)
+            variance = s ** 2
+            g_x = (1 / (math.sqrt(2 * math.pi) * s)) * torch.exp(-x**2 / (2 * variance))
+            g_x_1 = -(x / variance) * g_x
+            g_x_2 = ((x**2 / (variance**2)) - (1 / variance)) * g_x
+            kernels[s] = {'0': g_x, '1': g_x_1, '2': g_x_2}
+        return kernels
+
+    def compute_hessian(self, image_tensor, s):
+        if image_tensor.dim() == 2:
+            image_tensor = image_tensor.unsqueeze(0).unsqueeze(0)
+            
+        image_tensor = image_tensor.to(self.device)
+        
+        k0 = self.kernels[s]['0'].view(1, 1, 1, -1)
+        k1 = self.kernels[s]['1'].view(1, 1, 1, -1)
+        k2 = self.kernels[s]['2'].view(1, 1, 1, -1)
+
+        k0_T = k0.transpose(2, 3)
+        k1_T = k1.transpose(2, 3)
+        k2_T = k2.transpose(2, 3)
+
+        pad_size = k0.shape[3] // 2
+        
+        def convolve_sep(x, k_h, k_v):
+            p_h = F.pad(x, (pad_size, pad_size, 0, 0), mode='replicate')
+            t = F.conv2d(p_h, k_h)
+            p_v = F.pad(t, (0, 0, pad_size, pad_size), mode='replicate')
+            return F.conv2d(p_v, k_v)
+
+        ixx = convolve_sep(image_tensor, k2, k0_T)
+        iyy = convolve_sep(image_tensor, k0, k2_T)
+        ixy = convolve_sep(image_tensor, k1, k1_T)
+
+        return ixx.squeeze(), ixy.squeeze(), iyy.squeeze()
+
+    def compute_eigenvalues_and_vectors(self, ixx, ixy, iyy):
+        trace = ixx + iyy
+        disc = torch.sqrt((ixx - iyy)**2 + 4 * ixy**2)
+        
+        l_plus = (trace + disc) / 2
+        l_minus = (trace - disc) / 2
+        
+        abs_l_plus = torch.abs(l_plus)
+        abs_l_minus = torch.abs(l_minus)
+        
+        mask_minus_bigger = abs_l_minus > abs_l_plus
+        
+        λ2 = torch.where(mask_minus_bigger, l_minus, l_plus)
+        λ1 = torch.where(mask_minus_bigger, l_plus, l_minus)
+
+        θ = 0.5 * torch.atan2(2 * ixy, ixx - iyy)
+        return λ1, λ2, θ""")
+
+add_md("""## 3. Fusion Multimodale et Construction du Graphe (Frangi Graph)""")
+
+add_code("""from scipy.sparse import coo_matrix
+
+def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[1, 3, 5, 7, 9, 11], R=3,
+                             ss=2.0, si=0.25, sa=0.125, τ=0.15, device='cuda'):
+    import time
+    t0 = time.time()
+    
+    fh = FrangiHessianGPU(Σ, device=device)
+    
+    scale_data = []
+    max_S_global = None
+    H, W = None, None
+    
+    for σ in Σ:
+        fused_ixx = None
+        
+        for mod, w in weights.items():
+            if w > 0:
+                ixx, ixy, iyy = fh.compute_hessian(imgs_dict[mod], σ)
+                if H is None:
+                    H, W = ixx.shape
+                
+                trace = ixx + iyy
+                disc = torch.sqrt((ixx - iyy)**2 + 4 * ixy**2)
+                spectral_norm_local = (torch.abs(trace) + disc) / 2.0
+                max_norm = torch.max(spectral_norm_local) + 1e-8
+                
+                if fused_ixx is None:
+                    fused_ixx = w * (ixx / max_norm)
+                    fused_ixy = w * (ixy / max_norm)
+                    fused_iyy = w * (iyy / max_norm)
+                else:
+                    fused_ixx += w * (ixx / max_norm)
+                    fused_ixy += w * (ixy / max_norm)
+                    fused_iyy += w * (iyy / max_norm)
+                    
+        λ1, λ2, θ = fh.compute_eigenvalues_and_vectors(fused_ixx, fused_ixy, fused_iyy)
+        
+        mask_pos = λ2 > 0
+        R_B = torch.zeros_like(λ2)
+        R_B[mask_pos] = torch.abs(λ1[mask_pos]) / (λ2[mask_pos] + 1e-8)
+        
+        S_norm = torch.zeros_like(λ2)
+        S_norm[mask_pos] = λ2[mask_pos]
+        
+        if max_S_global is None: max_S_global = S_norm.clone()
+        else: max_S_global = torch.max(max_S_global, S_norm)
+            
+        scale_data.append((R_B, S_norm, θ, mask_pos))
+        
+    if device == 'cuda': torch.cuda.synchronize()
+    t_hessian = time.time()
+        
+    τ_1 = max_S_global.max() * 0.01 
+    candidates_mask = max_S_global > τ_1
+    coords = torch.nonzero(candidates_mask).float()
+    N = coords.shape[0]
+    
+    if N == 0:
+        return np.zeros((H, W)), np.zeros((H, W)), np.zeros((H, W)), {}, {'tau_mask': np.zeros((H, W)), 'comp_mask': np.zeros((H, W))}
+    
+    index_map = torch.full((H, W), -1, dtype=torch.long, device=device)
+    index_map[candidates_mask] = torch.arange(N, device=device)
+    
+    padded_index_map = torch.nn.functional.pad(index_map.unsqueeze(0).unsqueeze(0).float(), (R, R, R, R), value=-1).long()
+    
+    patches = padded_index_map[0, 0].unfold(0, 2*R+1, 1).unfold(1, 2*R+1, 1)
+    
+    y_coords, x_coords = torch.nonzero(candidates_mask, as_tuple=True)
+    cand_patches = patches[y_coords, x_coords]
+    
+    dy, dx = torch.meshgrid(torch.arange(-R, R+1, device=device), torch.arange(-R, R+1, device=device), indexing='ij')
+    dist_sq = dx**2 + dy**2
+    valid_dist_mask = (dist_sq <= R**2) & (dist_sq > 0)
+    half_mask = (dy > 0) | ((dy == 0) & (dx > 0))
+    valid_mask = valid_dist_mask & half_mask
+    
+    valid_neighbors = cand_patches[:, valid_mask]
+    
+    source_idx = torch.arange(N, device=device).unsqueeze(1).expand(-1, valid_neighbors.shape[1])
+    valid_pairs_mask = valid_neighbors != -1
+    
+    i_idx_t = source_idx[valid_pairs_mask]
+    j_idx_t = valid_neighbors[valid_pairs_mask]
+    
+    if len(i_idx_t) == 0:
+        return max_S_global.cpu().numpy(), np.zeros((H, W)), np.zeros((H, W)), {}, {'tau_mask': np.zeros((H, W)), 'comp_mask': np.zeros((H, W))}
+    
+    if device == 'cuda': torch.cuda.synchronize()
+    t_unfold = time.time()
+    
+    S_ij_max = torch.zeros(len(i_idx_t), device=device, dtype=torch.float32)
+    
+    for R_B, S_norm, θ, mask_pos in scale_data:
+        rb_c = R_B[candidates_mask]
+        s_c  = S_norm[candidates_mask]
+        t_c  = θ[candidates_mask]
+        
+        rb_sum = rb_c[i_idx_t] + rb_c[j_idx_t]
+        S_shape = torch.exp(-0.5 * (rb_sum / ss)**2)
+        
+        s_prod = s_c[i_idx_t] * s_c[j_idx_t]
+        S_int = 1 - torch.exp(-0.5 * (s_prod / si)**2)
+        
+        dt = t_c[i_idx_t] - t_c[j_idx_t]
+        S_align = torch.exp(-0.5 * (torch.sin(dt) / sa)**2)
+        
+        S_ij = S_shape * S_int * S_align
+        S_ij_max = torch.max(S_ij_max, S_ij)
+        
+    if device == 'cuda': torch.cuda.synchronize()
+    t_sim = time.time()
+        
+    dist_ij_t = torch.norm(coords[i_idx_t] - coords[j_idx_t], dim=1)
+    d_ij = (1 - S_ij_max) * dist_ij_t + 1e-8
+    
+    S_cpu = S_ij_max.cpu().numpy()
+    d_cpu = d_ij.cpu().numpy()
+    i_cpu = i_idx_t.cpu().numpy()
+    j_cpu = j_idx_t.cpu().numpy()
+    
+    import numpy as np
+    from scipy.sparse.csgraph import minimum_spanning_tree, breadth_first_order, connected_components
+    
+    num_edges = len(S_cpu)
+    num_to_keep_edges = max(1, int(num_edges * τ))
+    
+    if num_edges > num_to_keep_edges:
+        threshold_edge = np.partition(S_cpu, -num_to_keep_edges)[-num_to_keep_edges]
+        edge_mask = S_cpu >= threshold_edge
+    else:
+        edge_mask = np.ones(num_edges, dtype=bool)
+    
+    i_v = i_cpu[edge_mask]
+    j_v = j_cpu[edge_mask]
+    S_v = S_cpu[edge_mask]
+    d_v = d_cpu[edge_mask]
+    
+    node_sim_max = np.zeros(N, dtype=np.float32)
+    if len(S_v) > 0:
+        np.maximum.at(node_sim_max, i_v, S_v)
+        np.maximum.at(node_sim_max, j_v, S_v)
+        
+    N_total = H * W
+    num_to_keep_nodes = max(1, int(N_total * τ))
+    
+    valid_nodes_candidates = np.unique(np.concatenate([i_v, j_v])) if len(i_v) > 0 else np.array([], dtype=np.int32)
+    
+    if len(valid_nodes_candidates) > num_to_keep_nodes:
+        sims_candidates = node_sim_max[valid_nodes_candidates]
+        threshold_node = np.partition(sims_candidates, -num_to_keep_nodes)[-num_to_keep_nodes]
+        valid_nodes = valid_nodes_candidates[sims_candidates >= threshold_node]
+    else:
+        valid_nodes = valid_nodes_candidates
+        
+    if len(valid_nodes) > 0 and len(i_v) > 0:
+        keep_node_mask = np.zeros(N, dtype=bool)
+        keep_node_mask[valid_nodes] = True
+        
+        final_edge_mask = keep_node_mask[i_v] & keep_node_mask[j_v]
+        i_v = i_v[final_edge_mask]
+        j_v = j_v[final_edge_mask]
+        S_v = S_v[final_edge_mask]
+        d_v = d_v[final_edge_mask]
+    else:
+        i_v, j_v, S_v, d_v = np.array([]), np.array([]), np.array([]), np.array([])
+    
+    remap = np.full(N, -1, dtype=np.int32)
+    remap[valid_nodes] = np.arange(len(valid_nodes))
+    
+    i_mapped = remap[i_v]
+    j_mapped = remap[j_v]
+    
+    orig_coords_cpu = coords.cpu().numpy().astype(int)
+    coords = coords[valid_nodes]
+    N_valid = len(valid_nodes)
+    
+    S_sparse = coo_matrix((np.concatenate([S_v, S_v]), 
+                           (np.concatenate([i_mapped, j_mapped]), np.concatenate([j_mapped, i_mapped]))), 
+                          shape=(N_valid, N_valid)).tocsr()
+                          
+    sparse_dist = coo_matrix((np.concatenate([d_v, d_v]), 
+                              (np.concatenate([i_mapped, j_mapped]), np.concatenate([j_mapped, i_mapped]))), 
+                             shape=(N_valid, N_valid)).tocsr()
+    
+    n_comp, labels = connected_components(sparse_dist, directed=False)
+    counts = np.bincount(labels)
+    
+    min_size = N_total / 100.0
+
+    valid_components = np.where(counts > min_size)[0]    
+    cent_img = np.zeros((H, W), dtype=np.float32)
+    comp_mask = np.zeros((H, W), dtype=np.float32)
+    tau_mask = np.zeros((H, W), dtype=np.float32)
+    if len(valid_nodes) > 0:
+        tau_mask[orig_coords_cpu[valid_nodes, 0], orig_coords_cpu[valid_nodes, 1]] = 1.0
+    
+    if len(valid_components) > 0:
+        t_mst = 0
+        t_bet_start = time.time()
+        
+        for comp_id in valid_components:
+            mask_comp = (labels == comp_id)
+            nodes_comp = np.where(mask_comp)[0]
+            
+            sparse_dist_comp = sparse_dist[nodes_comp, :][:, nodes_comp]
+            S_sparse_comp = S_sparse[nodes_comp, :][:, nodes_comp]
+            
+            t_mst_start = time.time()
+            mst = minimum_spanning_tree(sparse_dist_comp)
+            order, preds = breadth_first_order(mst, i_start=0, directed=False, return_predecessors=True)
+            t_mst += (time.time() - t_mst_start)
+            
+            N_L = len(nodes_comp)
+            valid_mask_preds = preds >= 0
+            p_valid = preds[valid_mask_preds]
+            i_valid = np.arange(N_L)[valid_mask_preds]
+            
+            W_parent_np = np.zeros(N_L, dtype=np.float32)
+            
+            S_coo_comp = S_sparse_comp.tocoo()
+            import scipy.sparse as sp
+            weights_dict = {(r, c): v for r, c, v in zip(S_coo_comp.row, S_coo_comp.col, S_coo_comp.data)}
+            for idx, (p, i) in enumerate(zip(p_valid, i_valid)):
+                W_parent_np[i] = weights_dict.get((p, i), 0.0)
+
+            E_mass_np = np.zeros(N_L, dtype=np.float32)
+            
+            for i in order[::-1]:
+                p = preds[i]
+                if p >= 0:
+                    E_mass_np[p] += E_mass_np[i] + W_parent_np[i]
+                    
+            M_total = E_mass_np[order[0]]
+            
+            W_parent = torch.tensor(W_parent_np, dtype=torch.float32, device=device)
+            E_mass = torch.tensor(E_mass_np, dtype=torch.float32, device=device)
+            
+            child_branch_mass = W_parent + E_mass
+            p_valid_t = torch.tensor(p_valid, dtype=torch.long, device=device)
+            i_valid_t = torch.tensor(i_valid, dtype=torch.long, device=device)
+            
+            sum_masses_children = torch.zeros(N_L, dtype=torch.float32, device=device)
+            sum_masses_children.index_add_(0, p_valid_t, child_branch_mass[i_valid_t])
+            
+            parent_branch_mass = torch.clamp(M_total - sum_masses_children, min=0.0)
+            
+            val_child = child_branch_mass * (M_total - child_branch_mass)
+            sum_val_child = torch.zeros(N_L, dtype=torch.float32, device=device)
+            sum_val_child.index_add_(0, p_valid_t, val_child[i_valid_t])
+            
+            val_parent = parent_branch_mass * (M_total - parent_branch_mass)
+            centrality = (sum_val_child + val_parent) / 2.0
+            
+            if centrality.max() > 0:
+                centrality /= centrality.max()
+                
+            coords_comp = coords[nodes_comp].cpu().numpy().astype(int)
+            cent_img[coords_comp[:, 0], coords_comp[:, 1]] = centrality.cpu().numpy()
+            comp_mask[coords_comp[:, 0], coords_comp[:, 1]] = 1.0
+            
+        if device == 'cuda': torch.cuda.synchronize()
+        t_mst_total = t_mst
+        t_bet_total = time.time() - t_bet_start - t_mst_total
+    else:
+        t_mst_total = 0
+        t_bet_total = 0
+    
+    sim_img = np.zeros((H, W), dtype=np.float32)
+    sim_img[orig_coords_cpu[:, 0], orig_coords_cpu[:, 1]] = node_sim_max
+    
+    if device == 'cuda': torch.cuda.synchronize()
+    t_end = time.time()
+    
+    timings = {
+        "1. Hessian Fusion": t_hessian - t0,
+        "2. Graph Unfold": t_unfold - t_hessian,
+        "3. Frangi Similarity": t_sim - t_unfold,
+        "4. MST (CPU)": t_mst_total,
+        "5. Betweenness (GPU)": t_bet_total,
+        "Total": t_end - t0
+    }
+    
+    return max_S_global.cpu().numpy(), sim_img, cent_img, timings, {'tau_mask': tau_mask, 'comp_mask': comp_mask}""")
+
+add_md("""## 4. Visualisation Complète (Inspection Visuelle)""")
+
+add_code("""!pip install -q POT
+import ot
+from skimage.morphology import skeletonize
+import warnings
+
+def skeletonize_lee(binary_mask: np.ndarray) -> np.ndarray:
+    import cv2
+    m = (binary_mask > 0).astype(np.uint8)
+    
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+    m = cv2.morphologyEx(m, cv2.MORPH_CLOSE, kernel)
+    m = cv2.morphologyEx(m, cv2.MORPH_OPEN, kernel)
+    
+    sk = skeletonize(m>0)
+    return sk.astype(np.uint8)
+
+def thicken(skel: np.ndarray, pixels: int = 3) -> np.ndarray:
+    if pixels <= 1: return skel.astype(np.uint8)
+    import cv2
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (pixels*2+1, pixels*2+1))
+    thick = cv2.dilate((skel>0).astype(np.uint8), kernel)
+    return thick
+
+def compute_metrics(pred_mask, gt_mask):
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    
+    A = pred_mask.clone().detach().bool().to(device) if isinstance(pred_mask, torch.Tensor) else torch.from_numpy(pred_mask).bool().to(device)
+    B = gt_mask.clone().detach().bool().to(device) if isinstance(gt_mask, torch.Tensor) else torch.from_numpy(gt_mask).bool().to(device)
+    
+    inter = (A & B).sum().float()
+    union = (A | B).sum().float()
+    jaccard = (inter / (union + 1e-9)).item()
+    
+    not_A = ~A
+    not_B = ~B
+    fp = (not_A & B).sum().float()
+    fn = (A & not_B).sum().float()
+    tversky = (inter / (inter + 1.0 * fn + 0.5 * fp + 1e-9)).item()
+    
+    return jaccard, tversky
+
+def wasserstein_distance_skeletons(A, B, max_samples: int = 2000) -> float:
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    
+    A_t = A.clone().detach().to(device) if isinstance(A, torch.Tensor) else torch.from_numpy(A).to(device)
+    B_t = B.clone().detach().to(device) if isinstance(B, torch.Tensor) else torch.from_numpy(B).to(device)
+    
+    A_pts = torch.nonzero(A_t > 0).float()
+    B_pts = torch.nonzero(B_t > 0).float()
+    
+    na, nb = A_pts.shape[0], B_pts.shape[0]
+    
+    if na == 0 and nb == 0: return 0.0
+    if na == 0: return float(nb)
+    if nb == 0: return float(na)
+    
+    if na > max_samples:
+        idx = torch.randperm(na, device=device)[:max_samples]
+        A_pts = A_pts[idx]
+        na = max_samples
+        
+    if nb > max_samples:
+        idx = torch.randperm(nb, device=device)[:max_samples]
+        B_pts = B_pts[idx]
+        nb = max_samples
+        
+    M_t = torch.cdist(A_pts, B_pts, p=2.0)
+    
+    M = M_t.cpu().numpy().astype(np.float64)
+    a = np.ones((na,), dtype=np.float64) / float(na)
+    b = np.ones((nb,), dtype=np.float64) / float(nb)
+    
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        emd_cost = ot.emd2(a, b, M)
+        
+    return float(emd_cost)
+
+# Prendre le premier (et seul pour l'instant) échantillon
+sample = dataset[0]
+imgs = {
+    'visible': sample['visible'],
+    'infrared': sample['infrared']
+}
+
+# Fusion : 50% Visible, 50% Thermique
+weights = {'visible': 0.5, 'infrared': 0.5}
+
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+frangi_response, similarity_img, centrality, timings, diagnostics = extract_frangi_graph_gpu(imgs, weights, device=device)
+
+skeleton = (centrality > 0.025).astype(np.float32)
+
+gt_arr_sample = sample['gt'].numpy().astype(np.uint8)
+sk_gt_sample = skeletonize_lee(gt_arr_sample)
+sk_gt_thick_sample = thicken(sk_gt_sample, pixels=3)
+
+pred_sample = skeleton.astype(np.uint8)
+sk_pred_thick_sample = thicken(pred_sample, pixels=3)
+
+import time
+if device == 'cuda': torch.cuda.synchronize()
+t_metrics_start = time.time()
+
+j_sample, t_sample = compute_metrics(sk_pred_thick_sample, sk_gt_thick_sample)
+w_sample = wasserstein_distance_skeletons(sk_pred_thick_sample, sk_gt_thick_sample)
+
+if device == 'cuda': torch.cuda.synchronize()
+t_metrics_end = time.time()
+t_metrics = t_metrics_end - t_metrics_start
+
+print(f"--- Metrics for sample: {sample['id']} ---")
+print(f"Jaccard (IoU): {j_sample:.4f}")
+print(f"Tversky:       {t_sample:.4f}")
+print(f"Wasserstein:   {w_sample:.4f}")
+print("--- Timings ---")
+for k, v in timings.items():
+    print(f"{k}: {v*1000:.2f} ms")
+print(f"6. Metrics Calc: {t_metrics*1000:.2f} ms")
+print("--------------------------")
+
+fig, axes = plt.subplots(3, 3, figsize=(24, 18))
+
+axes[0, 0].imshow(sample['visible'].numpy(), cmap='gray')
+axes[0, 0].set_title('Modalité : Visible')
+
+axes[0, 1].imshow(sample['infrared'].numpy(), cmap='gray')
+axes[0, 1].set_title('Modalité : Thermique (N&B)')
+
+axes[0, 2].imshow(frangi_response, cmap='magma')
+axes[0, 2].set_title('Réponse Frangi Multi-échelles (Fused Λ2)')
+
+axes[1, 0].imshow(similarity_img, cmap='magma')
+axes[1, 0].set_title('Similarité Frangi-Graph (Max)')
+
+h, w = skeleton.shape
+rgba_tau = np.zeros((h, w, 4), dtype=np.float32)
+rgba_tau[diagnostics['tau_mask'] > 0] = [1.0, 1.0, 1.0, 0.3]
+
+rgba_comp = np.zeros((h, w, 4), dtype=np.float32)
+rgba_comp[diagnostics['comp_mask'] > 0] = [0.0, 0.5, 1.0, 0.8]
+
+axes[1, 1].imshow(np.zeros_like(skeleton), cmap='gray')
+axes[1, 1].imshow(rgba_tau)
+axes[1, 1].imshow(rgba_comp)
+axes[1, 1].set_title('Filtrage: Noeuds (τ) & Composantes')
+
+axes[1, 2].imshow(centrality, cmap='hot')
+axes[1, 2].set_title('Betweenness Centrality (Graph GPU)')
+
+axes[2, 0].imshow(sample['gt'].numpy(), cmap='gray')
+axes[2, 0].set_title('Ground Truth (Binarisé)')
+
+axes[2, 1].imshow(skeleton, cmap='gray')
+axes[2, 1].set_title('Squelette Prédit (Brut)')
+
+axes[2, 2].imshow(np.zeros_like(skeleton), cmap='gray')
+
+rgba_gt = np.zeros((h, w, 4), dtype=np.float32)
+rgba_gt[sample['gt'].numpy() > 0] = [1.0, 1.0, 1.0, 0.3]
+
+rgba_gt_skel = np.zeros((h, w, 4), dtype=np.float32)
+rgba_gt_skel[sk_gt_thick_sample > 0] = [0.0, 1.0, 0.0, 0.4]
+
+rgba_pred = np.zeros((h, w, 4), dtype=np.float32)
+rgba_pred[sk_pred_thick_sample > 0] = [1.0, 0.0, 0.0, 0.4]
+
+axes[2, 2].imshow(rgba_gt)
+axes[2, 2].imshow(rgba_gt_skel)
+axes[2, 2].imshow(rgba_pred)
+axes[2, 2].set_title('Éval (Blanc: GT, Vert: GT Squelette, Rouge: Pred)')
+
+for ax in axes.flat:
+    ax.axis('off')
+
+plt.tight_layout()
+plt.show()""")
+
+add_md("""## 5. Évaluation des Métriques (Jaccard / Tversky)""")
+
+add_code("""# --- Batch Evaluation on ALL Images ---
+import pandas as pd
+from IPython.display import display
+
+num_eval = len(dataset)
+results = []
+
+print(f"Évaluation sur l'ensemble du dataset ({num_eval} images)...")
+for i in range(num_eval):
+    sample_i = dataset[i]
+    imgs_i = {'visible': sample_i['visible'], 'infrared': sample_i['infrared']}
+    
+    _, _, centrality_i, _, _ = extract_frangi_graph_gpu(imgs_i, weights, device=device)
+    
+    pred_i = (centrality_i > 0.025).astype(np.uint8)
+    sk_pred_thick_i = thicken(pred_i, pixels=3)
+    
+    gt_arr_i = sample_i['gt'].numpy().astype(np.uint8)
+    sk_gt_i = skeletonize_lee(gt_arr_i)
+    sk_gt_thick_i = thicken(sk_gt_i, pixels=3)
+    
+    j, t = compute_metrics(sk_pred_thick_i, sk_gt_thick_i)
+    w = wasserstein_distance_skeletons(sk_pred_thick_i, sk_gt_thick_i)
+    
+    file_id = sample_i['id']
+    
+    results.append({
+        'Index': i,
+        'ID': file_id,
+        'Jaccard (IoU)': j,
+        'Tversky': t,
+        'Wasserstein': w
+    })
+
+df_results = pd.DataFrame(results)
+
+csv_filename = "evaluation_results_raphael.csv"
+df_results.to_csv(csv_filename, index=False)
+print(f"\\nRésultats sauvegardés dans {csv_filename}\\n")
+
+display(df_results)
+
+print("\\n--- Statistiques Globales ---")
+print(f"Jaccard (IoU) Moyen : {df_results['Jaccard (IoU)'].mean():.4f} ± {df_results['Jaccard (IoU)'].std():.4f}")
+print(f"Tversky Moyen       : {df_results['Tversky'].mean():.4f} ± {df_results['Tversky'].std():.4f}")
+print(f"Wasserstein Moyen   : {df_results['Wasserstein'].mean():.4f} ± {df_results['Wasserstein'].std():.4f}")""")
+
+notebook = {
+    "cells": cells,
+    "metadata": {
+        "accelerator": "GPU",
+        "colab": {
+            "gpuType": "A100",
+            "name": "Frangi_Raphael_GPU.ipynb"
+        }
+    },
+    "nbformat": 4,
+    "nbformat_minor": 4
+}
+
+with open("Raphael/Frangi_Raphael_GPU.ipynb", "w", encoding="utf-8") as f:
+    json.dump(notebook, f, indent=2, ensure_ascii=False)
+
+print("Notebook generated successfully in Raphael/Frangi_Raphael_GPU.ipynb.")
