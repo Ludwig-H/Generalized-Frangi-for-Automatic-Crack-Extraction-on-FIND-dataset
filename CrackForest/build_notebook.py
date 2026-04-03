@@ -639,16 +639,16 @@ default_params = {
     'min_rel_size': 150.0
 }
 
-# nb_pas = 15
+# nb_pas = 10
 param_ranges = {
-    'R': np.linspace(1, 15, 15, dtype=int).tolist(),
-    'ss': np.linspace(0.1, 3.0, 15).tolist(),
-    'si': np.linspace(0.05, 1.0, 15).tolist(),
-    'sa': np.linspace(0.05, 1.0, 15).tolist(),
-    'τ': np.linspace(0.01, 0.5, 15).tolist(),
-    'τ_c': np.linspace(0.005, 0.1, 15).tolist(),
-    'σ_0': np.linspace(1.0, 15.0, 15).tolist(),
-    'min_rel_size': np.linspace(50.0, 500.0, 15).tolist()
+    'R': np.linspace(1, 10, 10, dtype=int).tolist(),
+    'ss': np.linspace(0.5, 2.5, 10).tolist(),
+    'si': np.linspace(0.1, 0.9, 10).tolist(),
+    'sa': np.linspace(0.1, 0.8, 10).tolist(),
+    'τ': np.linspace(0.05, 0.4, 10).tolist(),
+    'τ_c': np.linspace(0.01, 0.06, 10).tolist(),
+    'σ_0': np.linspace(2.0, 10.0, 10).tolist(),
+    'min_rel_size': np.linspace(50.0, 400.0, 10).tolist()
 }
 
 os.makedirs("sensitivity_results", exist_ok=True)
