@@ -629,7 +629,7 @@ for i in range(len(dataset)):
 print("Terminé.")
 
 default_params = {
-    'R': 3,
+    'R': 5,
     'ss': 1.0,
     'si': 0.25,
     'sa': 0.3,
