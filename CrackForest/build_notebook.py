@@ -776,6 +776,7 @@ for param_name, values in param_ranges.items():
     axes[2].set_title('Wasserstein')
     axes[2].set_xlabel(param_name)
     axes[2].set_ylabel('Distance')
+    axes[2].set_ylim(0, 150)
     axes[2].grid(True)
     
     plt.tight_layout()
