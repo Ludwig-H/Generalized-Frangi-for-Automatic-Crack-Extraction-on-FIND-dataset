@@ -483,7 +483,10 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
                     dw = torch.cat([D_T, D_T, D_T])
                     ds = torch.cat([S_T, S_T, S_T])
                     
-                    di_c, dj_c, dw_c, ds_c = di.cpu().numpy(), dj.cpu().numpy(), dw.cpu().numpy(), ds.cpu().numpy()
+                    di_c = di.cpu().numpy()
+                    dj_c = dj.cpu().numpy()
+                    dw_c = dw.cpu().numpy()
+                    ds_c = ds.cpu().numpy()
                     sparse_dual = coo_matrix((dw_c, (di_c, dj_c)), shape=(num_act_e, num_act_e)).tocsr()
                     sparse_dual_S = coo_matrix((ds_c, (di_c, dj_c)), shape=(num_act_e, num_act_e)).tocsr()
                     
