@@ -619,7 +619,7 @@ Les autres paramètres resteront constants.
 Nous chargeons d'abord le dataset en RAM pour une exécution ultra-rapide.""")
 
 add_code("""import copy
-from tqdm import tqdm
+from tqdm.auto import tqdm
 import pandas as pd
 
 print("Chargement complet des 118 images en RAM pour accélérer l'analyse de sensibilité...")
@@ -879,7 +879,7 @@ df_grid_ind = pd.DataFrame(grid_individual_results)
 
 # --- 1. Heatmaps ---
 fig, axes = plt.subplots(1, 3, figsize=(20, 5))
-fig.suptitle(r"Heatmaps : Interaction entre R et $\sigma_0$", fontsize=16)
+fig.suptitle(r"Heatmaps : Interaction entre R et $\\sigma_0$", fontsize=16)
 
 # On arrondit les index/colonnes pour l'affichage propre
 df_grid_summary['sigma_0_round'] = df_grid_summary['sigma_0'].round(1)
