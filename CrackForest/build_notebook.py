@@ -412,13 +412,20 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
                 W_parent = torch.tensor(W_parent_np, dtype=torch.float32, device=device)
                 E_mass = torch.tensor(E_mass_np, dtype=torch.float32, device=device)
                 
+                # Branch mass for each node (as a child)
+                M_c = E_mass + W_parent
+                val_c = M_c * (M_total - M_c)
+                
                 sum_val_child = torch.zeros(N_L, dtype=torch.float32, device=device)
                 p_v_t = torch.tensor(p_valid, dtype=torch.long, device=device)
                 i_v_t = torch.tensor(i_valid, dtype=torch.long, device=device)
-                sum_val_child.index_add_(0, p_v_t, E_mass[i_v_t] + W_parent[i_v_t])
+                sum_val_child.index_add_(0, p_v_t, val_c[i_v_t])
                 
-                val_parent = torch.clamp(M_total - E_mass - W_parent, min=0.0)
-                centrality = (sum_val_child + val_parent) / 2.0
+                # Upward branch mass
+                M_up = torch.clamp(M_total - E_mass, min=0.0)
+                val_up = M_up * (M_total - M_up)
+                
+                centrality = (sum_val_child + val_up) / 2.0
                 if centrality.max() > 0: centrality /= centrality.max()
                     
                 nodes_comp_t = torch.from_numpy(nodes_comp).to(device).long()
@@ -535,13 +542,19 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
                         W_p = torch.tensor(W_p_np, dtype=torch.float32, device=device)
                         E_m = torch.tensor(E_m_np, dtype=torch.float32, device=device)
                         
+                        # Child branch masses
+                        M_c_dual = E_m + W_p
+                        val_c_dual = M_c_dual * (M_tot - M_c_dual)
+                        
                         sum_val_child = torch.zeros(N_L, dtype=torch.float32, device=device)
                         p_v_t, i_v_t = torch.tensor(p_v, dtype=torch.long, device=device), torch.tensor(i_v_l, dtype=torch.long, device=device)
-                        sum_val_child.index_add_(0, p_v_t, E_m[i_v_t] + W_p[i_v_t])
+                        sum_val_child.index_add_(0, p_v_t, val_c_dual[i_v_t])
                         
-                        val_parent = torch.clamp(M_tot - E_m - W_p, min=0.0)
+                        # Upward branch mass
+                        M_up_dual = torch.clamp(M_tot - E_m, min=0.0)
+                        val_up_dual = M_up_dual * (M_tot - M_up_dual)
                         
-                        centrality = (sum_val_child + val_parent) / 2.0
+                        centrality = (sum_val_child + val_up_dual) / 2.0
                         if centrality.max() > 0: centrality /= centrality.max()
                         
                         global_dual_cent[n_comp_idx] = centrality.cpu().numpy()
@@ -704,7 +717,7 @@ axes[0, 2].set_title('Similarité Frangi-Graph (Max)')
 axes[0, 3].imshow(sample['gt'].numpy(), cmap='gray')
 axes[0, 3].set_title('Ground Truth (Brut)')
 
-axes[1, 0].imshow(np.sqrt(centrality), cmap='hot')
+axes[1, 0].imshow(centrality, cmap='hot')
 axes[1, 0].set_title('Betweenness Centrality (Graph GPU)')
 
 axes[1, 1].imshow(np.zeros_like(skeleton), cmap='gray')
