@@ -517,7 +517,10 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
                         
                         W_p_np = np.zeros(N_L, dtype=np.float32)
                         S_coo_c = s_dual_S_c.tocoo()
-                        w_dict = {(r, c): v for r, c, v in zip(S_coo_c.row, S_coo_c.col, S_coo_c.data)}
+                        w_dict = {}
+                        for r, c, v in zip(S_coo_c.row, S_coo_c.col, S_coo_c.data):
+                            w_dict[(r, c)] = v
+                            w_dict[(c, r)] = v
                         for p, i in zip(p_v, i_v_l): W_p_np[i] = w_dict.get((p, i), 0.0)
                         
                         E_m_np = np.zeros(N_L, dtype=np.float32)
