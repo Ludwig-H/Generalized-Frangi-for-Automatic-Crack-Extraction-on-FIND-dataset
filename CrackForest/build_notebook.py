@@ -403,7 +403,7 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
                 for p, i in zip(p_valid, i_valid):
                     W_parent_np[i] = weights_dict.get((p, i), 0.0)
 
-                # Weighted branch mass accumulation (Sum of Frangi similarities)
+                # Weighted branch mass accumulation (Sum of Frangi similarities of edges)
                 E_mass_np = np.zeros(N_L, dtype=np.float32)
                 for i in order[::-1]:
                     p = preds[i]
@@ -413,7 +413,7 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
                 W_p = torch.tensor(W_parent_np, dtype=torch.float32, device=device)
                 E_m = torch.tensor(E_mass_np, dtype=torch.float32, device=device)
                 
-                # Mass of branch towards child i: B_i = E_m[i] + W_p[i]
+                # B_i is the mass of the branch connected to v via child i (includes edge v-i)
                 M_child = E_m + W_p
                 
                 sum_M = torch.zeros(N_L, dtype=torch.float32, device=device)
@@ -424,7 +424,7 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
                 sum_M.index_add_(0, p_v_t, M_child[i_v_t])
                 sum_M2.index_add_(0, p_v_t, M_child[i_v_t]**2)
                 
-                # C(v) = sum_{i<j} B_i * B_j = 0.5 * [(sum B_i)^2 - sum B_i^2]
+                # Betweenness C(v) = sum_{i<j} B_i * B_j
                 C_children = 0.5 * (sum_M**2 - sum_M2)
                 M_parent_branch = torch.clamp(M_total - sum_M, min=0.0)
                 
@@ -546,8 +546,8 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
                         W_p = torch.tensor(W_p_np, dtype=torch.float32, device=device)
                         E_m = torch.tensor(E_m_np, dtype=torch.float32, device=device)
                         
-                        # Child branch masses: B_i = subtree mass + triangle to parent
-                        M_child_dual = E_m + W_p
+                        # Branch mass for child branch: subtree + connection triangle
+                        M_c_dual = E_m + W_p
                         
                         sum_M_dual = torch.zeros(N_L, dtype=torch.float32, device=device)
                         sum_M2_dual = torch.zeros(N_L, dtype=torch.float32, device=device)
@@ -556,7 +556,7 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
                         sum_M_dual.index_add_(0, p_v_t, M_child_dual[i_v_t])
                         sum_M2_dual.index_add_(0, p_v_t, M_child_dual[i_v_t]**2)
                         
-                        # sum_{i<j} B_i * B_j
+                        # Betweenness on original edges (dual nodes)
                         C_child_dual = 0.5 * (sum_M_dual**2 - sum_M2_dual)
                         M_p_dual = torch.clamp(M_tot - sum_M_dual, min=0.0)
                         
