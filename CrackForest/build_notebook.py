@@ -635,14 +635,14 @@ default_params = {
     'si': 0.25,
     'sa': 0.3,
     'τ': 0.2,
-    'σ_0': 5.0,
+    'σ_0': 3.0,
     'τ_c': 0.025,
     'min_rel_size': 150.0
 }
 
 # nb_pas = 10
 param_ranges = {
-    'largeur_Sigma': [0, 1, 2, 3, 4],
+    'largeur_Sigma': [0, 1, 2],
     'R': np.linspace(1, 10, 10, dtype=int).tolist(),
     'ss': np.linspace(0.5, 2.5, 10).tolist(),
     'si': np.linspace(0.1, 0.9, 10).tolist(),
@@ -786,6 +786,109 @@ for param_name, values in param_ranges.items():
     plt.tight_layout()
     plt.savefig(f"sensitivity_results/plot_{param_name}.png")
     plt.show()""")
+
+add_md("""## 6. Analyse de l'interaction entre R et $\\sigma_0$ (Grid Search 2D)
+
+Nous allons réaliser une recherche en grille (Grid Search) sur les paramètres `R` et `\\sigma_0` pour vérifier s'ils sont indépendants ou s'ils interagissent.
+Nous testerons une grille 10x10 (100 évaluations du dataset) et visualiserons les résultats sous forme de Heatmaps.
+Enfin, nous réaliserons une **ANOVA à deux facteurs** pour tester statistiquement l'interaction.
+""")
+
+add_code("""!pip install -q statsmodels seaborn
+
+import time
+import seaborn as sns
+import statsmodels.api as sm
+from statsmodels.formula.api import ols
+import itertools
+import numpy as np
+import matplotlib.pyplot as plt
+
+print("\\n" + "="*60 + "\\n--- Grid Search 2D : R vs σ_0 ---\\n" + "="*60)
+
+R_values = np.linspace(1, 10, 10, dtype=int).tolist()
+sigma_values = np.linspace(1.0, 10.0, 10).tolist()
+
+grid_results_summary = []
+grid_individual_results = []
+
+t0_grid = time.time()
+
+# Pour la grille, nous fixons largeur_Sigma à 0 (seulement l'échelle centrale)
+# car sigma_0 peut varier, ce qui changerait le nombre d'échelles si largeur_Sigma > 0
+for R, sigma in tqdm(list(itertools.product(R_values, sigma_values)), desc="Grid Search R x σ_0"):
+    current_params = copy.deepcopy(default_params)
+    current_params['R'] = R
+    current_params['σ_0'] = sigma
+    current_params['largeur_Sigma'] = 0  # Fixé à 0 pour l'étude
+    
+    j_mean, j_std, t_mean, t_std, w_mean, w_std, ind_res = evaluate_dataset(current_params)
+    
+    grid_results_summary.append({
+        'R': R,
+        'sigma_0': sigma,
+        'Jaccard': j_mean,
+        'Tversky': t_mean,
+        'Wasserstein': w_mean
+    })
+    
+    for res in ind_res:
+        res_copy = res.copy()
+        res_copy['R'] = R
+        res_copy['sigma_0'] = sigma
+        grid_individual_results.append(res_copy)
+
+t_grid = time.time() - t0_grid
+print(f"--- Fin de la Grid Search (Temps total : {t_grid:.2f}s) ---")
+
+df_grid_summary = pd.DataFrame(grid_results_summary)
+df_grid_ind = pd.DataFrame(grid_individual_results)
+
+# --- 1. Heatmaps ---
+fig, axes = plt.subplots(1, 3, figsize=(20, 5))
+fig.suptitle("Heatmaps : Interaction entre R et $\\sigma_0$", fontsize=16)
+
+# On arrondit les index/colonnes pour l'affichage propre
+df_grid_summary['sigma_0_round'] = df_grid_summary['sigma_0'].round(1)
+df_grid_summary['R_round'] = df_grid_summary['R'].astype(int)
+
+pivot_jaccard = df_grid_summary.pivot(index='sigma_0_round', columns='R_round', values='Jaccard')
+pivot_tversky = df_grid_summary.pivot(index='sigma_0_round', columns='R_round', values='Tversky')
+pivot_wasserstein = df_grid_summary.pivot(index='sigma_0_round', columns='R_round', values='Wasserstein')
+
+sns.heatmap(pivot_jaccard, ax=axes[0], cmap='viridis', annot=True, fmt=".3f", cbar_kws={'label': 'Jaccard'})
+axes[0].set_title('Jaccard (IoU)')
+axes[0].invert_yaxis()
+
+sns.heatmap(pivot_tversky, ax=axes[1], cmap='viridis', annot=True, fmt=".3f", cbar_kws={'label': 'Tversky'})
+axes[1].set_title('Tversky')
+axes[1].invert_yaxis()
+
+sns.heatmap(pivot_wasserstein, ax=axes[2], cmap='plasma_r', annot=True, fmt=".1f", cbar_kws={'label': 'Wasserstein'})
+axes[2].set_title('Wasserstein')
+axes[2].invert_yaxis()
+
+plt.tight_layout()
+plt.savefig("sensitivity_results/grid_search_heatmaps.png")
+plt.show()
+
+# --- 2. ANOVA à deux facteurs ---
+print("\\n--- ANOVA à deux facteurs (Two-Way ANOVA) ---")
+# On renomme 'sigma_0' en 'sigma' pour éviter les soucis avec les formules patsy si besoin
+df_grid_ind_anova = df_grid_ind.rename(columns={'sigma_0': 'sigma'})
+
+# Modèle pour Jaccard
+model_jaccard = ols('Jaccard ~ C(R) + C(sigma) + C(R):C(sigma)', data=df_grid_ind_anova).fit()
+anova_jaccard = sm.stats.anova_lm(model_jaccard, typ=2)
+print("\\nANOVA - Variable dépendante : Jaccard")
+print(anova_jaccard)
+
+# Modèle pour Tversky
+model_tversky = ols('Tversky ~ C(R) + C(sigma) + C(R):C(sigma)', data=df_grid_ind_anova).fit()
+anova_tversky = sm.stats.anova_lm(model_tversky, typ=2)
+print("\\nANOVA - Variable dépendante : Tversky")
+print(anova_tversky)
+""")
 
 notebook = {
     "cells": cells,
