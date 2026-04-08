@@ -486,10 +486,10 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
                     # to connect the 3 nodes, or we keep all 3 but ensure MST picks 2.
                     # The issue was that in our current construction, each triangle was added 3 times.
                     
-                    di = torch.cat([e_remap[id_uv], e_remap[id_vw]])
-                    dj = torch.cat([e_remap[id_vw], e_remap[id_uw]])
-                    dw = torch.cat([D_T, D_T])
-                    ds = torch.cat([S_T, S_T])
+                    di = torch.cat([e_remap[id_uv], e_remap[id_vw], e_remap[id_uw]])
+                    dj = torch.cat([e_remap[id_vw], e_remap[id_uw], e_remap[id_uv]])
+                    dw = torch.cat([D_T, D_T, D_T])
+                    ds = torch.cat([S_T, S_T, S_T])
                     
                     di_c, dj_c = di.cpu().numpy(), dj.cpu().numpy()
                     dw_c, ds_c = dw.cpu().numpy(), ds.cpu().numpy()
@@ -566,8 +566,9 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
                         sum_M_dual.index_add_(0, p_v_t, M_child_dual[i_v_t])
                         sum_M2_dual.index_add_(0, p_v_t, M_child_dual[i_v_t]**2)
                         
-                        # Betweenness on original edges (dual nodes)
+                        # C(v) = sum_{i<j} B_i * B_j
                         C_child_dual = 0.5 * (sum_M_dual**2 - sum_M2_dual)
+                        # Parent branch: M_total - sum(children masses)
                         M_p_dual = torch.clamp(M_tot - sum_M_dual, min=0.0)
                         
                         centrality = C_child_dual + sum_M_dual * M_p_dual
