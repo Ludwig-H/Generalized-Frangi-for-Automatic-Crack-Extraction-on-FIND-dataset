@@ -613,7 +613,7 @@ plt.show()""")
 
 add_md("""## 5. Analyse de sensibilité des paramètres
 
-Nous allons faire varier paramètre par paramètre : `R, ss, si, sa, τ`, `τ_c` (le seuil de centralité), `min_rel_size` (taille relative minimale d'une composante) et `Σ` (réduit à `σ_0`).
+Nous allons faire varier paramètre par paramètre : `largeur_Sigma` (largeur de l'ensemble d'échelles), `R, ss, si, sa, τ`, `τ_c` (le seuil de centralité), `min_rel_size` (taille relative minimale d'une composante) et `σ_0` (échelle centrale).
 Les autres paramètres resteront constants.
 
 Nous chargeons d'abord le dataset en RAM pour une exécution ultra-rapide.""")
@@ -629,6 +629,7 @@ for i in range(len(dataset)):
 print("Terminé.")
 
 default_params = {
+    'largeur_Sigma': 0,
     'R': 5,
     'ss': 1.0,
     'si': 0.25,
@@ -641,6 +642,7 @@ default_params = {
 
 # nb_pas = 10
 param_ranges = {
+    'largeur_Sigma': [0, 1, 2, 3, 4],
     'R': np.linspace(1, 10, 10, dtype=int).tolist(),
     'ss': np.linspace(0.5, 2.5, 10).tolist(),
     'si': np.linspace(0.1, 0.9, 10).tolist(),
@@ -659,14 +661,16 @@ def evaluate_dataset(params):
     individual_results = []
     
     sigma_val = params['σ_0']
+    largeur = int(params['largeur_Sigma'])
+    Sigma_list = [sigma_val + i for i in range(-largeur, largeur + 1)]
     
-    for sample in tqdm(all_data, desc=f"Éval images (Σ={sigma_val:.1f}, R={params['R']}, ss={params['ss']:.2f}, si={params['si']:.2f}, sa={params['sa']:.2f}, τ={params['τ']:.2f}, τ_c={params['τ_c']:.3f}, min_rel_size={params['min_rel_size']:.1f})", leave=False):
+    for sample in tqdm(all_data, desc=f"Éval images (Σ={Sigma_list}, R={params['R']}, ss={params['ss']:.2f}, si={params['si']:.2f}, sa={params['sa']:.2f}, τ={params['τ']:.2f}, τ_c={params['τ_c']:.3f}, min_rel_size={params['min_rel_size']:.1f})", leave=False):
         imgs_i = {'visible': sample['visible']}
         weights_i = {'visible': 1.0}
         
         _, _, centrality_i, _, _ = extract_frangi_graph_gpu(
             imgs_i, weights_i, 
-            Σ=[sigma_val], 
+            Σ=Sigma_list, 
             R=int(params['R']),
             ss=params['ss'], 
             si=params['si'], 
