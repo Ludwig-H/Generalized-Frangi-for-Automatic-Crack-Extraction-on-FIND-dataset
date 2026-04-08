@@ -177,8 +177,9 @@ Application de la réponse Frangi et sparsification.""")
 add_code("""from scipy.sparse import coo_matrix
 
 def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
-                             ss=1.0, si=0.25, sa=0.3, τ=0.2, min_rel_size=150.0, device='cuda'):
+                             ss=1.0, si=0.25, sa=0.3, τ=0.2, min_rel_size=150.0, K=1, device='cuda'):
     import time
+    import cv2
     t0 = time.time()
     
     fh = FrangiHessianGPU(Σ, device=device)
@@ -360,86 +361,207 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
                               (np.concatenate([i_mapped, j_mapped]), np.concatenate([j_mapped, i_mapped]))), 
                              shape=(N_valid, N_valid)).tocsr()
     
-    n_comp, labels = connected_components(sparse_dist, directed=False)
-    counts = np.bincount(labels)
-    
-    min_size = N_total / min_rel_size
-    valid_components = np.where(counts > min_size)[0]
-    
     cent_img = np.zeros((H, W), dtype=np.float32)
     comp_mask = np.zeros((H, W), dtype=np.float32)
     tau_mask = np.zeros((H, W), dtype=np.float32)
     tau_mask[orig_coords_cpu[valid_nodes, 0], orig_coords_cpu[valid_nodes, 1]] = 1.0
     
-    if len(valid_components) > 0:
-        t_mst = 0
-        t_bet_start = time.time()
-        
-        for comp_id in valid_components:
-            mask_comp = (labels == comp_id)
-            nodes_comp = np.where(mask_comp)[0]
-            
-            sparse_dist_comp = sparse_dist[nodes_comp, :][:, nodes_comp]
-            S_sparse_comp = S_sparse[nodes_comp, :][:, nodes_comp]
-            
-            t_mst_start = time.time()
-            mst = minimum_spanning_tree(sparse_dist_comp)
-            order, preds = breadth_first_order(mst, i_start=0, directed=False, return_predecessors=True)
-            t_mst += (time.time() - t_mst_start)
-            
-            N_L = len(nodes_comp)
-            valid_mask_preds = preds >= 0
-            p_valid = preds[valid_mask_preds]
-            i_valid = np.arange(N_L)[valid_mask_preds]
-            
-            W_parent_np = np.zeros(N_L, dtype=np.float32)
-            
-            S_coo_comp = S_sparse_comp.tocoo()
-            weights_dict = {(r, c): v for r, c, v in zip(S_coo_comp.row, S_coo_comp.col, S_coo_comp.data)}
-            for idx, (p, i) in enumerate(zip(p_valid, i_valid)):
-                W_parent_np[i] = weights_dict.get((p, i), 0.0)
+    t_mst_total = 0
+    t_bet_total = 0
 
-            E_mass_np = np.zeros(N_L, dtype=np.float32)
-            
-            for i in order[::-1]:
-                p = preds[i]
-                if p >= 0:
-                    E_mass_np[p] += E_mass_np[i] + W_parent_np[i]
-                    
-            M_total = E_mass_np[order[0]]
-            
-            W_parent = torch.tensor(W_parent_np, dtype=torch.float32, device=device)
-            E_mass = torch.tensor(E_mass_np, dtype=torch.float32, device=device)
-            
-            child_branch_mass = W_parent + E_mass
-            p_valid_t = torch.tensor(p_valid, dtype=torch.long, device=device)
-            i_valid_t = torch.tensor(i_valid, dtype=torch.long, device=device)
-            
-            sum_masses_children = torch.zeros(N_L, dtype=torch.float32, device=device)
-            sum_masses_children.index_add_(0, p_valid_t, child_branch_mass[i_valid_t])
-            
-            parent_branch_mass = torch.clamp(M_total - sum_masses_children, min=0.0)
-            
-            val_child = child_branch_mass * (M_total - child_branch_mass)
-            sum_val_child = torch.zeros(N_L, dtype=torch.float32, device=device)
-            sum_val_child.index_add_(0, p_valid_t, val_child[i_valid_t])
-            
-            val_parent = parent_branch_mass * (M_total - parent_branch_mass)
-            centrality = (sum_val_child + val_parent) / 2.0
-            
-            if centrality.max() > 0:
-                centrality /= centrality.max()
+    if K == 1:
+        n_comp, labels = connected_components(sparse_dist, directed=False)
+        counts = np.bincount(labels)
+        min_size = N_total / min_rel_size
+        valid_components = np.where(counts > min_size)[0]
+        
+        if len(valid_components) > 0:
+            t_bet_start = time.time()
+            for comp_id in valid_components:
+                mask_comp = (labels == comp_id)
+                nodes_comp = np.where(mask_comp)[0]
                 
-            coords_comp = coords[nodes_comp].cpu().numpy().astype(int)
-            cent_img[coords_comp[:, 0], coords_comp[:, 1]] = centrality.cpu().numpy()
-            comp_mask[coords_comp[:, 0], coords_comp[:, 1]] = 1.0
-            
-        if device == 'cuda': torch.cuda.synchronize()
-        t_mst_total = t_mst
-        t_bet_total = time.time() - t_bet_start - t_mst_total
-    else:
-        t_mst_total = 0
-        t_bet_total = 0
+                sparse_dist_comp = sparse_dist[nodes_comp, :][:, nodes_comp]
+                S_sparse_comp = S_sparse[nodes_comp, :][:, nodes_comp]
+                
+                t_mst_start = time.time()
+                mst = minimum_spanning_tree(sparse_dist_comp)
+                order, preds = breadth_first_order(mst, i_start=0, directed=False, return_predecessors=True)
+                t_mst_total += (time.time() - t_mst_start)
+                
+                N_L = len(nodes_comp)
+                valid_mask_preds = preds >= 0
+                p_valid = preds[valid_mask_preds]
+                i_valid = np.arange(N_L)[valid_mask_preds]
+                
+                W_parent_np = np.zeros(N_L, dtype=np.float32)
+                S_coo_comp = S_sparse_comp.tocoo()
+                weights_dict = {(r, c): v for r, c, v in zip(S_coo_comp.row, S_coo_comp.col, S_coo_comp.data)}
+                for p, i in zip(p_valid, i_valid):
+                    W_parent_np[i] = weights_dict.get((p, i), 0.0)
+
+                E_mass_np = np.zeros(N_L, dtype=np.float32)
+                for i in order[::-1]:
+                    p = preds[i]
+                    if p >= 0: E_mass_np[p] += E_mass_np[i] + W_parent_np[i]
+                        
+                M_total = E_mass_np[order[0]]
+                W_parent = torch.tensor(W_parent_np, dtype=torch.float32, device=device)
+                E_mass = torch.tensor(E_mass_np, dtype=torch.float32, device=device)
+                
+                child_branch_mass = W_parent + E_mass
+                p_valid_t = torch.tensor(p_valid, dtype=torch.long, device=device)
+                i_valid_t = torch.tensor(i_valid, dtype=torch.long, device=device)
+                
+                sum_masses_children = torch.zeros(N_L, dtype=torch.float32, device=device)
+                sum_masses_children.index_add_(0, p_valid_t, child_branch_mass[i_valid_t])
+                
+                parent_branch_mass = torch.clamp(M_total - sum_masses_children, min=0.0)
+                val_child = child_branch_mass * (M_total - child_branch_mass)
+                sum_val_child = torch.zeros(N_L, dtype=torch.float32, device=device)
+                sum_val_child.index_add_(0, p_valid_t, val_child[i_valid_t])
+                
+                val_parent = parent_branch_mass * (M_total - parent_branch_mass)
+                centrality = (sum_val_child + val_parent) / 2.0
+                if centrality.max() > 0: centrality /= centrality.max()
+                    
+                coords_comp = coords[nodes_comp].cpu().numpy().astype(int)
+                cent_img[coords_comp[:, 0], coords_comp[:, 1]] = centrality.cpu().numpy()
+                comp_mask[coords_comp[:, 0], coords_comp[:, 1]] = 1.0
+            if device == 'cuda': torch.cuda.synchronize()
+            t_bet_total = time.time() - t_bet_start - t_mst_total
+
+    elif K == 2:
+        # GPU Triangle detection (Vietoris-Rips 2-complex)
+        adj_i_t = torch.from_numpy(i_mapped).to(device)
+        adj_j_t = torch.from_numpy(j_mapped).to(device)
+        
+        # Matrix bitset for fast intersection
+        A_dense = torch.zeros((N_valid, N_valid), dtype=torch.bool, device=device)
+        A_dense[adj_i_t, adj_j_t] = True
+        A_dense[adj_j_t, adj_i_t] = True
+        
+        # Only edges with i < j
+        mask_u = adj_i_t < adj_j_t
+        u_l, v_l = adj_i_t[mask_u], adj_j_t[mask_u]
+        d_l = torch.from_numpy(d_v[mask_u]).to(device)
+        S_l = torch.from_numpy(S_v[mask_u]).to(device)
+        num_e_init = len(u_l)
+        
+        if num_e_init >= 3:
+            common = A_dense[u_l] & A_dense[v_l]
+            tri_pts = torch.nonzero(common)
+            if len(tri_pts) > 0:
+                e_idx, w_i = tri_pts.T
+                u_tri, v_tri, w_tri = u_l[e_idx], v_l[e_idx], w_i
+                mask_unq = w_tri > v_tri
+                u_tri, v_tri, w_tri = u_tri[mask_unq], v_tri[mask_unq], w_tri[mask_unq]
+                
+                if len(u_tri) > 0:
+                    # Edge IDs
+                    edge_to_id = torch.full((N_valid, N_valid), -1, dtype=torch.long, device=device)
+                    edge_to_id[adj_i_t, adj_j_t] = torch.arange(len(adj_i_t), device=device)
+                    
+                    id_uv = edge_to_id[u_tri, v_tri]
+                    id_vw = edge_to_id[v_tri, w_tri]
+                    id_uw = edge_to_id[u_tri, w_tri]
+                    
+                    d_v_t = torch.from_numpy(d_v).to(device)
+                    S_v_t = torch.from_numpy(S_v).to(device)
+                    D_T = torch.max(torch.stack([d_v_t[id_uv], d_v_t[id_vw], d_v_t[id_uw]]), dim=0).values
+                    S_T = torch.min(torch.stack([S_v_t[id_uv], S_v_t[id_vw], S_v_t[id_uw]]), dim=0).values
+                    
+                    # Dual nodes: original edges
+                    active_e = torch.unique(torch.cat([id_uv, id_vw, id_uw]))
+                    num_act_e = len(active_e)
+                    e_remap = torch.full((len(adj_i_t),), -1, dtype=torch.long, device=device)
+                    e_remap[active_e] = torch.arange(num_act_e, device=device)
+                    
+                    # Dual edges (clique-3 per triangle)
+                    di = torch.cat([e_remap[id_uv], e_remap[id_vw], e_remap[id_uw]])
+                    dj = torch.cat([e_remap[id_vw], e_remap[id_uw], e_remap[id_uv]])
+                    dw = torch.cat([D_T, D_T, D_T])
+                    ds = torch.cat([S_T, S_T, S_T])
+                    
+                    di_c, dj_c, dw_c, ds_c = di.cpu().numpy(), dj.cpu().numpy(), dw.cpu().numpy(), ds.cpu().numpy()
+                    sparse_dual = coo_matrix((dw_c, (di_c, dj_c)), shape=(num_act_e, num_act_e)).tocsr()
+                    sparse_dual_S = coo_matrix((ds_c, (di_c, dj_c)), shape=(num_act_e, num_act_e)).tocsr()
+                    
+                    n_comp, labels = connected_components(sparse_dual, directed=False)
+                    counts = np.bincount(labels)
+                    min_size = N_total / (min_rel_size * 2)
+                    v_comp = np.where(counts > min_size)[0]
+                    
+                    global_dual_cent = np.zeros(num_act_e, dtype=np.float32)
+                    is_valid_node = np.zeros(num_act_e, dtype=bool)
+                    coords_v = coords.cpu().numpy()
+                    t_bet_start = time.time()
+                    
+                    for c_id in v_comp:
+                        m_comp = (labels == c_id)
+                        n_comp_idx = np.where(m_comp)[0]
+                        s_dual_dist_c = sparse_dual[n_comp_idx, :][:, n_comp_idx]
+                        s_dual_S_c = sparse_dual_S[n_comp_idx, :][:, n_comp_idx]
+                        
+                        t_mst_s = time.time()
+                        mst = minimum_spanning_tree(s_dual_dist_c)
+                        order, preds = breadth_first_order(mst, i_start=0, directed=False, return_predecessors=True)
+                        t_mst_total += (time.time() - t_mst_s)
+                        
+                        N_L = len(n_comp_idx)
+                        v_m_preds = preds >= 0
+                        p_v, i_v_l = preds[v_m_preds], np.arange(N_L)[v_m_preds]
+                        
+                        W_p_np = np.zeros(N_L, dtype=np.float32)
+                        S_coo_c = s_dual_S_c.tocoo()
+                        w_dict = {(r, c): v for r, c, v in zip(S_coo_c.row, S_coo_c.col, S_coo_c.data)}
+                        for p, i in zip(p_v, i_v_l): W_p_np[i] = w_dict.get((p, i), 0.0)
+                        
+                        E_m_np = np.zeros(N_L, dtype=np.float32)
+                        for i in order[::-1]:
+                            p = preds[i]
+                            if p >= 0: E_m_np[p] += E_m_np[i] + W_p_np[i]
+                            
+                        M_tot = E_m_np[order[0]]
+                        W_p = torch.tensor(W_p_np, dtype=torch.float32, device=device)
+                        E_m = torch.tensor(E_m_np, dtype=torch.float32, device=device)
+                        
+                        c_b_m = W_p + E_m
+                        p_v_t, i_v_t = torch.tensor(p_v, dtype=torch.long, device=device), torch.tensor(i_v_l, dtype=torch.long, device=device)
+                        s_m_c = torch.zeros(N_L, dtype=torch.float32, device=device)
+                        s_m_c.index_add_(0, p_v_t, c_b_m[i_v_t])
+                        
+                        pa_b_m = torch.clamp(M_tot - s_m_c, min=0.0)
+                        v_c = c_b_m * (M_tot - c_b_m)
+                        s_v_c = torch.zeros(N_L, dtype=torch.float32, device=device)
+                        s_v_c.index_add_(0, p_v_t, v_c[i_v_t])
+                        v_pa = pa_b_m * (M_tot - pa_b_m)
+                        centrality = (s_v_c + v_pa) / 2.0
+                        if centrality.max() > 0: centrality /= centrality.max()
+                        
+                        global_dual_cent[n_comp_idx] = centrality.cpu().numpy()
+                        is_valid_node[n_comp_idx] = True
+
+                    # Project triangles to pixels (Once per all valid components)
+                    u_v, v_v, w_v = u_tri.cpu().numpy(), v_tri.cpu().numpy(), w_tri.cpu().numpy()
+                    id_uv_n, id_vw_n, id_uw_n = id_uv.cpu().numpy(), id_vw.cpu().numpy(), id_uw.cpu().numpy()
+                    e_remap_np = e_remap.cpu().numpy()
+                    
+                    for i_t in range(len(u_v)):
+                        idx_uv = e_remap_np[id_uv_n[i_t]]
+                        idx_vw = e_remap_np[id_vw_n[i_t]]
+                        idx_uw = e_remap_np[id_uw_n[i_t]]
+                        
+                        if idx_uv >= 0 and is_valid_node[idx_uv]:
+                            c1, c2, c3 = coords_v[u_v[i_t]], coords_v[v_v[i_t]], coords_v[w_v[i_t]]
+                            pts = np.array([[c1[1], c1[0]], [c2[1], c2[0]], [c3[1], c3[0]]], dtype=np.int32)
+                            val = max(global_dual_cent[idx_uv], global_dual_cent[idx_vw], global_dual_cent[idx_uw])
+                            if val > 0:
+                                cv2.fillConvexPoly(cent_img, pts, float(val))
+                                cv2.fillConvexPoly(comp_mask, pts, 1.0)
+                                    
+                    if device == 'cuda': torch.cuda.synchronize()
+                    t_bet_total = time.time() - t_bet_start - t_mst_total
     
     sim_img = np.zeros((H, W), dtype=np.float32)
     sim_img[orig_coords_cpu[:, 0], orig_coords_cpu[:, 1]] = node_sim_max
@@ -545,7 +667,7 @@ imgs = {'visible': sample['visible']}
 weights = {'visible': 1.0}
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-frangi_response, similarity_img, centrality, timings, diagnostics = extract_frangi_graph_gpu(imgs, weights, device=device)
+frangi_response, similarity_img, centrality, timings, diagnostics = extract_frangi_graph_gpu(imgs, weights, K=2, device=device)
 
 skeleton = (centrality > 0.025).astype(np.float32)
 
@@ -629,6 +751,7 @@ for i in range(len(dataset)):
 print("Terminé.")
 
 default_params = {
+    'K': 1,
     'largeur_Sigma': 0,
     'R': 5,
     'ss': 1.0,
@@ -642,6 +765,7 @@ default_params = {
 
 # nb_pas = 10
 param_ranges = {
+    'K': [1, 2],
     'largeur_Sigma': [0, 1, 2],
     'R': np.linspace(1, 10, 10, dtype=int).tolist(),
     'ss': np.linspace(0.5, 2.5, 10).tolist(),
@@ -663,8 +787,9 @@ def evaluate_dataset(params):
     sigma_val = params['σ_0']
     largeur = int(params['largeur_Sigma'])
     Sigma_list = [sigma_val + i for i in range(-largeur, largeur + 1)]
+    k_val = params.get('K', 1)
     
-    for sample in tqdm(all_data, desc=f"Éval images (Σ={Sigma_list}, R={params['R']}, ss={params['ss']:.2f}, si={params['si']:.2f}, sa={params['sa']:.2f}, τ={params['τ']:.2f}, τ_c={params['τ_c']:.3f}, min_rel_size={params['min_rel_size']:.1f})", leave=False):
+    for sample in tqdm(all_data, desc=f"Éval images (K={k_val}, Σ={Sigma_list}, R={params['R']}, ss={params['ss']:.2f}, si={params['si']:.2f}, sa={params['sa']:.2f}, τ={params['τ']:.2f}, τ_c={params['τ_c']:.3f}, min_rel_size={params['min_rel_size']:.1f})", leave=False):
         imgs_i = {'visible': sample['visible']}
         weights_i = {'visible': 1.0}
         
@@ -677,6 +802,7 @@ def evaluate_dataset(params):
             sa=params['sa'], 
             τ=params['τ'],
             min_rel_size=params['min_rel_size'],
+            K=k_val,
             device=device
         )
         
