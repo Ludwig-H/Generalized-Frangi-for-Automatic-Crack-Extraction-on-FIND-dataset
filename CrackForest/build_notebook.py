@@ -787,11 +787,44 @@ for param_name, values in param_ranges.items():
     plt.savefig(f"sensitivity_results/plot_{param_name}.png")
     plt.show()""")
 
-add_md("""## 6. Analyse de l'interaction entre R et $\\sigma_0$ (Grid Search 2D)
+add_md(r"""## 6. Analyse de l'interaction entre R et $\sigma_0$ (Grid Search 2D)
 
-Nous allons réaliser une recherche en grille (Grid Search) sur les paramètres `R` et `\\sigma_0` pour vérifier s'ils sont indépendants ou s'ils interagissent.
+Nous allons réaliser une recherche en grille (Grid Search) sur les paramètres `R` et `\sigma_0` pour vérifier s'ils sont indépendants ou s'ils interagissent.
 Nous testerons une grille 10x10 (100 évaluations du dataset) et visualiserons les résultats sous forme de Heatmaps.
 Enfin, nous réaliserons une **ANOVA à deux facteurs** pour tester statistiquement l'interaction.
+
+Le modèle mathématique sous-jacent s'écrit formellement :
+$$Y_{ijk} = \mu + \alpha_i + \beta_j + (\alpha\beta)_{ij} + \epsilon_{ijk}$$
+
+Où :
+- $Y_{ijk}$ est la $k$-ème observation du résultat pour le niveau $i$ du paramètre $R$ et le niveau $j$ du paramètre $\sigma_0$.
+- $\mu$ est la moyenne générale théorique.
+- $\alpha_i$ est l'effet principal du niveau $i$ du paramètre $R$.
+- $\beta_j$ est l'effet principal du niveau $j$ du paramètre $\sigma_0$.
+- $(\alpha\beta)_{ij}$ est l'effet d'interaction entre le niveau $i$ du paramètre $R$ et le niveau $j$ du paramètre $\sigma_0$.
+- $\epsilon_{ijk}$ est l'erreur résiduelle, qui doit obligatoirement suivre une distribution normale $\mathcal{N}(0, \sigma^2)$.
+
+### Tester "l'indépendance des résultats" : L'Effet d'Interaction et l'hypothèse nulle $H_0$
+
+L'hypothèse nulle $H_0$ postule l'absence d'interaction : $(\alpha\beta)_{ij} = 0 \ \forall \ i,j$.
+Pour démontrer rigoureusement les propriétés de ces estimateurs sous $H_0$, un plan d'expérience équilibré est posé. Ce ne sont pas les Carrés Moyens ($CM$) qui suivent une loi du $\chi^2$, mais les **Sommes des Carrés ($SC$) normalisées par la variance théorique $\sigma^2$ de la population**. 
+
+1. **La Somme des Carrés Résiduelle ($SC_{résiduel}$)**
+Elle quantifie la dispersion des observations brutes autour de la moyenne de leur propre cellule.
+$$SC_{résiduel} = \sum_{i=1}^{a} \sum_{j=1}^{b} \sum_{k=1}^{n} (Y_{ijk} - \bar{Y}_{ij.})^2$$
+Sachant que l'espérance de l'écart est nulle, le théorème de Cochran prouve que la somme de ces carrés normalisés suit une loi du $\chi^2$ (que $H_0$ soit vraie ou fausse) :
+$$\frac{SC_{résiduel}}{\sigma^2} \sim \chi^2(ab(n-1))$$
+
+2. **La Somme des Carrés de l'Interaction ($SC_{AB}$)**
+Elle quantifie l'écart entre la moyenne observée d'une cellule et ce que prédirait un modèle purement additif basé sur les effets marginaux.
+$$SC_{AB} = n \sum_{i=1}^{a} \sum_{j=1}^{b} (\bar{Y}_{ij.} - \bar{Y}_{i..} - \bar{Y}_{.j.} + \bar{Y}_{...})^2$$
+**Si et seulement si** l'hypothèse nulle d'additivité stricte ($H_0$) est vraie, l'espérance de l'estimateur de l'interaction est nulle. Le théorème de Cochran prouve alors que cette forme quadratique suit une loi du $\chi^2$ :
+$$\frac{SC_{AB}}{\sigma^2} \sim \chi^2((a-1)(b-1))$$
+
+3. **Conséquence sur la statistique F**
+Le but final est d'éliminer la variance théorique inconnue $\sigma^2$ en calculant le ratio de deux variables $\chi^2$ indépendantes, chacune divisée par ses degrés de liberté ($ddl$). Cela correspond à la distribution de Fisher :
+$$F_{AB} = \frac{ \left( \frac{SC_{AB}}{\sigma^2} \right) / ddl_{AB} }{ \left( \frac{SC_{résiduel}}{\sigma^2} \right) / ddl_{résiduel} } = \frac{ \left( \frac{SC_{AB}}{ddl_{AB}} \right) }{ \left( \frac{SC_{résiduel}}{ddl_{résiduel}} \right) } = \frac{CM_{AB}}{CM_{résiduel}}$$
+La statistique $F_{AB}$ est calculable exclusivement à partir des données empiriques, et on peut en évaluer la probabilité critique (p-value) sachant qu'elle suit, sous $H_0$, une loi $\mathcal{F}((a-1)(b-1), ab(n-1))$.
 """)
 
 add_code("""!pip install -q statsmodels seaborn
@@ -877,17 +910,37 @@ print("\\n--- ANOVA à deux facteurs (Two-Way ANOVA) ---")
 # On renomme 'sigma_0' en 'sigma' pour éviter les soucis avec les formules patsy si besoin
 df_grid_ind_anova = df_grid_ind.rename(columns={'sigma_0': 'sigma'})
 
+def print_anova_results(model, metric_name):
+    anova_table = sm.stats.anova_lm(model, typ=2)
+    print(f"\\nANOVA - Variable dépendante : {metric_name}")
+    print(anova_table)
+    
+    interaction_term = 'C(R):C(sigma)'
+    if interaction_term in anova_table.index:
+        p_value = anova_table.loc[interaction_term, 'PR(>F)']
+        f_stat = anova_table.loc[interaction_term, 'F']
+        
+        print(f"\\n>>> TEST D'HYPOTHESE H_0 (Indépendance de R et sigma_0) sur {metric_name} <<<")
+        print(f"Statistique Fisher F_AB = {f_stat:.4f}")
+        print(f"Probabilité critique (p-value) = {p_value:.4e}")
+        
+        alpha = 0.05
+        if p_value < alpha:
+            print(f"Conclusion : p-value < {alpha} (Niveau de signification 5%).")
+            print("             => On REJETTE fermement l'hypothèse nulle H_0.")
+            print("             => L'effet d'interaction est statistiquement significatif.")
+        else:
+            print(f"Conclusion : p-value >= {alpha} (Niveau de signification 5%).")
+            print("             => On ACCEPTE (ou ne peut pas rejeter) l'hypothèse nulle H_0.")
+            print("             => Les paramètres semblent agir indépendamment.")
+
 # Modèle pour Jaccard
 model_jaccard = ols('Jaccard ~ C(R) + C(sigma) + C(R):C(sigma)', data=df_grid_ind_anova).fit()
-anova_jaccard = sm.stats.anova_lm(model_jaccard, typ=2)
-print("\\nANOVA - Variable dépendante : Jaccard")
-print(anova_jaccard)
+print_anova_results(model_jaccard, "Jaccard")
 
 # Modèle pour Tversky
 model_tversky = ols('Tversky ~ C(R) + C(sigma) + C(R):C(sigma)', data=df_grid_ind_anova).fit()
-anova_tversky = sm.stats.anova_lm(model_tversky, typ=2)
-print("\\nANOVA - Variable dépendante : Tversky")
-print(anova_tversky)
+print_anova_results(model_tversky, "Tversky")
 """)
 
 notebook = {
