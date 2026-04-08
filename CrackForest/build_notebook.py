@@ -429,14 +429,13 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
                 M_parent_branch = torch.clamp(M_total - sum_M, min=0.0)
                 
                 centrality = C_children + sum_M * M_parent_branch
-                # Remove local normalization: if centrality.max() > 0: centrality /= centrality.max()
+                if centrality.max() > 0: centrality /= centrality.max()
                     
                 nodes_comp_t = torch.from_numpy(nodes_comp).to(device).long()
                 coords_comp = coords[nodes_comp_t].cpu().numpy().astype(int)
                 cent_img[coords_comp[:, 0], coords_comp[:, 1]] = centrality.cpu().numpy()
             
-            # Global normalization for K=1
-            if cent_img.max() > 0: cent_img /= cent_img.max()
+            # Remove global normalization: if cent_img.max() > 0: cent_img /= cent_img.max()
             
             if device == 'cuda': torch.cuda.synchronize()
             t_bet_total = time.time() - t_bet_start - t_mst_total
@@ -481,10 +480,16 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
                     e_remap = torch.full((len(adj_i_t),), -1, dtype=torch.long, device=device)
                     e_remap[active_e] = torch.arange(num_act_e, device=device)
                     
-                    di = torch.cat([e_remap[id_uv], e_remap[id_vw], e_remap[id_uw]])
-                    dj = torch.cat([e_remap[id_vw], e_remap[id_uw], e_remap[id_uv]])
-                    dw = torch.cat([D_T, D_T, D_T])
-                    ds = torch.cat([S_T, S_T, S_T])
+                    # In the dual graph, a triangle connects 3 original edges.
+                    # We can represent it as a star with a dummy center or a triangle.
+                    # To avoid overcounting triangle mass in MST, we only provide 2 edges per triangle
+                    # to connect the 3 nodes, or we keep all 3 but ensure MST picks 2.
+                    # The issue was that in our current construction, each triangle was added 3 times.
+                    
+                    di = torch.cat([e_remap[id_uv], e_remap[id_vw]])
+                    dj = torch.cat([e_remap[id_vw], e_remap[id_uw]])
+                    dw = torch.cat([D_T, D_T])
+                    ds = torch.cat([S_T, S_T])
                     
                     di_c, dj_c = di.cpu().numpy(), dj.cpu().numpy()
                     dw_c, ds_c = dw.cpu().numpy(), ds.cpu().numpy()
@@ -564,7 +569,7 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
                         M_p_dual = torch.clamp(M_tot - sum_M_dual, min=0.0)
                         
                         centrality = C_child_dual + sum_M_dual * M_p_dual
-                        # Remove local normalization: if centrality.max() > 0: centrality /= centrality.max()
+                        if centrality.max() > 0: centrality /= centrality.max()
                         
                         global_dual_cent[n_comp_idx] = centrality.cpu().numpy()
                         is_valid_node[n_comp_idx] = True
@@ -586,8 +591,7 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
                                 cv2.fillConvexPoly(cent_img, pts, float(val))
                                 cv2.fillConvexPoly(comp_mask, pts, 1.0)
                                     
-                    # Global normalization for K=2
-                    if cent_img.max() > 0: cent_img /= cent_img.max()
+                    # Global normalization for K=2 removed
                                     
                     if device == 'cuda': torch.cuda.synchronize()
                     t_bet_total = time.time() - t_bet_start - t_mst_total
