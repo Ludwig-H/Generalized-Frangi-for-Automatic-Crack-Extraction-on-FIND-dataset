@@ -493,6 +493,8 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
                     
                     di_c, dj_c = di.cpu().numpy(), dj.cpu().numpy()
                     dw_c, ds_c = dw.cpu().numpy(), ds.cpu().numpy()
+                    # To ensure MST only picks 2 edges of the 3 possible ones to connect the 3 nodes,
+                    # we only add 2 edges here, which is equivalent to a path-connection for the triangle.
                     sparse_dual = coo_matrix((dw_c, (di_c, dj_c)), shape=(num_act_e, num_act_e)).tocsr()
                     sparse_dual_S = coo_matrix((ds_c, (di_c, dj_c)), shape=(num_act_e, num_act_e)).tocsr()
                     
@@ -792,8 +794,8 @@ default_params = {
     'sa': 0.3,
     'τ': 0.2,
     'σ_0': 3.0,
-    'τ_c': 0.025,
-    'min_rel_size': 150.0
+    'τ_c': 0.001,
+    'min_rel_size': 2000.0
 }
 
 # nb_pas = 10
