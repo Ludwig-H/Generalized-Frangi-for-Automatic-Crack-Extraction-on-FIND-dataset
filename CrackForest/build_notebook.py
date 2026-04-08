@@ -429,12 +429,15 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
                 M_parent_branch = torch.clamp(M_total - sum_M, min=0.0)
                 
                 centrality = C_children + sum_M * M_parent_branch
-                if centrality.max() > 0: centrality /= centrality.max()
+                # Remove local normalization: if centrality.max() > 0: centrality /= centrality.max()
                     
                 nodes_comp_t = torch.from_numpy(nodes_comp).to(device).long()
                 coords_comp = coords[nodes_comp_t].cpu().numpy().astype(int)
                 cent_img[coords_comp[:, 0], coords_comp[:, 1]] = centrality.cpu().numpy()
-                comp_mask[coords_comp[:, 0], coords_comp[:, 1]] = 1.0
+            
+            # Global normalization for K=1
+            if cent_img.max() > 0: cent_img /= cent_img.max()
+            
             if device == 'cuda': torch.cuda.synchronize()
             t_bet_total = time.time() - t_bet_start - t_mst_total
 
@@ -561,7 +564,7 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
                         M_p_dual = torch.clamp(M_tot - sum_M_dual, min=0.0)
                         
                         centrality = C_child_dual + sum_M_dual * M_p_dual
-                        if centrality.max() > 0: centrality /= centrality.max()
+                        # Remove local normalization: if centrality.max() > 0: centrality /= centrality.max()
                         
                         global_dual_cent[n_comp_idx] = centrality.cpu().numpy()
                         is_valid_node[n_comp_idx] = True
@@ -582,6 +585,9 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
                             if val > 0:
                                 cv2.fillConvexPoly(cent_img, pts, float(val))
                                 cv2.fillConvexPoly(comp_mask, pts, 1.0)
+                                    
+                    # Global normalization for K=2
+                    if cent_img.max() > 0: cent_img /= cent_img.max()
                                     
                     if device == 'cuda': torch.cuda.synchronize()
                     t_bet_total = time.time() - t_bet_start - t_mst_total
