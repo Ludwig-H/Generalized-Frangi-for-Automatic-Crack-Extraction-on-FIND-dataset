@@ -412,19 +412,12 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
                 W_parent = torch.tensor(W_parent_np, dtype=torch.float32, device=device)
                 E_mass = torch.tensor(E_mass_np, dtype=torch.float32, device=device)
                 
-                child_branch_mass = W_parent + E_mass
-                p_valid_t = torch.tensor(p_valid, dtype=torch.long, device=device)
-                i_valid_t = torch.tensor(i_valid, dtype=torch.long, device=device)
-                
-                sum_masses_children = torch.zeros(N_L, dtype=torch.float32, device=device)
-                sum_masses_children.index_add_(0, p_valid_t, child_branch_mass[i_valid_t])
-                
-                parent_branch_mass = torch.clamp(M_total - sum_masses_children, min=0.0)
-                val_child = child_branch_mass * (M_total - child_branch_mass)
                 sum_val_child = torch.zeros(N_L, dtype=torch.float32, device=device)
-                sum_val_child.index_add_(0, p_valid_t, val_child[i_valid_t])
+                p_v_t = torch.tensor(p_valid, dtype=torch.long, device=device)
+                i_v_t = torch.tensor(i_valid, dtype=torch.long, device=device)
+                sum_val_child.index_add_(0, p_v_t, E_mass[i_v_t] + W_parent[i_v_t])
                 
-                val_parent = parent_branch_mass * (M_total - parent_branch_mass)
+                val_parent = torch.clamp(M_total - E_mass - W_parent, min=0.0)
                 centrality = (sum_val_child + val_parent) / 2.0
                 if centrality.max() > 0: centrality /= centrality.max()
                     
@@ -487,8 +480,23 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
                     
                     n_comp, labels = connected_components(sparse_dual, directed=False)
                     counts = np.bincount(labels)
-                    min_size = N_total / (min_rel_size * 2)
-                    v_comp = np.where(counts > min_size)[0]
+                    
+                    adj_i_v, adj_j_v = adj_i_t.cpu().numpy(), adj_j_t.cpu().numpy()
+                    
+                    v_comp = []
+                    for c_id in range(n_comp):
+                        if counts[c_id] == 0: continue
+                        
+                        m_comp = (labels == c_id)
+                        n_comp_idx = np.where(m_comp)[0]
+                        
+                        e_indices = active_e[n_comp_idx].cpu().numpy()
+                        u_nodes = adj_i_v[e_indices]
+                        v_nodes = adj_j_v[e_indices]
+                        unique_nodes = np.unique(np.concatenate([u_nodes, v_nodes]))
+                        
+                        if len(unique_nodes) > (N_total / min_rel_size):
+                            v_comp.append(c_id)
                     
                     global_dual_cent = np.zeros(num_act_e, dtype=np.float32)
                     is_valid_node = np.zeros(num_act_e, dtype=bool)
@@ -527,17 +535,13 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
                         W_p = torch.tensor(W_p_np, dtype=torch.float32, device=device)
                         E_m = torch.tensor(E_m_np, dtype=torch.float32, device=device)
                         
-                        c_b_m = W_p + E_m
+                        sum_val_child = torch.zeros(N_L, dtype=torch.float32, device=device)
                         p_v_t, i_v_t = torch.tensor(p_v, dtype=torch.long, device=device), torch.tensor(i_v_l, dtype=torch.long, device=device)
-                        s_m_c = torch.zeros(N_L, dtype=torch.float32, device=device)
-                        s_m_c.index_add_(0, p_v_t, c_b_m[i_v_t])
+                        sum_val_child.index_add_(0, p_v_t, E_m[i_v_t] + W_p[i_v_t])
                         
-                        pa_b_m = torch.clamp(M_tot - s_m_c, min=0.0)
-                        v_c = c_b_m * (M_tot - c_b_m)
-                        s_v_c = torch.zeros(N_L, dtype=torch.float32, device=device)
-                        s_v_c.index_add_(0, p_v_t, v_c[i_v_t])
-                        v_pa = pa_b_m * (M_tot - pa_b_m)
-                        centrality = (s_v_c + v_pa) / 2.0
+                        val_parent = torch.clamp(M_tot - E_m - W_p, min=0.0)
+                        
+                        centrality = (sum_val_child + val_parent) / 2.0
                         if centrality.max() > 0: centrality /= centrality.max()
                         
                         global_dual_cent[n_comp_idx] = centrality.cpu().numpy()
