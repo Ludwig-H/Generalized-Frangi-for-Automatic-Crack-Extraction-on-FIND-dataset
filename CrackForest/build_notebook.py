@@ -403,7 +403,8 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
                 for p, i in zip(p_valid, i_valid):
                     W_parent_np[i] = weights_dict.get((p, i), 0.0)
 
-                E_mass_np = np.zeros(N_L, dtype=np.float32)
+                # Node unit mass (1.0) for each node + edge similarity
+                E_mass_np = np.ones(N_L, dtype=np.float32)
                 for i in order[::-1]:
                     p = preds[i]
                     if p >= 0: E_mass_np[p] += E_mass_np[i] + W_parent_np[i]
@@ -413,6 +414,7 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
                 E_mass = torch.tensor(E_mass_np, dtype=torch.float32, device=device)
                 
                 # Branch mass for each node (as a child)
+                # B_c consists of subtree mass + edge to parent
                 M_c = E_mass + W_parent
                 val_c = M_c * (M_total - M_c)
                 
@@ -422,6 +424,7 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
                 sum_val_child.index_add_(0, p_v_t, val_c[i_v_t])
                 
                 # Upward branch mass
+                # B_p consists of (M_total - E_mass)
                 M_up = torch.clamp(M_total - E_mass, min=0.0)
                 val_up = M_up * (M_total - M_up)
                 
@@ -533,7 +536,8 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
                             w_dict[(c, r)] = v
                         for p, i in zip(p_v, i_v_l): W_p_np[i] = w_dict.get((p, i), 0.0)
                         
-                        E_m_np = np.zeros(N_L, dtype=np.float32)
+                        # Node unit mass (1.0) for each dual node + edge similarity
+                        E_m_np = np.ones(N_L, dtype=np.float32)
                         for i in order[::-1]:
                             p = preds[i]
                             if p >= 0: E_m_np[p] += E_m_np[i] + W_p_np[i]
