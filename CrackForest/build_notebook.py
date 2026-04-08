@@ -350,16 +350,9 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
     j_mapped = remap[j_v]
     
     orig_coords_cpu = coords.cpu().numpy().astype(int)
-    coords = coords[valid_nodes]
+    valid_nodes_t = torch.from_numpy(valid_nodes).to(device).long()
+    coords = coords[valid_nodes_t]
     N_valid = len(valid_nodes)
-    
-    S_sparse = coo_matrix((np.concatenate([S_v, S_v]), 
-                           (np.concatenate([i_mapped, j_mapped]), np.concatenate([j_mapped, i_mapped]))), 
-                          shape=(N_valid, N_valid)).tocsr()
-                          
-    sparse_dist = coo_matrix((np.concatenate([d_v, d_v]), 
-                              (np.concatenate([i_mapped, j_mapped]), np.concatenate([j_mapped, i_mapped]))), 
-                             shape=(N_valid, N_valid)).tocsr()
     
     cent_img = np.zeros((H, W), dtype=np.float32)
     comp_mask = np.zeros((H, W), dtype=np.float32)
@@ -370,6 +363,13 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
     t_bet_total = 0
 
     if K == 1:
+        sparse_dist = coo_matrix((np.concatenate([d_v, d_v]), 
+                                  (np.concatenate([i_mapped, j_mapped]), np.concatenate([j_mapped, i_mapped]))), 
+                                 shape=(N_valid, N_valid)).tocsr()
+        sparse_sim = coo_matrix((np.concatenate([S_v, S_v]), 
+                                 (np.concatenate([i_mapped, j_mapped]), np.concatenate([j_mapped, i_mapped]))), 
+                                shape=(N_valid, N_valid)).tocsr()
+
         n_comp, labels = connected_components(sparse_dist, directed=False)
         counts = np.bincount(labels)
         min_size = N_total / min_rel_size
@@ -382,7 +382,7 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
                 nodes_comp = np.where(mask_comp)[0]
                 
                 sparse_dist_comp = sparse_dist[nodes_comp, :][:, nodes_comp]
-                S_sparse_comp = S_sparse[nodes_comp, :][:, nodes_comp]
+                S_sparse_comp = sparse_sim[nodes_comp, :][:, nodes_comp]
                 
                 t_mst_start = time.time()
                 mst = minimum_spanning_tree(sparse_dist_comp)
@@ -391,12 +391,15 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
                 
                 N_L = len(nodes_comp)
                 valid_mask_preds = preds >= 0
-                p_valid = preds[valid_mask_preds]
-                i_valid = np.arange(N_L)[valid_mask_preds]
+                p_valid, i_valid = preds[valid_mask_preds], np.arange(N_L)[valid_mask_preds]
                 
                 W_parent_np = np.zeros(N_L, dtype=np.float32)
                 S_coo_comp = S_sparse_comp.tocoo()
-                weights_dict = {(r, c): v for r, c, v in zip(S_coo_comp.row, S_coo_comp.col, S_coo_comp.data)}
+                weights_dict = {}
+                for r, c, v in zip(S_coo_comp.row, S_coo_comp.col, S_coo_comp.data):
+                    weights_dict[(r, c)] = v
+                    weights_dict[(c, r)] = v
+
                 for p, i in zip(p_valid, i_valid):
                     W_parent_np[i] = weights_dict.get((p, i), 0.0)
 
@@ -405,7 +408,7 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
                     p = preds[i]
                     if p >= 0: E_mass_np[p] += E_mass_np[i] + W_parent_np[i]
                         
-                M_total = E_mass_np[order[0]]
+                M_total = float(E_mass_np[order[0]])
                 W_parent = torch.tensor(W_parent_np, dtype=torch.float32, device=device)
                 E_mass = torch.tensor(E_mass_np, dtype=torch.float32, device=device)
                 
@@ -425,23 +428,21 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
                 centrality = (sum_val_child + val_parent) / 2.0
                 if centrality.max() > 0: centrality /= centrality.max()
                     
-                coords_comp = coords[nodes_comp].cpu().numpy().astype(int)
+                nodes_comp_t = torch.from_numpy(nodes_comp).to(device).long()
+                coords_comp = coords[nodes_comp_t].cpu().numpy().astype(int)
                 cent_img[coords_comp[:, 0], coords_comp[:, 1]] = centrality.cpu().numpy()
                 comp_mask[coords_comp[:, 0], coords_comp[:, 1]] = 1.0
             if device == 'cuda': torch.cuda.synchronize()
             t_bet_total = time.time() - t_bet_start - t_mst_total
 
     elif K == 2:
-        # GPU Triangle detection (Vietoris-Rips 2-complex)
-        adj_i_t = torch.from_numpy(i_mapped).to(device)
-        adj_j_t = torch.from_numpy(j_mapped).to(device)
+        adj_i_t = torch.from_numpy(i_mapped).to(device).long()
+        adj_j_t = torch.from_numpy(j_mapped).to(device).long()
         
-        # Matrix bitset for fast intersection
         A_dense = torch.zeros((N_valid, N_valid), dtype=torch.bool, device=device)
         A_dense[adj_i_t, adj_j_t] = True
         A_dense[adj_j_t, adj_i_t] = True
         
-        # Only edges with i < j
         mask_u = adj_i_t < adj_j_t
         u_l, v_l = adj_i_t[mask_u], adj_j_t[mask_u]
         num_e_init = len(u_l)
@@ -456,9 +457,9 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
                 u_tri, v_tri, w_tri = u_tri[mask_unq], v_tri[mask_unq], w_tri[mask_unq]
                 
                 if len(u_tri) > 0:
-                    # Edge IDs
                     edge_to_id = torch.full((N_valid, N_valid), -1, dtype=torch.long, device=device)
                     edge_to_id[adj_i_t, adj_j_t] = torch.arange(len(adj_i_t), device=device)
+                    edge_to_id[adj_j_t, adj_i_t] = torch.arange(len(adj_i_t), device=device)
                     
                     id_uv = edge_to_id[u_tri, v_tri]
                     id_vw = edge_to_id[v_tri, w_tri]
@@ -469,22 +470,18 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
                     D_T = torch.max(torch.stack([d_v_t[id_uv], d_v_t[id_vw], d_v_t[id_uw]]), dim=0).values
                     S_T = torch.min(torch.stack([S_v_t[id_uv], S_v_t[id_vw], S_v_t[id_uw]]), dim=0).values
                     
-                    # Dual nodes: original edges
                     active_e = torch.unique(torch.cat([id_uv, id_vw, id_uw]))
                     num_act_e = len(active_e)
                     e_remap = torch.full((len(adj_i_t),), -1, dtype=torch.long, device=device)
                     e_remap[active_e] = torch.arange(num_act_e, device=device)
                     
-                    # Dual edges (clique-3 per triangle)
                     di = torch.cat([e_remap[id_uv], e_remap[id_vw], e_remap[id_uw]])
                     dj = torch.cat([e_remap[id_vw], e_remap[id_uw], e_remap[id_uv]])
                     dw = torch.cat([D_T, D_T, D_T])
                     ds = torch.cat([S_T, S_T, S_T])
                     
-                    di_c = di.cpu().numpy()
-                    dj_c = dj.cpu().numpy()
-                    dw_c = dw.cpu().numpy()
-                    ds_c = ds.cpu().numpy()
+                    di_c, dj_c = di.cpu().numpy(), dj.cpu().numpy()
+                    dw_c, ds_c = dw.cpu().numpy(), ds.cpu().numpy()
                     sparse_dual = coo_matrix((dw_c, (di_c, dj_c)), shape=(num_act_e, num_act_e)).tocsr()
                     sparse_dual_S = coo_matrix((ds_c, (di_c, dj_c)), shape=(num_act_e, num_act_e)).tocsr()
                     
@@ -526,7 +523,7 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
                             p = preds[i]
                             if p >= 0: E_m_np[p] += E_m_np[i] + W_p_np[i]
                             
-                        M_tot = E_m_np[order[0]]
+                        M_tot = float(E_m_np[order[0]])
                         W_p = torch.tensor(W_p_np, dtype=torch.float32, device=device)
                         E_m = torch.tensor(E_m_np, dtype=torch.float32, device=device)
                         
@@ -546,7 +543,6 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
                         global_dual_cent[n_comp_idx] = centrality.cpu().numpy()
                         is_valid_node[n_comp_idx] = True
 
-                    # Project triangles to pixels (Once per all valid components)
                     u_v, v_v, w_v = u_tri.cpu().numpy(), v_tri.cpu().numpy(), w_tri.cpu().numpy()
                     id_uv_n, id_vw_n, id_uw_n = id_uv.cpu().numpy(), id_vw.cpu().numpy(), id_uw.cpu().numpy()
                     e_remap_np = e_remap.cpu().numpy()
