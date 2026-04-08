@@ -444,8 +444,6 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
         # Only edges with i < j
         mask_u = adj_i_t < adj_j_t
         u_l, v_l = adj_i_t[mask_u], adj_j_t[mask_u]
-        d_l = torch.from_numpy(d_v[mask_u]).to(device)
-        S_l = torch.from_numpy(S_v[mask_u]).to(device)
         num_e_init = len(u_l)
         
         if num_e_init >= 3:
