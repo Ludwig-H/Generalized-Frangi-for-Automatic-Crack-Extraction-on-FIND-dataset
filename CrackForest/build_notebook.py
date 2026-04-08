@@ -547,7 +547,7 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
                         E_m = torch.tensor(E_m_np, dtype=torch.float32, device=device)
                         
                         # Branch mass for child branch: subtree + connection triangle
-                        M_c_dual = E_m + W_p
+                        M_child_dual = E_m + W_p
                         
                         sum_M_dual = torch.zeros(N_L, dtype=torch.float32, device=device)
                         sum_M2_dual = torch.zeros(N_L, dtype=torch.float32, device=device)
