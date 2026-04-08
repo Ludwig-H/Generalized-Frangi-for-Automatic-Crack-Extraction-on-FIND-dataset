@@ -403,32 +403,32 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
                 for p, i in zip(p_valid, i_valid):
                     W_parent_np[i] = weights_dict.get((p, i), 0.0)
 
-                # Node unit mass (1.0) for each node + edge similarity
-                E_mass_np = np.ones(N_L, dtype=np.float32)
+                # Weighted branch mass accumulation (Sum of Frangi similarities)
+                E_mass_np = np.zeros(N_L, dtype=np.float32)
                 for i in order[::-1]:
                     p = preds[i]
                     if p >= 0: E_mass_np[p] += E_mass_np[i] + W_parent_np[i]
                         
                 M_total = float(E_mass_np[order[0]])
-                W_parent = torch.tensor(W_parent_np, dtype=torch.float32, device=device)
-                E_mass = torch.tensor(E_mass_np, dtype=torch.float32, device=device)
+                W_p = torch.tensor(W_parent_np, dtype=torch.float32, device=device)
+                E_m = torch.tensor(E_mass_np, dtype=torch.float32, device=device)
                 
-                # Branch mass for each node (as a child)
-                # B_c consists of subtree mass + edge to parent
-                M_c = E_mass + W_parent
-                val_c = M_c * (M_total - M_c)
+                # Mass of branch towards child i: B_i = E_m[i] + W_p[i]
+                M_child = E_m + W_p
                 
-                sum_val_child = torch.zeros(N_L, dtype=torch.float32, device=device)
+                sum_M = torch.zeros(N_L, dtype=torch.float32, device=device)
+                sum_M2 = torch.zeros(N_L, dtype=torch.float32, device=device)
                 p_v_t = torch.tensor(p_valid, dtype=torch.long, device=device)
                 i_v_t = torch.tensor(i_valid, dtype=torch.long, device=device)
-                sum_val_child.index_add_(0, p_v_t, val_c[i_v_t])
                 
-                # Upward branch mass
-                # B_p consists of (M_total - E_mass)
-                M_up = torch.clamp(M_total - E_mass, min=0.0)
-                val_up = M_up * (M_total - M_up)
+                sum_M.index_add_(0, p_v_t, M_child[i_v_t])
+                sum_M2.index_add_(0, p_v_t, M_child[i_v_t]**2)
                 
-                centrality = (sum_val_child + val_up) / 2.0
+                # C(v) = sum_{i<j} B_i * B_j = 0.5 * [(sum B_i)^2 - sum B_i^2]
+                C_children = 0.5 * (sum_M**2 - sum_M2)
+                M_parent_branch = torch.clamp(M_total - sum_M, min=0.0)
+                
+                centrality = C_children + sum_M * M_parent_branch
                 if centrality.max() > 0: centrality /= centrality.max()
                     
                 nodes_comp_t = torch.from_numpy(nodes_comp).to(device).long()
@@ -536,8 +536,8 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
                             w_dict[(c, r)] = v
                         for p, i in zip(p_v, i_v_l): W_p_np[i] = w_dict.get((p, i), 0.0)
                         
-                        # Node unit mass (1.0) for each dual node + edge similarity
-                        E_m_np = np.ones(N_L, dtype=np.float32)
+                        # Weighted branch mass accumulation (Sum of Triangle similarities)
+                        E_m_np = np.zeros(N_L, dtype=np.float32)
                         for i in order[::-1]:
                             p = preds[i]
                             if p >= 0: E_m_np[p] += E_m_np[i] + W_p_np[i]
@@ -546,19 +546,21 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
                         W_p = torch.tensor(W_p_np, dtype=torch.float32, device=device)
                         E_m = torch.tensor(E_m_np, dtype=torch.float32, device=device)
                         
-                        # Child branch masses
-                        M_c_dual = E_m + W_p
-                        val_c_dual = M_c_dual * (M_tot - M_c_dual)
+                        # Child branch masses: B_i = subtree mass + triangle to parent
+                        M_child_dual = E_m + W_p
                         
-                        sum_val_child = torch.zeros(N_L, dtype=torch.float32, device=device)
+                        sum_M_dual = torch.zeros(N_L, dtype=torch.float32, device=device)
+                        sum_M2_dual = torch.zeros(N_L, dtype=torch.float32, device=device)
                         p_v_t, i_v_t = torch.tensor(p_v, dtype=torch.long, device=device), torch.tensor(i_v_l, dtype=torch.long, device=device)
-                        sum_val_child.index_add_(0, p_v_t, val_c_dual[i_v_t])
                         
-                        # Upward branch mass
-                        M_up_dual = torch.clamp(M_tot - E_m, min=0.0)
-                        val_up_dual = M_up_dual * (M_tot - M_up_dual)
+                        sum_M_dual.index_add_(0, p_v_t, M_child_dual[i_v_t])
+                        sum_M2_dual.index_add_(0, p_v_t, M_child_dual[i_v_t]**2)
                         
-                        centrality = (sum_val_child + val_up_dual) / 2.0
+                        # sum_{i<j} B_i * B_j
+                        C_child_dual = 0.5 * (sum_M_dual**2 - sum_M2_dual)
+                        M_p_dual = torch.clamp(M_tot - sum_M_dual, min=0.0)
+                        
+                        centrality = C_child_dual + sum_M_dual * M_p_dual
                         if centrality.max() > 0: centrality /= centrality.max()
                         
                         global_dual_cent[n_comp_idx] = centrality.cpu().numpy()
