@@ -63,8 +63,8 @@ class CrackForestDataset(Dataset):
         self.img_dir = Path(root_dir) / 'CrackForest-dataset' / 'image'
         self.gt_dir = Path(root_dir) / 'CrackForest-dataset' / 'groundTruth'
         
-        # 118 premières images
-        self.identifiants = [f"{i:03d}" for i in range(1, 119)]
+        # 118 premières images, en excluant la 042 (vérité terrain corrompue)
+        self.identifiants = [f"{i:03d}" for i in range(1, 119) if i != 42]
         print(f"Dataset chargé avec {len(self.identifiants)} images.")
 
     def __len__(self):
