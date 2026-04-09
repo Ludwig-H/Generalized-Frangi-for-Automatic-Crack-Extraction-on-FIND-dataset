@@ -806,7 +806,7 @@ print("Terminé.")
 default_params = {
     'K': 1,
     'largeur_Sigma': 0,
-    'R': 3,
+    'R': 5,
     'ss': 1.0,
     'si': 0.25,
     'sa': 0.3,
