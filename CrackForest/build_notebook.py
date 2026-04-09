@@ -812,7 +812,7 @@ default_params = {
     'τ': 0.2,
     'σ_0': 5.0,
     'τ_c': 0.025,
-    'min_rel_size': 150.0
+    'min_rel_size': 200.0
 }
 
 # nb_pas = 10
