@@ -938,6 +938,7 @@ for param_name, values in param_ranges.items():
     axes[0].set_title('Jaccard (IoU)')
     axes[0].set_xlabel(param_name)
     axes[0].set_ylabel('Score')
+    axes[0].set_ylim(0.30, 0.80)
     axes[0].grid(True)
     
     # Tversky
@@ -949,6 +950,7 @@ for param_name, values in param_ranges.items():
     axes[1].set_title('Tversky')
     axes[1].set_xlabel(param_name)
     axes[1].set_ylabel('Score')
+    axes[1].set_ylim(0.30, 0.80)
     axes[1].grid(True)
     
     # Wasserstein
@@ -960,7 +962,7 @@ for param_name, values in param_ranges.items():
     axes[2].set_title('Wasserstein')
     axes[2].set_xlabel(param_name)
     axes[2].set_ylabel('Distance')
-    axes[2].set_ylim(0, 150)
+    axes[2].set_ylim(0, 100)
     axes[2].grid(True)
     
     plt.tight_layout()
