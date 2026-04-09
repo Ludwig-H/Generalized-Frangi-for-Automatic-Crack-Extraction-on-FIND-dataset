@@ -431,12 +431,18 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
                 centrality = C_children + sum_M * M_parent_branch
                 if centrality.max() > 0: centrality /= centrality.max()
                     
-                nodes_comp_t = torch.from_numpy(nodes_comp).to(device).long()
-                coords_comp = coords[nodes_comp_t].cpu().numpy().astype(int)
-                cent_img[coords_comp[:, 0], coords_comp[:, 1]] = centrality.cpu().numpy()
-            
-            # Remove global normalization: if cent_img.max() > 0: cent_img /= cent_img.max()
-            
+                # DRAWING: For K=1, we draw the edges of the MST to ensure a continuous line
+                coords_v = coords.cpu().numpy()
+                u_m, v_m = mst.nonzero()
+                for i_e in range(len(u_m)):
+                    idx1, idx2 = u_m[i_e], v_m[i_e]
+                    n1, n2 = nodes_comp[idx1], nodes_comp[idx2]
+                    c1, c2 = coords_v[n1], coords_v[n2]
+                    # We use the max centrality of the two nodes for the edge display
+                    val = max(centrality[idx1], centrality[idx2])
+                    cv2.line(cent_img, (int(c1[1]), int(c1[0])), (int(c2[1]), int(c2[0])), float(val), 1)
+                    cv2.line(comp_mask, (int(c1[1]), int(c1[0])), (int(c2[1]), int(c2[0])), 1.0, 1)
+
             if device == 'cuda': torch.cuda.synchronize()
             t_bet_total = time.time() - t_bet_start - t_mst_total
 
@@ -581,18 +587,23 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
                     id_uv_n, id_vw_n, id_uw_n = id_uv.cpu().numpy(), id_vw.cpu().numpy(), id_uw.cpu().numpy()
                     e_remap_np = e_remap.cpu().numpy()
                     
+                    triangles_to_draw = []
                     for i_t in range(len(u_v)):
                         idx_uv = e_remap_np[id_uv_n[i_t]]
                         idx_vw = e_remap_np[id_vw_n[i_t]]
                         idx_uw = e_remap_np[id_uw_n[i_t]]
                         
                         if idx_uv >= 0 and is_valid_node[idx_uv]:
-                            c1, c2, c3 = coords_v[u_v[i_t]], coords_v[v_v[i_t]], coords_v[w_v[i_t]]
-                            pts = np.array([[c1[1], c1[0]], [c2[1], c2[0]], [c3[1], c3[0]]], dtype=np.int32)
                             val = max(global_dual_cent[idx_uv], global_dual_cent[idx_vw], global_dual_cent[idx_uw])
                             if val > 0:
-                                cv2.fillConvexPoly(cent_img, pts, float(val))
-                                cv2.fillConvexPoly(comp_mask, pts, 1.0)
+                                c1, c2, c3 = coords_v[u_v[i_t]], coords_v[v_v[i_t]], coords_v[w_v[i_t]]
+                                pts = np.array([[c1[1], c1[0]], [c2[1], c2[0]], [c3[1], c3[0]]], dtype=np.int32)
+                                triangles_to_draw.append((float(val), pts))
+                                
+                    triangles_to_draw.sort(key=lambda x: x[0])
+                    for val, pts in triangles_to_draw:
+                        cv2.fillConvexPoly(cent_img, pts, val)
+                        cv2.fillConvexPoly(comp_mask, pts, 1.0)
                                     
                     # Global normalization for K=2 removed
                                     
