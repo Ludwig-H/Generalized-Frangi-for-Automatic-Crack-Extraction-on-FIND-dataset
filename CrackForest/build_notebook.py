@@ -751,7 +751,7 @@ axes[0, 2].imshow(similarity_img, cmap='magma')
 axes[0, 2].set_title('Similarité Frangi-Graph (Max)')
 
 axes[0, 3].imshow(sample['gt'].numpy(), cmap='gray')
-axes[0, 3].set_title('Ground Truth (Brut)')
+axes[0, 3].set_title('Ground Truth (Segmentation)')
 
 axes[1, 0].imshow(centrality, cmap='hot')
 axes[1, 0].set_title('Betweenness Centrality (Graph GPU)')
