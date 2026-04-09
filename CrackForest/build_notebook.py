@@ -641,12 +641,10 @@ def skeletonize_lee(binary_mask: np.ndarray) -> np.ndarray:
     m = (binary_mask > 0).astype(np.uint8)
     
     # Lissage morphologique pour gommer les irrégularités de contour 
-    # (cela élimine la grande majorité des petites branches parasites du squelette)
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
     m = cv2.morphologyEx(m, cv2.MORPH_CLOSE, kernel)
-    m = cv2.morphologyEx(m, cv2.MORPH_OPEN, kernel)
     
-    sk = skeletonize(m>0)
+    sk = skeletonize(m>0, method='lee')
     return sk.astype(np.uint8)
 
 def thicken(skel: np.ndarray, pixels: int = 3) -> np.ndarray:
