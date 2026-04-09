@@ -84,13 +84,16 @@ class CrackForestDataset(Dataset):
         
         # Chargement de la Ground Truth MATLAB
         mat = sio.loadmat(str(path_gt))
-        # La structure du dataset contient 'Segmentation' ou 'Boundaries'
-        # La vérité terrain est déjà squelettisée dans 'Boundaries', on extrait avec [0,0]['Boundaries']
-        gt_data = mat['groundTruth'][0, 0]['Boundaries']
+        # La structure du dataset contient 'Segmentation' et 'Boundaries'
+        # La fissure est la classe minoritaire dans 'Segmentation'
+        seg = mat['groundTruth'][0, 0]['Segmentation']
+        val_1_count = np.sum(seg == 1)
+        val_2_count = np.sum(seg == 2)
+        crack_label = 1 if val_1_count < val_2_count else 2
         
-        # Binarisation stricte
-        gt_clean = (gt_data > 0).astype(np.float32)
-        gt_t = torch.from_numpy(gt_clean)
+        # Masque rempli de la fissure
+        gt_mask = (seg == crack_label).astype(np.float32)
+        gt_t = torch.from_numpy(gt_mask)
         
         return {
             'id': id_courant,
