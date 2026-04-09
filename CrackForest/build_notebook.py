@@ -723,6 +723,7 @@ sk_gt_sample = skeletonize_lee(gt_arr_sample)
 sk_gt_thick_sample = thicken(sk_gt_sample, pixels=3)
 
 pred_sample = skeleton.astype(np.uint8)
+pred_sample = skeletonize_lee(pred_sample)
 sk_pred_thick_sample = thicken(pred_sample, pixels=3)
 
 j_sample, t_sample = compute_metrics(sk_pred_thick_sample, sk_gt_thick_sample)
@@ -854,6 +855,7 @@ def evaluate_dataset(params):
         )
         
         pred_i = (centrality_i > params['τ_c']).astype(np.uint8)
+        pred_i = skeletonize_lee(pred_i)
         sk_pred_thick_i = thicken(pred_i, pixels=3)
         
         gt_arr_i = sample['gt'].numpy().astype(np.uint8)
