@@ -806,12 +806,12 @@ print("Terminé.")
 default_params = {
     'K': 1,
     'largeur_Sigma': 0,
-    'R': 5,
+    'R': 3,
     'ss': 1.0,
     'si': 0.25,
     'sa': 0.3,
     'τ': 0.2,
-    'σ_0': 3.0,
+    'σ_0': 5.0,
     'τ_c': 0.025,
     'min_rel_size': 150.0
 }
