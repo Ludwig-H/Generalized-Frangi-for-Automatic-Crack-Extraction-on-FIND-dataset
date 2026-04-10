@@ -400,14 +400,10 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=5,
                 p_valid, i_valid = preds[valid_mask_preds], np.arange(N_L)[valid_mask_preds]
                 
                 W_parent_np = np.zeros(N_L, dtype=np.float32)
-                S_coo_comp = S_sparse_comp.tocoo()
-                weights_dict = {}
-                for r, c, v in zip(S_coo_comp.row, S_coo_comp.col, S_coo_comp.data):
-                    weights_dict[(r, c)] = v
-                    weights_dict[(c, r)] = v
-
-                for p, i in zip(p_valid, i_valid):
-                    W_parent_np[i] = weights_dict.get((p, i), 0.0)
+                if len(p_valid) > 0:
+                    w1 = np.asarray(S_sparse_comp[p_valid, i_valid]).flatten()
+                    w2 = np.asarray(S_sparse_comp[i_valid, p_valid]).flatten()
+                    W_parent_np[i_valid] = np.maximum(w1, w2)
 
                 # Weighted branch mass accumulation (Sum of Frangi similarities of edges)
                 E_mass_np = np.zeros(N_L, dtype=np.float32)
@@ -614,8 +610,7 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=5,
                         unique_nodes = np.unique(np.concatenate([u_nodes, v_nodes]))
                         
                         # K=2 graphs are strictly triangulated and therefore much leaner than K=1.
-                        # We must lower the relative threshold significantly (e.g. 10x) to avoid dropping valid thin cracks.
-                        if len(unique_nodes) > (N_total / (min_rel_size * 10.0)):
+                        if len(unique_nodes) > (N_total / min_rel_size):
                             v_comp.append(c_id)
                     
                     global_dual_cent = np.zeros(num_act_e, dtype=np.float32)
@@ -639,12 +634,10 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=5,
                         p_v, i_v_l = preds[v_m_preds], np.arange(N_L)[v_m_preds]
                         
                         W_p_np = np.zeros(N_L, dtype=np.float32)
-                        S_coo_c = s_dual_S_c.tocoo()
-                        w_dict = {}
-                        for r, c, v in zip(S_coo_c.row, S_coo_c.col, S_coo_c.data):
-                            w_dict[(r, c)] = v
-                            w_dict[(c, r)] = v
-                        for p, i in zip(p_v, i_v_l): W_p_np[i] = w_dict.get((p, i), 0.0)
+                        if len(p_v) > 0:
+                            w1 = np.asarray(s_dual_S_c[p_v, i_v_l]).flatten()
+                            w2 = np.asarray(s_dual_S_c[i_v_l, p_v]).flatten()
+                            W_p_np[i_v_l] = np.maximum(w1, w2)
                         
                         # Weighted branch mass accumulation (Sum of Triangle similarities)
                         E_m_np = np.zeros(N_L, dtype=np.float32)
