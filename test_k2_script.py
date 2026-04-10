@@ -233,22 +233,33 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=5,
     
     S_ij_max = torch.zeros(len(i_idx_t), device=device, dtype=torch.float32)
     
-    for R_B, S_norm, θ, mask_pos in scale_data:
-        rb_c = R_B[candidates_mask]
-        s_c  = S_norm[candidates_mask]
-        t_c  = θ[candidates_mask]
+    # Process edges in chunks to prevent memory spikes on massive graphs
+    chunk_size = 5000000
+    for chunk_start in range(0, len(i_idx_t), chunk_size):
+        chunk_end = min(len(i_idx_t), chunk_start + chunk_size)
+        i_chunk = i_idx_t[chunk_start:chunk_end]
+        j_chunk = j_idx_t[chunk_start:chunk_end]
         
-        rb_sum = rb_c[i_idx_t] + rb_c[j_idx_t]
-        S_shape = torch.exp(-0.5 * (rb_sum / ss)**2)
+        S_ij_chunk_max = torch.zeros(chunk_end - chunk_start, device=device, dtype=torch.float32)
         
-        s_prod = s_c[i_idx_t] * s_c[j_idx_t]
-        S_int = 1 - torch.exp(-0.5 * (s_prod / si)**2)
-        
-        dt = t_c[i_idx_t] - t_c[j_idx_t]
-        S_align = torch.exp(-0.5 * (torch.sin(dt) / sa)**2)
-        
-        S_ij = S_shape * S_int * S_align
-        S_ij_max = torch.max(S_ij_max, S_ij)
+        for R_B, S_norm, θ, mask_pos in scale_data:
+            rb_c = R_B[candidates_mask]
+            s_c  = S_norm[candidates_mask]
+            t_c  = θ[candidates_mask]
+            
+            rb_sum = rb_c[i_chunk] + rb_c[j_chunk]
+            S_shape = torch.exp(-0.5 * (rb_sum / ss)**2)
+            
+            s_prod = s_c[i_chunk] * s_c[j_chunk]
+            S_int = 1 - torch.exp(-0.5 * (s_prod / si)**2)
+            
+            dt = t_c[i_chunk] - t_c[j_chunk]
+            S_align = torch.exp(-0.5 * (torch.sin(dt) / sa)**2)
+            
+            S_ij = S_shape * S_int * S_align
+            S_ij_chunk_max = torch.max(S_ij_chunk_max, S_ij)
+            
+        S_ij_max[chunk_start:chunk_end] = S_ij_chunk_max
         
     if device == 'cuda': torch.cuda.synchronize()
     t_sim = time.time()
