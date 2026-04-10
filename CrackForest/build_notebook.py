@@ -613,7 +613,9 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=5,
                         v_nodes = adj_j_v[e_indices]
                         unique_nodes = np.unique(np.concatenate([u_nodes, v_nodes]))
                         
-                        if len(unique_nodes) > (N_total / min_rel_size):
+                        # K=2 graphs are strictly triangulated and therefore much leaner than K=1.
+                        # We must lower the relative threshold significantly (e.g. 10x) to avoid dropping valid thin cracks.
+                        if len(unique_nodes) > (N_total / (min_rel_size * 10.0)):
                             v_comp.append(c_id)
                     
                     global_dual_cent = np.zeros(num_act_e, dtype=np.float32)
