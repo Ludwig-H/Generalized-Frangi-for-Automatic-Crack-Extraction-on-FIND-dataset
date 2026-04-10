@@ -484,7 +484,8 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=5,
                         tri_v.append(v)
                         tri_w.append(w)
 
-            if len(tri_u) > 0:                ids = np.arange(num_e_init, dtype=np.int32) + 1
+            if len(tri_u) > 0:
+                ids = np.arange(num_e_init, dtype=np.int32) + 1
                 
                 edge_to_id_sparse = sp.csr_matrix(
                     (np.concatenate([ids, ids]), 
@@ -846,7 +847,7 @@ else:
     print("Dataset Raphael déjà présent.")
 
 class RaphaelDatasetSubset(Dataset):
-    def __init__(self, root_dir, allowed_fissures=['Fissure 1', 'Fissure 2', 'Fissure 3']):
+    def __init__(self, root_dir):
         self.root_dir = None
         for path in Path(root_dir).rglob('Fissure 1'):
             self.root_dir = path.parent
@@ -855,8 +856,7 @@ class RaphaelDatasetSubset(Dataset):
         if self.root_dir is None:
             raise FileNotFoundError("Structure du dataset non trouvée.")
             
-        all_fissure_dirs = sorted(list(self.root_dir.glob('Fissure *')))
-        self.fissure_dirs = [d for d in all_fissure_dirs if d.name in allowed_fissures]
+        self.fissure_dirs = sorted([d for d in self.root_dir.glob('Fissure *') if d.is_dir()])
         print(f"Dataset Raphael chargé avec {len(self.fissure_dirs)} fissures : {[d.name for d in self.fissure_dirs]}")
 
     def __len__(self):
