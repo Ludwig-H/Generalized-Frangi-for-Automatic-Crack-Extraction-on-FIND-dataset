@@ -498,6 +498,7 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=5,
                     id_uw = torch.from_numpy(id_uw[valid_tri]).to(device).long()
                     
                     adj_i_t = torch.from_numpy(adj_i).to(device).long()
+                    adj_j_t = torch.from_numpy(adj_j).to(device).long()
                     
                     d_v_t = torch.from_numpy(d_v).to(device)
                     S_v_t = torch.from_numpy(S_v).to(device)
