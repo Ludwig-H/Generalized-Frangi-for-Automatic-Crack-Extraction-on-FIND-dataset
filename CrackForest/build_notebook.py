@@ -236,12 +236,6 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=5,
     τ_1 = max_S_global.max() * 0.01 
     candidates_mask = max_S_global > τ_1
     
-    # Fast GPU thresholding to limit nodes to top 5% max to avoid explosive noisy graphs and speed up K=2 massively
-    max_nodes = int(H * W * 0.05)
-    if candidates_mask.sum() > max_nodes:
-        τ_1 = torch.kthvalue(max_S_global.view(-1), H * W - max_nodes).values
-        candidates_mask = max_S_global > τ_1
-        
     coords = torch.nonzero(candidates_mask).float()
     N = coords.shape[0]
     
@@ -315,7 +309,7 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=5,
     num_to_keep_edges = max(1, int(num_edges * τ))
     
     if num_edges > num_to_keep_edges:
-        threshold_edge = torch.kthvalue(S_ij_max, num_edges - num_to_keep_edges).values.item()
+        threshold_edge = torch.kthvalue(S_ij_max, num_edges - num_to_keep_edges + 1).values.item()
         edge_mask_t = S_ij_max >= threshold_edge
         edge_mask = edge_mask_t.cpu().numpy()
     else:
@@ -466,44 +460,87 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=5,
         num_e_init = len(adj_i)
         
         if num_e_init >= 3:
-            u_l_np = np.minimum(adj_i, adj_j)
-            v_l_np = np.maximum(adj_i, adj_j)
-
-            data = np.ones(len(u_l_np), dtype=np.float32)
-            A_sparse = sp.csr_matrix((data, (u_l_np, v_l_np)), shape=(N_valid, N_valid))
-            A_sym = A_sparse + A_sparse.T
-            A_upper = sp.triu(A_sym, k=1).tocsr()
+            # We want to find triangles (u, v, w) where u, v, w are nodes and u < v < w.
+            # To do this incredibly fast on GPU without OOM:
+            adj_i_t = torch.from_numpy(adj_i).to(device).long()
+            adj_j_t = torch.from_numpy(adj_j).to(device).long()
             
+            # Ensure u < v
+            mask_u = adj_i_t < adj_j_t
+            u_t, v_t = adj_i_t[mask_u], adj_j_t[mask_u]
+            
+            # Count degrees to build a padded dense neighbor matrix
+            u_sym = torch.cat([u_t, v_t])
+            v_sym = torch.cat([v_t, u_t])
+            
+            # Sort by u_sym to group neighbors
+            sort_idx = torch.argsort(u_sym)
+            u_sym = u_sym[sort_idx]
+            v_sym = v_sym[sort_idx]
+            
+            deg = torch.bincount(u_sym, minlength=N_valid)
+            max_deg = deg.max().item()
+            
+            # Build padded neighbor matrix (N_valid, max_deg)
+            # using a flat tensor and scatter
+            indptr = torch.cat([torch.zeros(1, dtype=torch.long, device=device), torch.cumsum(deg, dim=0)])
+            
+            # We assign a local index to each neighbor in the row (0 to deg[u]-1)
+            # This can be generated using arange and subtracting the indptr
+            ones = torch.ones(len(v_sym), dtype=torch.long, device=device)
+            indptr_start = indptr[:-1]
+            # Create a mask for starts
+            starts = torch.zeros(len(v_sym), dtype=torch.long, device=device)
+            starts[indptr_start[deg > 0]] = 1
+            local_idx = torch.cumsum(starts, dim=0) # this just gives the row id
+            
+            # Trick to get 0,1,2... for each group:
+            # We just use the fact that we can subtract the indptr
+            row_ids = torch.arange(N_valid, device=device).repeat_interleave(deg)
+            col_ids = torch.arange(len(v_sym), device=device) - indptr[row_ids]
+            
+            neigh_matrix = torch.full((N_valid, max_deg), -1, dtype=torch.long, device=device)
+            neigh_matrix[row_ids, col_ids] = v_sym
+            
+            # Now, for every edge (u, w), we find common neighbors v
+            # To avoid OOM, process edges in chunks
             tri_u, tri_v, tri_w = [], [], []
-            batch_size = 10000
+            E_total = len(u_t)
+            batch_size = 200000
             
-            indices = A_sym.indices
-            indptr = A_sym.indptr
-            
-            for i in range(0, N_valid, batch_size):
-                end_i = min(N_valid, i + batch_size)
-                A_batch = A_sym[i:end_i]
-                C_batch = A_batch.dot(A_sym)
-                A_tri_batch = C_batch.multiply(A_upper[i:end_i])
+            for i in range(0, E_total, batch_size):
+                end_i = min(E_total, i + batch_size)
+                u_b = u_t[i:end_i]
+                w_b = v_t[i:end_i] # (u, w) is an edge, we look for v
                 
-                u_batch, w_batch = A_tri_batch.nonzero()
-                if len(u_batch) == 0: continue
+                n_u = neigh_matrix[u_b] # (B, max_deg)
+                n_w = neigh_matrix[w_b] # (B, max_deg)
                 
-                u_real = u_batch + i
+                # Intersect
+                match = (n_u.unsqueeze(2) == n_w.unsqueeze(1)) & (n_u.unsqueeze(2) != -1) # (B, max_deg, max_deg)
                 
-                for u, w in zip(u_real, w_batch):
-                    neighbors_u = indices[indptr[u]:indptr[u+1]]
-                    neighbors_w = indices[indptr[w]:indptr[w+1]]
+                b_idx, r_idx, c_idx = torch.where(match)
+                if len(b_idx) > 0:
+                    v_vals = n_u[b_idx, r_idx]
+                    u_vals = u_b[b_idx]
+                    w_vals = w_b[b_idx]
                     
-                    common = np.intersect1d(neighbors_u, neighbors_w, assume_unique=True)
-                    for v in common:
-                        if u < v and v < w:
-                            tri_u.append(u)
-                            tri_v.append(v)
-                            tri_w.append(w)
+                    # We want unique triangles, e.g. u < v < w
+                    valid_tri = (u_vals < v_vals) & (v_vals < w_vals)
+                    
+                    if valid_tri.any():
+                        tri_u.append(u_vals[valid_tri].cpu().numpy())
+                        tri_v.append(v_vals[valid_tri].cpu().numpy())
+                        tri_w.append(w_vals[valid_tri].cpu().numpy())
 
             if len(tri_u) > 0:
+                tri_u = np.concatenate(tri_u)
+                tri_v = np.concatenate(tri_v)
+                tri_w = np.concatenate(tri_w)
                 ids = np.arange(num_e_init, dtype=np.int32) + 1
+                
+                u_l_np = u_t.cpu().numpy()
+                v_l_np = v_t.cpu().numpy()
                 
                 edge_to_id_sparse = sp.csr_matrix(
                     (np.concatenate([ids, ids]), 
