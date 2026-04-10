@@ -650,23 +650,47 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=5,
                     id_uv_n, id_vw_n, id_uw_n = id_uv.cpu().numpy(), id_vw.cpu().numpy(), id_uw.cpu().numpy()
                     e_remap_np = e_remap.cpu().numpy()
                     
-                    triangles_to_draw = []
-                    for i_t in range(len(u_v)):
-                        idx_uv = e_remap_np[id_uv_n[i_t]]
-                        idx_vw = e_remap_np[id_vw_n[i_t]]
-                        idx_uw = e_remap_np[id_uw_n[i_t]]
+                    # Vectorized extraction of triangles to draw
+                    idx_uv = e_remap_np[id_uv_n]
+                    idx_vw = e_remap_np[id_vw_n]
+                    idx_uw = e_remap_np[id_uw_n]
+                    
+                    valid_mask = (idx_uv >= 0) & is_valid_node[idx_uv]
+                    
+                    if valid_mask.any():
+                        idx_uv_v = idx_uv[valid_mask]
+                        idx_vw_v = idx_vw[valid_mask]
+                        idx_uw_v = idx_uw[valid_mask]
                         
-                        if idx_uv >= 0 and is_valid_node[idx_uv]:
-                            val = max(global_dual_cent[idx_uv], global_dual_cent[idx_vw], global_dual_cent[idx_uw])
-                            if val > 0:
-                                c1, c2, c3 = coords_v[u_v[i_t]], coords_v[v_v[i_t]], coords_v[w_v[i_t]]
-                                pts = np.array([[c1[1], c1[0]], [c2[1], c2[0]], [c3[1], c3[0]]], dtype=np.int32)
-                                triangles_to_draw.append((float(val), pts))
+                        val1 = global_dual_cent[idx_uv_v]
+                        val2 = global_dual_cent[idx_vw_v]
+                        val3 = global_dual_cent[idx_uw_v]
+                        vals = np.maximum(np.maximum(val1, val2), val3)
+                        
+                        draw_mask = vals > 0
+                        if draw_mask.any():
+                            vals_draw = vals[draw_mask]
+                            u_v_draw = u_v[valid_mask][draw_mask]
+                            v_v_draw = v_v[valid_mask][draw_mask]
+                            w_v_draw = w_v[valid_mask][draw_mask]
+                            
+                            pts = np.empty((len(u_v_draw), 3, 2), dtype=np.int32)
+                            pts[:, 0, 0] = coords_v[u_v_draw, 1]
+                            pts[:, 0, 1] = coords_v[u_v_draw, 0]
+                            pts[:, 1, 0] = coords_v[v_v_draw, 1]
+                            pts[:, 1, 1] = coords_v[v_v_draw, 0]
+                            pts[:, 2, 0] = coords_v[w_v_draw, 1]
+                            pts[:, 2, 1] = coords_v[w_v_draw, 0]
+                            
+                            quantized_vals = np.round(vals_draw * 255).astype(np.int32)
+                            unique_bins = np.unique(quantized_vals)
+                            unique_bins = unique_bins[unique_bins > 0]
+                            
+                            for b in unique_bins:
+                                bin_pts = pts[quantized_vals == b]
+                                cv2.fillPoly(cent_img, bin_pts, float(b) / 255.0)
                                 
-                    triangles_to_draw.sort(key=lambda x: x[0])
-                    for val, pts in triangles_to_draw:
-                        cv2.fillConvexPoly(cent_img, pts, val)
-                        cv2.fillConvexPoly(comp_mask, pts, 1.0)
+                            cv2.fillPoly(comp_mask, pts, 1.0)
                                     
                     # Global normalization for K=2 removed
                                     
