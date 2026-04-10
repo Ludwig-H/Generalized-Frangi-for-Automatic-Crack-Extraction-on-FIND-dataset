@@ -235,6 +235,13 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=5,
         
     τ_1 = max_S_global.max() * 0.01 
     candidates_mask = max_S_global > τ_1
+    
+    # Fast GPU thresholding to limit nodes to top 5% max to avoid explosive noisy graphs and speed up K=2 massively
+    max_nodes = int(H * W * 0.05)
+    if candidates_mask.sum() > max_nodes:
+        τ_1 = torch.kthvalue(max_S_global.view(-1), H * W - max_nodes).values
+        candidates_mask = max_S_global > τ_1
+        
     coords = torch.nonzero(candidates_mask).float()
     N = coords.shape[0]
     
@@ -304,12 +311,13 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=5,
     import numpy as np
     from scipy.sparse.csgraph import minimum_spanning_tree, breadth_first_order, connected_components
     
-    num_edges = len(S_cpu)
+    num_edges = len(S_ij_max)
     num_to_keep_edges = max(1, int(num_edges * τ))
     
     if num_edges > num_to_keep_edges:
-        threshold_edge = np.partition(S_cpu, -num_to_keep_edges)[-num_to_keep_edges]
-        edge_mask = S_cpu >= threshold_edge
+        threshold_edge = torch.kthvalue(S_ij_max, num_edges - num_to_keep_edges).values.item()
+        edge_mask_t = S_ij_max >= threshold_edge
+        edge_mask = edge_mask_t.cpu().numpy()
     else:
         edge_mask = np.ones(num_edges, dtype=bool)
     
@@ -461,28 +469,38 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=5,
             u_l_np = np.minimum(adj_i, adj_j)
             v_l_np = np.maximum(adj_i, adj_j)
 
-            data = np.ones(len(u_l_np), dtype=bool)
+            data = np.ones(len(u_l_np), dtype=np.float32)
             A_sparse = sp.csr_matrix((data, (u_l_np, v_l_np)), shape=(N_valid, N_valid))
-            A_sparse = A_sparse + A_sparse.T
-            A2 = A_sparse * A_sparse
-            A_upper = sp.triu(A_sparse, k=1).tocsr()
-            A_tri = A2.multiply(A_upper)
-
-            u_tri_edges, v_tri_edges = A_tri.nonzero()
+            A_sym = A_sparse + A_sparse.T
+            A_upper = sp.triu(A_sym, k=1).tocsr()
+            
             tri_u, tri_v, tri_w = [], [], []
-
-            indices = A_sparse.indices
-            indptr = A_sparse.indptr
-
-            for u, v in zip(u_tri_edges, v_tri_edges):
-                neighbors_u = indices[indptr[u]:indptr[u+1]]
-                neighbors_v = indices[indptr[v]:indptr[v+1]]
-                common = np.intersect1d(neighbors_u, neighbors_v, assume_unique=True)
-                for w in common:
-                    if v < w:
-                        tri_u.append(u)
-                        tri_v.append(v)
-                        tri_w.append(w)
+            batch_size = 10000
+            
+            indices = A_sym.indices
+            indptr = A_sym.indptr
+            
+            for i in range(0, N_valid, batch_size):
+                end_i = min(N_valid, i + batch_size)
+                A_batch = A_sym[i:end_i]
+                C_batch = A_batch.dot(A_sym)
+                A_tri_batch = C_batch.multiply(A_upper[i:end_i])
+                
+                u_batch, w_batch = A_tri_batch.nonzero()
+                if len(u_batch) == 0: continue
+                
+                u_real = u_batch + i
+                
+                for u, w in zip(u_real, w_batch):
+                    neighbors_u = indices[indptr[u]:indptr[u+1]]
+                    neighbors_w = indices[indptr[w]:indptr[w+1]]
+                    
+                    common = np.intersect1d(neighbors_u, neighbors_w, assume_unique=True)
+                    for v in common:
+                        if u < v and v < w:
+                            tri_u.append(u)
+                            tri_v.append(v)
+                            tri_w.append(w)
 
             if len(tri_u) > 0:
                 ids = np.arange(num_e_init, dtype=np.int32) + 1
