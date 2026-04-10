@@ -848,7 +848,9 @@ class RaphaelDatasetSubset(Dataset):
         else: raise FileNotFoundError(f"Image {path_vis} introuvable.")
             
         img_ir = cv2.imread(str(path_ir), cv2.IMREAD_COLOR)
-        if img_ir is not None: img_ir = cv2.cvtColor(img_ir, cv2.COLOR_BGR2GRAY)
+        if img_ir is not None: 
+            img_ir = cv2.cvtColor(img_ir, cv2.COLOR_BGR2GRAY)
+            img_ir = cv2.resize(img_ir, (img_vis.shape[1], img_vis.shape[0]), interpolation=cv2.INTER_LINEAR)
         else: raise FileNotFoundError(f"Image {path_ir} introuvable.")
             
         img_gt = cv2.imread(str(path_gt), cv2.IMREAD_UNCHANGED)
@@ -859,6 +861,7 @@ class RaphaelDatasetSubset(Dataset):
             else:
                 gray_gt = cv2.cvtColor(img_gt, cv2.COLOR_BGR2GRAY)
                 gt_clean = (gray_gt < 127).astype(np.float32)
+            gt_clean = cv2.resize(gt_clean, (img_vis.shape[1], img_vis.shape[0]), interpolation=cv2.INTER_NEAREST)
         else:
             raise FileNotFoundError(f"Image {path_gt} introuvable.")
             
