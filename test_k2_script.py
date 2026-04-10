@@ -1,39 +1,4 @@
-import json
-import os
-
-cells = []
-
-def add_md(text):
-    cells.append({
-        "cell_type": "markdown",
-        "metadata": {},
-        "source": [line + "\n" for line in text.split("\n")]
-    })
-
-def add_code(text):
-    cells.append({
-        "cell_type": "code",
-        "execution_count": None,
-        "metadata": {},
-        "source": [line + "\n" for line in text.split("\n")],
-        "outputs": []
-    })
-
-add_md("""# Extraction de Fissures via Frangi Graph Généralisé sur GPU (A100)
-## Benchmark : CrackForest
-
-Ce Colab implémente l'approche non supervisée pour le dataset **CrackForest**, exploitant la puissance du **GPU (PyTorch)** pour accélérer le filtrage Hessien et la construction du graphe de similarité.
-
-Ici, nous n'utilisons qu'une **seule modalité** (le visible RGB converti en niveau de gris).
-
-### Caractéristiques de l'implémentation :
-- Chargement des données (.jpg pour l'image et .mat pour la Ground Truth).
-- Calculs matriciels Hessiens et Valeurs Propres 100% sur GPU (`torch.Tensor`).
-- Construction du graphe creux (Sparse) économe en VRAM.
-- Algorithme d'extraction topologique (Arbre Couvrant de Poids Minimum + Centralité).
-- **Analyse de sensibilité** des paramètres clés du graphe Généralisé.""")
-
-add_code("""!pip install -q scipy numpy matplotlib pandas gdown POT scikit-image tqdm
+!pip install -q scipy numpy matplotlib pandas gdown POT scikit-image tqdm
 
 import os
 import zipfile
@@ -44,13 +9,10 @@ if not os.path.exists('CrackForest-dataset'):
     print("Téléchargement du dataset CrackForest depuis GitHub...")
     !git clone https://github.com/Ludwig-H/CrackForest-dataset.git
 else:
-    print("Dataset déjà présent.")""")
+    print("Dataset déjà présent.")
 
-add_md("""## 1. Dataloader
 
-Nous chargeons les 118 premières images et la vérité terrain associée (qui est déjà un squelette binaire dans la structure MATLAB).""")
-
-add_code("""import torch
+import torch
 import numpy as np
 import cv2
 import scipy.io as sio
@@ -103,11 +65,10 @@ class CrackForestDataset(Dataset):
         }
 
 # Initialisation
-dataset = CrackForestDataset('.')""")
+dataset = CrackForestDataset('.')
 
-add_md("""## 2. Calcul Hessien Multi-échelles sur GPU""")
 
-add_code("""import torch.nn.functional as F
+import torch.nn.functional as F
 import math
 
 class FrangiHessianGPU:
@@ -172,13 +133,10 @@ class FrangiHessianGPU:
         λ1 = torch.where(mask_minus_bigger, l_plus, l_minus)
 
         θ = 0.5 * torch.atan2(2 * ixy, ixx - iyy)
-        return λ1, λ2, θ""")
+        return λ1, λ2, θ
 
-add_md("""## 3. Construction du Graphe (Frangi Graph)
 
-Application de la réponse Frangi et sparsification.""")
-
-add_code("""from scipy.sparse import coo_matrix
+from scipy.sparse import coo_matrix
 
 def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=5,
                              ss=1.0, si=0.25, sa=0.3, τ=0.2, min_rel_size=150.0, K=1, device='cuda'):
@@ -719,11 +677,10 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=5,
         "Total": t_end - t0
     }
     
-    return max_S_global.cpu().numpy(), sim_img, cent_img, timings, {'tau_mask': tau_mask, 'comp_mask': comp_mask}""")
+    return max_S_global.cpu().numpy(), sim_img, cent_img, timings, {'tau_mask': tau_mask, 'comp_mask': comp_mask}
 
-add_md("""## 4. Visualisation sur un échantillon CrackForest""")
 
-add_code("""import ot
+import ot
 from skimage.morphology import skeletonize, disk, dilation
 import warnings
 
@@ -873,13 +830,10 @@ for ax in axes.flat:
     ax.axis('off')
 
 plt.tight_layout()
-plt.show()""")
+plt.show()
 
-add_md("""## 4bis. Évaluation sur Dataset Raphael (Fissures 1, 2, 3)
 
-Tests sur les images du dataset Raphael (Fissures 1, 2 et 3) avec les paramètres par défaut du graphe Généralisé.""")
-
-add_code("""!pip install -q gdown
+!pip install -q gdown
 import os
 import gdown
 from pathlib import Path
@@ -961,9 +915,10 @@ class RaphaelDatasetSubset(Dataset):
         return {'id': fissure_name, 'visible': vis_t, 'infrared': ir_t, 'gt': gt_t}
 
 raphael_dataset = RaphaelDatasetSubset('.')
-""")
 
-add_code("""device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 # Mêmes paramètres par défaut que pour CrackForest (single modality => visible only)
 # Toutefois, pour Raphael, nous utilisons la fusion des deux modalités.
@@ -1062,22 +1017,16 @@ if results_raphael:
     df_results_raphael = pd.DataFrame(results_raphael)
     display(df_results_raphael)
 
-    print("\\n--- Statistiques Globales (Raphael Fissures 1-3) ---")
+    print("\n--- Statistiques Globales (Raphael Fissures 1-3) ---")
     print(f"Jaccard (IoU) Moyen : {df_results_raphael['Jaccard (IoU)'].mean():.4f} ± {df_results_raphael['Jaccard (IoU)'].std():.4f}")
     print(f"Tversky Moyen       : {df_results_raphael['Tversky'].mean():.4f} ± {df_results_raphael['Tversky'].std():.4f}")
     print(f"Wasserstein Moyen   : {df_results_raphael['Wasserstein'].mean():.4f} ± {df_results_raphael['Wasserstein'].std():.4f}")
 else:
     print("Aucun résultat à afficher (dataset introuvable ou vide).")
-""")
 
-add_md("""## 5. Analyse de sensibilité des paramètres
 
-Nous allons faire varier paramètre par paramètre : `largeur_Sigma` (largeur de l'ensemble d'échelles), `R, ss, si, sa, τ`, `τ_c` (le seuil de centralité), `min_rel_size` (taille relative minimale d'une composante) et `σ_0` (échelle centrale).
-Les autres paramètres resteront constants.
 
-Nous chargeons d'abord le dataset en RAM pour une exécution ultra-rapide.""")
-
-add_code("""import copy
+import copy
 from tqdm.auto import tqdm
 import pandas as pd
 
@@ -1169,7 +1118,7 @@ def evaluate_dataset(params):
 
 import time
 for param_name, values in param_ranges.items():
-    print(f"\\n{'='*60}\\n--- Analyse de sensibilité pour {param_name} ---\\n{'='*60}")
+    print(f"\n{'='*60}\n--- Analyse de sensibilité pour {param_name} ---\n{'='*60}")
     results_summary = []
     all_individual_results = []
     
@@ -1252,49 +1201,10 @@ for param_name, values in param_ranges.items():
     
     plt.tight_layout()
     plt.savefig(f"sensitivity_results/plot_{param_name}.png")
-    plt.show()""")
+    plt.show()
 
-add_md(r"""## 6. Analyse de l'interaction entre R et $\sigma_0$ (Grid Search 2D)
 
-Nous allons réaliser une recherche en grille (Grid Search) sur les paramètres `R` et `\sigma_0` pour vérifier s'ils sont indépendants ou s'ils interagissent.
-Nous testerons une grille 5x5 (25 évaluations du dataset) et visualiserons les résultats sous forme de Heatmaps.
-Enfin, nous réaliserons une **ANOVA à deux facteurs** pour tester statistiquement l'interaction.
-
-Le modèle mathématique sous-jacent s'écrit formellement :
-$$Y_{ijk} = \mu + \alpha_i + \beta_j + (\alpha\beta)_{ij} + \epsilon_{ijk}$$
-
-Où :
-- $Y_{ijk}$ est la $k$-ème observation du résultat pour le niveau $i$ du paramètre $R$ et le niveau $j$ du paramètre $\sigma_0$.
-- $\mu$ est la moyenne générale théorique.
-- $\alpha_i$ est l'effet principal du niveau $i$ du paramètre $R$.
-- $\beta_j$ est l'effet principal du niveau $j$ du paramètre $\sigma_0$.
-- $(\alpha\beta)_{ij}$ est l'effet d'interaction entre le niveau $i$ du paramètre $R$ et le niveau $j$ du paramètre $\sigma_0$.
-- $\epsilon_{ijk}$ est l'erreur résiduelle, qui doit obligatoirement suivre une distribution normale $\mathcal{N}(0, \sigma^2)$.
-
-### Tester "l'indépendance des résultats" : L'Effet d'Interaction et l'hypothèse nulle $H_0$
-
-L'hypothèse nulle $H_0$ postule l'absence d'interaction : $(\alpha\beta)_{ij} = 0 \ \forall \ i,j$.
-Pour démontrer rigoureusement les propriétés de ces estimateurs sous $H_0$, un plan d'expérience équilibré est posé. Ce ne sont pas les Carrés Moyens ($CM$) qui suivent une loi du $\chi^2$, mais les **Sommes des Carrés ($SC$) normalisées par la variance théorique $\sigma^2$ de la population**. 
-
-1. **La Somme des Carrés Résiduelle ($SC_{résiduel}$)**
-Elle quantifie la dispersion des observations brutes autour de la moyenne de leur propre cellule.
-$$SC_{résiduel} = \sum_{i=1}^{a} \sum_{j=1}^{b} \sum_{k=1}^{n} (Y_{ijk} - \bar{Y}_{ij.})^2$$
-Sachant que l'espérance de l'écart est nulle, le théorème de Cochran prouve que la somme de ces carrés normalisés suit une loi du $\chi^2$ (que $H_0$ soit vraie ou fausse) :
-$$\frac{SC_{résiduel}}{\sigma^2} \sim \chi^2(ab(n-1))$$
-
-2. **La Somme des Carrés de l'Interaction ($SC_{AB}$)**
-Elle quantifie l'écart entre la moyenne observée d'une cellule et ce que prédirait un modèle purement additif basé sur les effets marginaux.
-$$SC_{AB} = n \sum_{i=1}^{a} \sum_{j=1}^{b} (\bar{Y}_{ij.} - \bar{Y}_{i..} - \bar{Y}_{.j.} + \bar{Y}_{...})^2$$
-**Si et seulement si** l'hypothèse nulle d'additivité stricte ($H_0$) est vraie, l'espérance de l'estimateur de l'interaction est nulle. Le théorème de Cochran prouve alors que cette forme quadratique suit une loi du $\chi^2$ :
-$$\frac{SC_{AB}}{\sigma^2} \sim \chi^2((a-1)(b-1))$$
-
-3. **Conséquence sur la statistique F**
-Le but final est d'éliminer la variance théorique inconnue $\sigma^2$ en calculant le ratio de deux variables $\chi^2$ indépendantes, chacune divisée par ses degrés de liberté ($ddl$). Cela correspond à la distribution de Fisher :
-$$F_{AB} = \frac{ \left( \frac{SC_{AB}}{\sigma^2} \right) / ddl_{AB} }{ \left( \frac{SC_{résiduel}}{\sigma^2} \right) / ddl_{résiduel} } = \frac{ \left( \frac{SC_{AB}}{ddl_{AB}} \right) }{ \left( \frac{SC_{résiduel}}{ddl_{résiduel}} \right) } = \frac{CM_{AB}}{CM_{résiduel}}$$
-La statistique $F_{AB}$ est calculable exclusivement à partir des données empiriques, et on peut en évaluer la probabilité critique (p-value) sachant qu'elle suit, sous $H_0$, une loi $\mathcal{F}((a-1)(b-1), ab(n-1))$.
-""")
-
-add_code("""!pip install -q statsmodels seaborn
+!pip install -q statsmodels seaborn
 
 import time
 import seaborn as sns
@@ -1304,7 +1214,7 @@ import itertools
 import numpy as np
 import matplotlib.pyplot as plt
 
-print("\\n" + "="*60 + "\\n--- Grid Search 2D : R vs σ_0 ---\\n" + "="*60)
+print("\n" + "="*60 + "\n--- Grid Search 2D : R vs σ_0 ---\n" + "="*60)
 
 R_values = np.linspace(2, 10, 5, dtype=int).tolist()
 sigma_values = np.linspace(2.0, 10.0, 5).tolist()
@@ -1346,7 +1256,7 @@ df_grid_ind = pd.DataFrame(grid_individual_results)
 
 # --- 1. Heatmaps ---
 fig, axes = plt.subplots(1, 3, figsize=(20, 5))
-fig.suptitle(r"Heatmaps : Interaction entre R et $\\sigma_0$", fontsize=16)
+fig.suptitle(r"Heatmaps : Interaction entre R et $\sigma_0$", fontsize=16)
 
 # On arrondit les index/colonnes pour l'affichage propre
 df_grid_summary['sigma_0_round'] = df_grid_summary['sigma_0'].round(1)
@@ -1373,13 +1283,13 @@ plt.savefig("sensitivity_results/grid_search_heatmaps.png")
 plt.show()
 
 # --- 2. ANOVA à deux facteurs ---
-print("\\n--- ANOVA à deux facteurs (Two-Way ANOVA) ---")
+print("\n--- ANOVA à deux facteurs (Two-Way ANOVA) ---")
 # On renomme 'sigma_0' en 'sigma' pour éviter les soucis avec les formules patsy si besoin
 df_grid_ind_anova = df_grid_ind.rename(columns={'sigma_0': 'sigma'})
 
 def print_anova_results(model, metric_name):
     anova_table = sm.stats.anova_lm(model, typ=2)
-    print(f"\\nANOVA - Variable dépendante : {metric_name}")
+    print(f"\nANOVA - Variable dépendante : {metric_name}")
     print(anova_table)
     
     interaction_term = 'C(R):C(sigma)'
@@ -1387,7 +1297,7 @@ def print_anova_results(model, metric_name):
         p_value = anova_table.loc[interaction_term, 'PR(>F)']
         f_stat = anova_table.loc[interaction_term, 'F']
         
-        print(f"\\n>>> TEST D'HYPOTHESE H_0 (Indépendance de R et sigma_0) sur {metric_name} <<<")
+        print(f"\n>>> TEST D'HYPOTHESE H_0 (Indépendance de R et sigma_0) sur {metric_name} <<<")
         print(f"Statistique Fisher F_AB = {f_stat:.4f}")
         print(f"Probabilité critique (p-value) = {p_value:.4e}")
         
@@ -1408,22 +1318,5 @@ print_anova_results(model_jaccard, "Jaccard")
 # Modèle pour Tversky
 model_tversky = ols('Tversky ~ C(R) + C(sigma) + C(R):C(sigma)', data=df_grid_ind_anova).fit()
 print_anova_results(model_tversky, "Tversky")
-""")
 
-notebook = {
-    "cells": cells,
-    "metadata": {
-        "accelerator": "GPU",
-        "colab": {
-            "gpuType": "A100",
-            "name": "Frangi_CrackForest_GPU.ipynb"
-        }
-    },
-    "nbformat": 4,
-    "nbformat_minor": 4
-}
 
-with open("Frangi_CrackForest_GPU.ipynb", "w", encoding="utf-8") as f:
-    json.dump(notebook, f, indent=2, ensure_ascii=False)
-
-print("Notebook CrackForest généré avec succès.")

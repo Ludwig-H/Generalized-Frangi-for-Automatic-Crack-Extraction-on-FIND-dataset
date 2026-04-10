@@ -287,6 +287,7 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[1, 3, 5, 7, 9, 11], R=3,
     valid_dist_mask = (dist_sq <= R**2) & (dist_sq > 0)
     half_mask = (dy > 0) | ((dy == 0) & (dx > 0))
     valid_mask = valid_dist_mask & half_mask
+    precomputed_dist = torch.sqrt(dist_sq[valid_mask].float())
     
     valid_neighbors = cand_patches[:, valid_mask]
     
@@ -324,7 +325,8 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[1, 3, 5, 7, 9, 11], R=3,
     if device == 'cuda': torch.cuda.synchronize()
     t_sim = time.time()
         
-    dist_ij_t = torch.norm(coords[i_idx_t] - coords[j_idx_t], dim=1)
+    dist_matrix = precomputed_dist.unsqueeze(0).expand(N, -1)
+    dist_ij_t = dist_matrix[valid_pairs_mask]
     d_ij = (1 - S_ij_max) * dist_ij_t + 1e-8
     
     S_cpu = S_ij_max.cpu().numpy()
