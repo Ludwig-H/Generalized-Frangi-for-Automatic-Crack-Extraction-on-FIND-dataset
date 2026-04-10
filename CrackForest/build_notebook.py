@@ -884,6 +884,8 @@ num_eval_raphael = len(raphael_dataset)
 results_raphael = []
 
 print(f"Évaluation sur le dataset Raphael ({num_eval_raphael} images)...")
+import matplotlib.pyplot as plt
+
 for i in range(num_eval_raphael):
     sample_i = raphael_dataset[i]
     imgs_i = {'visible': sample_i['visible'], 'infrared': sample_i['infrared']}
@@ -892,6 +894,7 @@ for i in range(num_eval_raphael):
     frangi_response, similarity_img, centrality_i, timings, diagnostics = extract_frangi_graph_gpu(imgs_i, weights_raphael, device=device)
     
     pred_i = (centrality_i > 0.025).astype(np.uint8)
+    pred_i = skeletonize_lee(pred_i)
     sk_pred_thick_i = thicken(pred_i, pixels=3)
     
     gt_arr_i = sample_i['gt'].numpy().astype(np.uint8)
@@ -907,6 +910,59 @@ for i in range(num_eval_raphael):
         'Tversky': t,
         'Wasserstein': w
     })
+    
+    print(f"--- Metrics for sample: {sample_i['id']} ---")
+    print(f"Jaccard (IoU): {j:.4f}")
+    print(f"Tversky:       {t:.4f}")
+    print(f"Wasserstein:   {w:.4f}")
+    
+    fig, axes = plt.subplots(2, 4, figsize=(32, 12))
+    
+    axes[0, 0].imshow(sample_i['visible'].numpy(), cmap='gray')
+    axes[0, 0].set_title('Modalité : Visible')
+    
+    axes[0, 1].imshow(frangi_response, cmap='magma')
+    axes[0, 1].set_title('Réponse Frangi Multi-échelles (Fused Λ2)')
+    
+    axes[0, 2].imshow(similarity_img, cmap='magma')
+    axes[0, 2].set_title('Similarité Frangi-Graph (Max)')
+    
+    axes[0, 3].imshow(sample_i['gt'].numpy(), cmap='gray')
+    axes[0, 3].set_title('Ground Truth (Segmentation)')
+    
+    axes[1, 0].imshow(centrality_i, cmap='hot')
+    axes[1, 0].set_title('Betweenness Centrality (Graph GPU)')
+    
+    skeleton = pred_i
+    axes[1, 1].imshow(np.zeros_like(skeleton), cmap='gray')
+    h, w_dim = skeleton.shape
+    rgba_tau = np.zeros((h, w_dim, 4), dtype=np.float32)
+    rgba_tau[diagnostics['tau_mask'] > 0] = [1.0, 1.0, 1.0, 0.3]
+    rgba_comp = np.zeros((h, w_dim, 4), dtype=np.float32)
+    rgba_comp[diagnostics['comp_mask'] > 0] = [0.0, 0.5, 1.0, 0.8]
+    axes[1, 1].imshow(rgba_tau)
+    axes[1, 1].imshow(rgba_comp)
+    axes[1, 1].set_title('Filtrage: Noeuds (τ) & Composantes')
+    
+    axes[1, 2].imshow(skeleton, cmap='gray')
+    axes[1, 2].set_title('Squelette Prédit (Brut)')
+    
+    axes[1, 3].imshow(np.zeros_like(skeleton), cmap='gray')
+    rgba_gt_skel = np.zeros((h, w_dim, 4), dtype=np.float32)
+    rgba_gt_skel[sk_gt_thick_i > 0] = [0.0, 1.0, 0.0, 0.4] # Vert transparent
+    
+    rgba_pred = np.zeros((h, w_dim, 4), dtype=np.float32)
+    rgba_pred[sk_pred_thick_i > 0] = [1.0, 0.0, 0.0, 0.4] # Rouge transparent
+    
+    axes[1, 3].imshow(rgba_gt_skel)
+    axes[1, 3].imshow(rgba_pred)
+    axes[1, 3].set_title('Éval (Vert: GT Squelette, Rouge: Pred)')
+    
+    for ax in axes.flat:
+        ax.axis('off')
+    
+    plt.tight_layout()
+    plt.show()
 
 if results_raphael:
     df_results_raphael = pd.DataFrame(results_raphael)
