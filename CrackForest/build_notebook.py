@@ -498,6 +498,9 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=5,
             neigh_matrix = torch.full((N_valid, max_deg), -1, dtype=torch.long, device=device)
             neigh_matrix[row_ids, col_ids] = v_sym
             
+            # Sort neigh_matrix row-wise ONCE to enable fast searchsorted intersection
+            neigh_matrix, _ = torch.sort(neigh_matrix, dim=1)
+            
             # Now, for every edge (u, w), we find common neighbors v
             # To avoid OOM, process edges in chunks
             tri_u, tri_v, tri_w = [], [], []
@@ -512,13 +515,15 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=5,
                 n_u = neigh_matrix[u_b]
                 n_w = neigh_matrix[w_b]
                 
-                concat = torch.cat([n_u, n_w], dim=1)
-                sorted_concat, _ = torch.sort(concat, dim=1)
-                match = (sorted_concat[:, :-1] == sorted_concat[:, 1:]) & (sorted_concat[:, :-1] != -1)
+                # Fast batched sorted set intersection
+                idx = torch.searchsorted(n_w, n_u)
+                idx = idx.clamp(max=max(0, max_deg - 1))
+                v_vals_candidate = torch.gather(n_w, 1, idx)
+                match = (v_vals_candidate == n_u) & (n_u != -1)
                 
                 b_idx, r_idx = torch.where(match)
                 if len(b_idx) > 0:
-                    v_vals = sorted_concat[b_idx, r_idx]
+                    v_vals = n_u[b_idx, r_idx]
                     u_vals = u_b[b_idx]
                     w_vals = w_b[b_idx]
                     
