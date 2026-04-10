@@ -493,6 +493,10 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=5,
                 valid_tri = (id_uv >= 0) & (id_vw >= 0) & (id_uw >= 0)
                 
                 if valid_tri.any():
+                    u_tri = torch.from_numpy(u_tri_np[valid_tri]).to(device).long()
+                    v_tri = torch.from_numpy(v_tri_np[valid_tri]).to(device).long()
+                    w_tri = torch.from_numpy(w_tri_np[valid_tri]).to(device).long()
+                    
                     id_uv = torch.from_numpy(id_uv[valid_tri]).to(device).long()
                     id_vw = torch.from_numpy(id_vw[valid_tri]).to(device).long()
                     id_uw = torch.from_numpy(id_uw[valid_tri]).to(device).long()
