@@ -909,8 +909,8 @@ for i in range(num_eval_raphael):
     sample_i = raphael_dataset[i]
     imgs_i = {'visible': sample_i['visible'], 'infrared': sample_i['infrared']}
     
-    # Appel de la fonction avec les paramètres par défaut
-    frangi_response, similarity_img, centrality_i, timings, diagnostics = extract_frangi_graph_gpu(imgs_i, weights_raphael, device=device)
+    # Appel de la fonction avec les paramètres par défaut + K=2 pour le benchmark
+    frangi_response, similarity_img, centrality_i, timings, diagnostics = extract_frangi_graph_gpu(imgs_i, weights_raphael, K=2, device=device)
     
     pred_i = (centrality_i > 0.025).astype(np.uint8)
     pred_i = skeletonize_lee(pred_i)
