@@ -180,7 +180,7 @@ Application de la réponse Frangi et sparsification.""")
 
 add_code("""from scipy.sparse import coo_matrix
 
-def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
+def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=5,
                              ss=1.0, si=0.25, sa=0.3, τ=0.2, min_rel_size=150.0, K=1, device='cuda'):
     import time
     import cv2
@@ -784,6 +784,138 @@ for ax in axes.flat:
 
 plt.tight_layout()
 plt.show()""")
+
+add_md("""## 4bis. Évaluation sur Dataset Raphael (Fissures 1, 2, 3)
+
+Tests sur les images du dataset Raphael (Fissures 1, 2 et 3) avec les paramètres par défaut du graphe Généralisé.""")
+
+add_code("""!pip install -q gdown
+import os
+import gdown
+from pathlib import Path
+import cv2
+from torch.utils.data import Dataset
+import pandas as pd
+from IPython.display import display
+
+folder_id = '1d79CVf9Vqgwwjqn6b2gbc40eu2MM7B7-'
+dest_dir = 'Raphael-Dataset'
+
+def check_dataset_exists():
+    for path in Path('.').rglob('Fissure 1'):
+        return True
+    return False
+
+if not check_dataset_exists():
+    print("Téléchargement du dataset Raphael depuis Google Drive...")
+    gdown.download_folder(id=folder_id, output=dest_dir, quiet=False, use_cookies=False)
+    print("Téléchargement terminé.")
+else:
+    print("Dataset Raphael déjà présent.")
+
+class RaphaelDatasetSubset(Dataset):
+    def __init__(self, root_dir, allowed_fissures=['Fissure 1', 'Fissure 2', 'Fissure 3']):
+        self.root_dir = None
+        for path in Path(root_dir).rglob('Fissure 1'):
+            self.root_dir = path.parent
+            break
+            
+        if self.root_dir is None:
+            raise FileNotFoundError("Structure du dataset non trouvée.")
+            
+        all_fissure_dirs = sorted(list(self.root_dir.glob('Fissure *')))
+        self.fissure_dirs = [d for d in all_fissure_dirs if d.name in allowed_fissures]
+        print(f"Dataset Raphael chargé avec {len(self.fissure_dirs)} fissures : {[d.name for d in self.fissure_dirs]}")
+
+    def __len__(self):
+        return len(self.fissure_dirs)
+
+    def __getitem__(self, idx):
+        fissure_dir = self.fissure_dirs[idx]
+        fissure_name = fissure_dir.name
+        num = fissure_name.split(' ')[-1]
+        prefix = f"fissure{num}"
+        
+        path_vis = fissure_dir / f"{prefix}_visible.png"
+        path_ir = fissure_dir / f"{prefix}_thermique.png"
+        path_gt = fissure_dir / f"{prefix}_verite_terrain.png"
+        
+        if not path_ir.exists():
+             path_ir = fissure_dir / f"{prefix}_visible.png" 
+             
+        img_vis = cv2.imread(str(path_vis), cv2.IMREAD_COLOR)
+        if img_vis is not None: img_vis = cv2.cvtColor(img_vis, cv2.COLOR_BGR2GRAY)
+        else: raise FileNotFoundError(f"Image {path_vis} introuvable.")
+            
+        img_ir = cv2.imread(str(path_ir), cv2.IMREAD_COLOR)
+        if img_ir is not None: img_ir = cv2.cvtColor(img_ir, cv2.COLOR_BGR2GRAY)
+        else: raise FileNotFoundError(f"Image {path_ir} introuvable.")
+            
+        img_gt = cv2.imread(str(path_gt), cv2.IMREAD_UNCHANGED)
+        if img_gt is not None:
+            if img_gt.shape[-1] == 4:
+                alpha_channel = img_gt[:, :, 3]
+                gt_clean = (alpha_channel > 0).astype(np.float32)
+            else:
+                gray_gt = cv2.cvtColor(img_gt, cv2.COLOR_BGR2GRAY)
+                gt_clean = (gray_gt < 127).astype(np.float32)
+        else:
+            raise FileNotFoundError(f"Image {path_gt} introuvable.")
+            
+        vis_t = torch.from_numpy(img_vis).float() / 255.0
+        ir_t  = torch.from_numpy(img_ir).float() / 255.0
+        gt_t = torch.from_numpy(gt_clean)
+        
+        return {'id': fissure_name, 'visible': vis_t, 'infrared': ir_t, 'gt': gt_t}
+
+raphael_dataset = RaphaelDatasetSubset('.')
+""")
+
+add_code("""device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+# Mêmes paramètres par défaut que pour CrackForest (single modality => visible only)
+# Toutefois, pour Raphael, nous utilisons la fusion des deux modalités.
+weights_raphael = {'visible': 0.5, 'infrared': 0.5}
+
+num_eval_raphael = len(raphael_dataset)
+results_raphael = []
+
+print(f"Évaluation sur le dataset Raphael ({num_eval_raphael} images)...")
+for i in range(num_eval_raphael):
+    sample_i = raphael_dataset[i]
+    imgs_i = {'visible': sample_i['visible'], 'infrared': sample_i['infrared']}
+    
+    # Appel de la fonction avec les paramètres par défaut
+    frangi_response, similarity_img, centrality_i, timings, diagnostics = extract_frangi_graph_gpu(imgs_i, weights_raphael, device=device)
+    
+    pred_i = (centrality_i > 0.025).astype(np.uint8)
+    sk_pred_thick_i = thicken(pred_i, pixels=3)
+    
+    gt_arr_i = sample_i['gt'].numpy().astype(np.uint8)
+    sk_gt_i = skeletonize_lee(gt_arr_i)
+    sk_gt_thick_i = thicken(sk_gt_i, pixels=3)
+    
+    j, t = compute_metrics(sk_pred_thick_i, sk_gt_thick_i)
+    w = wasserstein_distance_skeletons(sk_pred_thick_i, sk_gt_thick_i)
+    
+    results_raphael.append({
+        'ID': sample_i['id'],
+        'Jaccard (IoU)': j,
+        'Tversky': t,
+        'Wasserstein': w
+    })
+
+if results_raphael:
+    df_results_raphael = pd.DataFrame(results_raphael)
+    display(df_results_raphael)
+
+    print("\\n--- Statistiques Globales (Raphael Fissures 1-3) ---")
+    print(f"Jaccard (IoU) Moyen : {df_results_raphael['Jaccard (IoU)'].mean():.4f} ± {df_results_raphael['Jaccard (IoU)'].std():.4f}")
+    print(f"Tversky Moyen       : {df_results_raphael['Tversky'].mean():.4f} ± {df_results_raphael['Tversky'].std():.4f}")
+    print(f"Wasserstein Moyen   : {df_results_raphael['Wasserstein'].mean():.4f} ± {df_results_raphael['Wasserstein'].std():.4f}")
+else:
+    print("Aucun résultat à afficher (dataset introuvable ou vide).")
+""")
 
 add_md("""## 5. Analyse de sensibilité des paramètres
 
