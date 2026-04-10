@@ -465,9 +465,9 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=5,
             adj_i_t = torch.from_numpy(adj_i).to(device).long()
             adj_j_t = torch.from_numpy(adj_j).to(device).long()
             
-            # Ensure u < v
-            mask_u = adj_i_t < adj_j_t
-            u_t, v_t = adj_i_t[mask_u], adj_j_t[mask_u]
+            # Ensure u < v for ALL edges to correctly map IDs
+            u_t = torch.minimum(adj_i_t, adj_j_t)
+            v_t = torch.maximum(adj_i_t, adj_j_t)
             
             # Count degrees to build a padded dense neighbor matrix
             u_sym = torch.cat([u_t, v_t])
