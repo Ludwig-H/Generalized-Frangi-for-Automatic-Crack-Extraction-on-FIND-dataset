@@ -451,34 +451,53 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=5,
             t_bet_total = time.time() - t_bet_start - t_mst_total
 
     elif K == 2:
-        adj_i_t = torch.from_numpy(i_mapped).to(device).long()
-        adj_j_t = torch.from_numpy(j_mapped).to(device).long()
+        import scipy.sparse as sp
         
-        A_dense = torch.zeros((N_valid, N_valid), dtype=torch.bool, device=device)
-        A_dense[adj_i_t, adj_j_t] = True
-        A_dense[adj_j_t, adj_i_t] = True
-        
-        mask_u = adj_i_t < adj_j_t
-        u_l, v_l = adj_i_t[mask_u], adj_j_t[mask_u]
-        num_e_init = len(u_l)
+        adj_i = i_mapped
+        adj_j = j_mapped
+        num_e_init = len(adj_i)
         
         if num_e_init >= 3:
-            common = A_dense[u_l] & A_dense[v_l]
-            tri_pts = torch.nonzero(common)
-            if len(tri_pts) > 0:
-                e_idx, w_i = tri_pts.T
-                u_tri, v_tri, w_tri = u_l[e_idx], v_l[e_idx], w_i
-                mask_unq = w_tri > v_tri
-                u_tri, v_tri, w_tri = u_tri[mask_unq], v_tri[mask_unq], w_tri[mask_unq]
+            u_l_np = np.minimum(adj_i, adj_j)
+            v_l_np = np.maximum(adj_i, adj_j)
+            
+            adj_list = [set() for _ in range(N_valid)]
+            for u, v in zip(u_l_np, v_l_np):
+                adj_list[u].add(v)
                 
-                if len(u_tri) > 0:
-                    edge_to_id = torch.full((N_valid, N_valid), -1, dtype=torch.long, device=device)
-                    edge_to_id[adj_i_t, adj_j_t] = torch.arange(len(adj_i_t), device=device)
-                    edge_to_id[adj_j_t, adj_i_t] = torch.arange(len(adj_i_t), device=device)
+            tri_u, tri_v, tri_w = [], [], []
+            for u in range(N_valid):
+                v_set = adj_list[u]
+                for v in v_set:
+                    common = v_set.intersection(adj_list[v])
+                    for w in common:
+                        tri_u.append(u)
+                        tri_v.append(v)
+                        tri_w.append(w)
+                        
+            if len(tri_u) > 0:
+                ids = np.arange(num_e_init, dtype=np.int32) + 1
+                
+                edge_to_id_sparse = sp.csr_matrix(
+                    (np.concatenate([ids, ids]), 
+                     (np.concatenate([u_l_np, v_l_np]), np.concatenate([v_l_np, u_l_np]))), 
+                    shape=(N_valid, N_valid)
+                )
+                
+                u_tri_np, v_tri_np, w_tri_np = np.array(tri_u), np.array(tri_v), np.array(tri_w)
+                
+                id_uv = np.asarray(edge_to_id_sparse[u_tri_np, v_tri_np]).flatten() - 1
+                id_vw = np.asarray(edge_to_id_sparse[v_tri_np, w_tri_np]).flatten() - 1
+                id_uw = np.asarray(edge_to_id_sparse[u_tri_np, w_tri_np]).flatten() - 1
+                
+                valid_tri = (id_uv >= 0) & (id_vw >= 0) & (id_uw >= 0)
+                
+                if valid_tri.any():
+                    id_uv = torch.from_numpy(id_uv[valid_tri]).to(device).long()
+                    id_vw = torch.from_numpy(id_vw[valid_tri]).to(device).long()
+                    id_uw = torch.from_numpy(id_uw[valid_tri]).to(device).long()
                     
-                    id_uv = edge_to_id[u_tri, v_tri]
-                    id_vw = edge_to_id[v_tri, w_tri]
-                    id_uw = edge_to_id[u_tri, w_tri]
+                    adj_i_t = torch.from_numpy(adj_i).to(device).long()
                     
                     d_v_t = torch.from_numpy(d_v).to(device)
                     S_v_t = torch.from_numpy(S_v).to(device)
@@ -916,22 +935,25 @@ for i in range(num_eval_raphael):
     print(f"Tversky:       {t:.4f}")
     print(f"Wasserstein:   {w:.4f}")
     
-    fig, axes = plt.subplots(2, 4, figsize=(32, 12))
+    fig, axes = plt.subplots(2, 5, figsize=(40, 12))
     
     axes[0, 0].imshow(sample_i['visible'].numpy(), cmap='gray')
     axes[0, 0].set_title('Modalité : Visible')
+
+    axes[0, 1].imshow(sample_i['infrared'].numpy(), cmap='gray')
+    axes[0, 1].set_title('Modalité : Thermique')
     
-    axes[0, 1].imshow(frangi_response, cmap='magma')
-    axes[0, 1].set_title('Réponse Frangi Multi-échelles (Fused Λ2)')
+    axes[0, 2].imshow(frangi_response, cmap='magma')
+    axes[0, 2].set_title('Réponse Frangi (Fused Λ2)')
     
-    axes[0, 2].imshow(similarity_img, cmap='magma')
-    axes[0, 2].set_title('Similarité Frangi-Graph (Max)')
+    axes[0, 3].imshow(similarity_img, cmap='magma')
+    axes[0, 3].set_title('Similarité Frangi-Graph (Max)')
     
-    axes[0, 3].imshow(sample_i['gt'].numpy(), cmap='gray')
-    axes[0, 3].set_title('Ground Truth (Segmentation)')
+    axes[0, 4].imshow(sample_i['gt'].numpy(), cmap='gray')
+    axes[0, 4].set_title('Ground Truth')
     
     axes[1, 0].imshow(centrality_i, cmap='hot')
-    axes[1, 0].set_title('Betweenness Centrality (Graph GPU)')
+    axes[1, 0].set_title('Betweenness Centrality')
     
     skeleton = pred_i
     axes[1, 1].imshow(np.zeros_like(skeleton), cmap='gray')
@@ -942,7 +964,7 @@ for i in range(num_eval_raphael):
     rgba_comp[diagnostics['comp_mask'] > 0] = [0.0, 0.5, 1.0, 0.8]
     axes[1, 1].imshow(rgba_tau)
     axes[1, 1].imshow(rgba_comp)
-    axes[1, 1].set_title('Filtrage: Noeuds (τ) & Composantes')
+    axes[1, 1].set_title('Filtrage: Noeuds & Composantes')
     
     axes[1, 2].imshow(skeleton, cmap='gray')
     axes[1, 2].set_title('Squelette Prédit (Brut)')
@@ -956,7 +978,9 @@ for i in range(num_eval_raphael):
     
     axes[1, 3].imshow(rgba_gt_skel)
     axes[1, 3].imshow(rgba_pred)
-    axes[1, 3].set_title('Éval (Vert: GT Squelette, Rouge: Pred)')
+    axes[1, 3].set_title('Éval (Vert: GT, Rouge: Pred)')
+
+    axes[1, 4].axis('off')
     
     for ax in axes.flat:
         ax.axis('off')
