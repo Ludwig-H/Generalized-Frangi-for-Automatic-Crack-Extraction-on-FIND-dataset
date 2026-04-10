@@ -502,7 +502,7 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=5,
             # To avoid OOM, process edges in chunks
             tri_u, tri_v, tri_w = [], [], []
             E_total = len(u_t)
-            batch_size = 2000000
+            batch_size = 100000
             
             for i in range(0, E_total, batch_size):
                 end_i = min(E_total, i + batch_size)
