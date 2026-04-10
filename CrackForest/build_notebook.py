@@ -460,23 +460,31 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=5,
         if num_e_init >= 3:
             u_l_np = np.minimum(adj_i, adj_j)
             v_l_np = np.maximum(adj_i, adj_j)
-            
-            adj_list = [set() for _ in range(N_valid)]
-            for u, v in zip(u_l_np, v_l_np):
-                adj_list[u].add(v)
-                
+
+            data = np.ones(len(u_l_np), dtype=bool)
+            A_sparse = sp.csr_matrix((data, (u_l_np, v_l_np)), shape=(N_valid, N_valid))
+            A_sparse = A_sparse + A_sparse.T
+            A2 = A_sparse * A_sparse
+            A_upper = sp.triu(A_sparse, k=1).tocsr()
+            A_tri = A2.multiply(A_upper)
+
+            u_tri_edges, v_tri_edges = A_tri.nonzero()
             tri_u, tri_v, tri_w = [], [], []
-            for u in range(N_valid):
-                v_set = adj_list[u]
-                for v in v_set:
-                    common = v_set.intersection(adj_list[v])
-                    for w in common:
+
+            indices = A_sparse.indices
+            indptr = A_sparse.indptr
+
+            for u, v in zip(u_tri_edges, v_tri_edges):
+                neighbors_u = indices[indptr[u]:indptr[u+1]]
+                neighbors_v = indices[indptr[v]:indptr[v+1]]
+                common = np.intersect1d(neighbors_u, neighbors_v, assume_unique=True)
+                for w in common:
+                    if v < w:
                         tri_u.append(u)
                         tri_v.append(v)
                         tri_w.append(w)
-                        
-            if len(tri_u) > 0:
-                ids = np.arange(num_e_init, dtype=np.int32) + 1
+
+            if len(tri_u) > 0:                ids = np.arange(num_e_init, dtype=np.int32) + 1
                 
                 edge_to_id_sparse = sp.csr_matrix(
                     (np.concatenate([ids, ids]), 
