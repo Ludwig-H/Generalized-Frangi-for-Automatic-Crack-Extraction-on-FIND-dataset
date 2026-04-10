@@ -502,26 +502,26 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=5,
             # To avoid OOM, process edges in chunks
             tri_u, tri_v, tri_w = [], [], []
             E_total = len(u_t)
-            batch_size = 200000
+            batch_size = 2000000
             
             for i in range(0, E_total, batch_size):
                 end_i = min(E_total, i + batch_size)
                 u_b = u_t[i:end_i]
-                w_b = v_t[i:end_i] # (u, w) is an edge, we look for v
+                w_b = v_t[i:end_i]
                 
-                n_u = neigh_matrix[u_b] # (B, max_deg)
-                n_w = neigh_matrix[w_b] # (B, max_deg)
+                n_u = neigh_matrix[u_b]
+                n_w = neigh_matrix[w_b]
                 
-                # Intersect
-                match = (n_u.unsqueeze(2) == n_w.unsqueeze(1)) & (n_u.unsqueeze(2) != -1) # (B, max_deg, max_deg)
+                concat = torch.cat([n_u, n_w], dim=1)
+                sorted_concat, _ = torch.sort(concat, dim=1)
+                match = (sorted_concat[:, :-1] == sorted_concat[:, 1:]) & (sorted_concat[:, :-1] != -1)
                 
-                b_idx, r_idx, c_idx = torch.where(match)
+                b_idx, r_idx = torch.where(match)
                 if len(b_idx) > 0:
-                    v_vals = n_u[b_idx, r_idx]
+                    v_vals = sorted_concat[b_idx, r_idx]
                     u_vals = u_b[b_idx]
                     w_vals = w_b[b_idx]
                     
-                    # We want unique triangles, e.g. u < v < w
                     valid_tri = (u_vals < v_vals) & (v_vals < w_vals)
                     
                     if valid_tri.any():
