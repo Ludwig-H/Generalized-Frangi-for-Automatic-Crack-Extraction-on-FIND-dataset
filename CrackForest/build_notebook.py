@@ -730,9 +730,11 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=5,
                             
                             for b in unique_bins:
                                 bin_pts = pts[quantized_vals == b]
-                                cv2.fillPoly(cent_img, bin_pts, float(b) / 255.0)
+                                for p in bin_pts:
+                                    cv2.fillConvexPoly(cent_img, p, float(b) / 255.0)
                                 
-                            cv2.fillPoly(comp_mask, pts, 1.0)
+                            for p in pts:
+                                cv2.fillConvexPoly(comp_mask, p, 1.0)
                                     
                     # Global normalization for K=2 removed
                                     

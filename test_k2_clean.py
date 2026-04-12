@@ -1,4 +1,3 @@
-!pip install -q scipy numpy matplotlib pandas gdown POT scikit-image tqdm
 
 import os
 import zipfile
@@ -869,7 +868,6 @@ plt.tight_layout()
 plt.show()
 
 
-!pip install -q gdown
 import os
 import gdown
 from pathlib import Path
@@ -1240,7 +1238,6 @@ for param_name, values in param_ranges.items():
     plt.show()
 
 
-!pip install -q statsmodels seaborn
 
 import time
 import seaborn as sns
