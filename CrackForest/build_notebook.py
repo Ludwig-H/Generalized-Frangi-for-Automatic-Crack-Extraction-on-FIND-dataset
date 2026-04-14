@@ -1294,7 +1294,7 @@ for param_name, values in param_ranges.items():
 add_md(r"""## 6. Analyse de l'interaction entre R et $\sigma_0$ (Grid Search 2D)
 
 Nous allons réaliser une recherche en grille (Grid Search) sur les paramètres `R` et `\sigma_0` pour vérifier s'ils sont indépendants ou s'ils interagissent.
-Nous testerons une grille 5x5 (25 évaluations du dataset) et visualiserons les résultats sous forme de Heatmaps.
+Nous testerons une grille 10x10 (100 évaluations du dataset) et visualiserons les résultats sous forme de Heatmaps.
 Enfin, nous réaliserons une **ANOVA à deux facteurs** pour tester statistiquement l'interaction.
 
 Le modèle mathématique sous-jacent s'écrit formellement :
@@ -1343,8 +1343,8 @@ import matplotlib.pyplot as plt
 
 print("\\n" + "="*60 + "\\n--- Grid Search 2D : R vs σ_0 ---\\n" + "="*60)
 
-R_values = np.linspace(2, 10, 5, dtype=int).tolist()
-sigma_values = np.linspace(2.0, 10.0, 5).tolist()
+R_values = np.linspace(1, 10, 10, dtype=int).tolist()
+sigma_values = np.linspace(1.0, 10.0, 10).tolist()
 
 grid_results_summary = []
 grid_individual_results = []
