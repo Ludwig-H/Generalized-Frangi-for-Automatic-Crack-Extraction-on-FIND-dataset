@@ -1,0 +1,80 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+.mypy_cache/
+.tox/
+.coverage
+.cache/
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+
+# --- Virtual Environments ---
+venv/
+.venv/
+env/
+.env/
+ENV/
+
+# --- LaTeX ---
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.toc
+*.fdb_latexmk
+*.fls
+*.synctex.gz
+*.pdf
+
+# --- Notebooks & Data ---
+# Notebooks often contain large base64 images or outputs
+# Un-comment the next line if you want to ignore all notebooks by default
+# *.ipynb
+.ipynb_checkpoints/
+
+# Binary data and images
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.tiff
+*.bmp
+*.ico
+*.npy
+*.npz
+*.pth
+*.h5
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# --- OS / IDE ---
+.DS_Store
+.vscode/
+.idea/
+.project
+.pydevproject
+.settings/
