@@ -104,6 +104,3 @@ class VTGraFDataset(Dataset):
         
         return {'id': fissure_name, 'visible': vis_t, 'infrared': ir_t, 'gt': gt_t}
 
-# Backwards compatibility alias
-RaphaelDataset = VTGraFDataset
-
