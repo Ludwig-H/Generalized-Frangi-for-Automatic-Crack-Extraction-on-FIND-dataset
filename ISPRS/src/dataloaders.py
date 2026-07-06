@@ -103,3 +103,7 @@ class VTGraFDataset(Dataset):
         gt_t = torch.from_numpy(gt_clean)
         
         return {'id': fissure_name, 'visible': vis_t, 'infrared': ir_t, 'gt': gt_t}
+
+# Backwards compatibility alias
+RaphaelDataset = VTGraFDataset
+
