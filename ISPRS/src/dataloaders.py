@@ -29,7 +29,7 @@ def decode_jet_to_grayscale(img_bgr):
     gray_img = indices.reshape(H, W).astype(np.uint8)
     return gray_img
 
-class RaphaelDataset(Dataset):
+class VTGraFDataset(Dataset):
     def __init__(self, root_dir):
         self.root_dir = None
         for path in Path(root_dir).rglob('Fissure 1'):
@@ -37,10 +37,10 @@ class RaphaelDataset(Dataset):
             break
             
         if self.root_dir is None:
-            raise FileNotFoundError("Raphael dataset structure (Fissure 1 directory) not found.")
+            raise FileNotFoundError("VT-GraF dataset structure (Fissure 1 directory) not found.")
             
         self.fissure_dirs = sorted([d for d in self.root_dir.glob('Fissure *') if d.is_dir()])
-        print(f"Dataset Raphael loaded with {len(self.fissure_dirs)} fissures: {[d.name for d in self.fissure_dirs]}")
+        print(f"Dataset VT-GraF loaded with {len(self.fissure_dirs)} fissures: {[d.name for d in self.fissure_dirs]}")
 
     def __len__(self):
         return len(self.fissure_dirs)

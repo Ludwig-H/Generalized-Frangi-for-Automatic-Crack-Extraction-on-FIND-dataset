@@ -1,6 +1,6 @@
 # VT-GraF Benchmark (Visible--Thermal Granular Faults under severe clutter)
 
-This benchmark evaluates crack extraction algorithms under severe surface texture clutter (asphalt road gravel aggregates) using aligned visible (optical) and thermal infrared (IR) modalities from the **Raphael-Dataset**.
+This benchmark evaluates crack extraction algorithms under severe surface texture clutter (asphalt road gravel aggregates) using aligned visible (optical) and thermal infrared (IR) modalities from the **VT-GraF-Dataset**.
 
 ---
 
@@ -44,7 +44,7 @@ The folder contains a ready-to-run Jupyter notebook:
 2. Ensure you select a **GPU runtime** (T4, V100, or A100).
 3. Open the notebook and run all cells.
 4. The notebook will automatically:
-   * Download the Raphael-Dataset (5 dual-modality fissures).
+   * Download the VT-GraF-Dataset (5 dual-modality fissures).
    * Install SAM 2 from Meta's source repository.
    * Run both **Ours (Generalized Frangi Graph)** and the **Baseline (Frangi Thermal + SAM 2)**.
    * Calculate Jaccard index (IoU), Tversky index, and Wasserstein distance against the ground truth skeletons.

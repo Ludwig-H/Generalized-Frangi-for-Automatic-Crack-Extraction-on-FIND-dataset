@@ -3,7 +3,7 @@ __pycache__/
 *.pyc
 
 # Local Datasets
-Raphael-Dataset/
+VT-GraF-Dataset/
 CrackForest-dataset/
 
 # Jupyter Notebook checkpoints

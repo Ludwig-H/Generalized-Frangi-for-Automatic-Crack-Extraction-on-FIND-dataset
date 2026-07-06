@@ -4,7 +4,7 @@ This guide serves as a technical reference for creating other folders, notebooks
 
 ---
 
-## 1. Raphael-Dataset Conventions
+## 1. VT-GraF-Dataset Conventions
 
 ### Directory & File Naming Anomaly
 The dataset is structured into folders from `Fissure 1` to `Fissure 5`. However, there is a filename prefix anomaly for **Fissure 2** which must be handled programmatically:
@@ -52,7 +52,7 @@ Ground truth PNG files (`*_verite_terrain.png`) are transparent images where the
 
 ## 4. Algorithmic Parameters (Generalized Frangi Graph)
 
-For evaluations on the Raphael dataset, the optimal parameters established in the latest notebook commits are:
+For evaluations on the VT-GraF dataset, the optimal parameters established in the latest notebook commits are:
 *   **Fusion Weights**: `visible: 1/3` (~0.33) and `infrared: 2/3` (~0.67) to prioritize the thermal physical signature.
 *   **Scales ($\Sigma$)**: Multi-scale set `Σ = [20, 30, 40]` to handle large and variable crack widths.
 *   **Search Radius ($R$)**: $R = 3$ (local neighborhood of $7 \times 7$ pixels) to construct graph edges.
