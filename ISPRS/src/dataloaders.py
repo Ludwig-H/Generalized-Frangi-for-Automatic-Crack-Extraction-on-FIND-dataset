@@ -79,6 +79,8 @@ class RaphaelDataset(Dataset):
         if img_ir_color is not None:
             # Decode JET colormap to get proper physical linear temperature values
             img_ir = decode_jet_to_grayscale(img_ir_color)
+            # Invert so that the hot cracks appear dark (matching the visible polarity)
+            img_ir = 255 - img_ir
             img_ir = cv2.resize(img_ir, (img_vis.shape[1], img_vis.shape[0]), interpolation=cv2.INTER_LINEAR)
         else: 
             raise FileNotFoundError(f"Failed to read thermal image {path_ir}")
