@@ -1,0 +1,10 @@
+# Compiled python files
+__pycache__/
+*.pyc
+
+# Local Datasets
+Raphael-Dataset/
+CrackForest-dataset/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
