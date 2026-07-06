@@ -893,7 +893,7 @@ if not check_dataset_exists():
 else:
     print("Dataset VT-GraF déjà présent.")
 
-class VT-GraFDatasetSubset(Dataset):
+class VTGraFDatasetSubset(Dataset):
     def __init__(self, root_dir):
         self.root_dir = None
         for path in Path(root_dir).rglob('Fissure 1'):
@@ -914,13 +914,15 @@ class VT-GraFDatasetSubset(Dataset):
         fissure_name = fissure_dir.name
         num = fissure_name.split(' ')[-1]
         prefix = f"fissure{num}"
-        
         path_vis = fissure_dir / f"{prefix}_visible.png"
+        
+        # Fallback if old 'fissure6' naming convention is still present for Fissure 2
+        if num == '2' and not path_vis.exists():
+            prefix = 'fissure6'
+            path_vis = fissure_dir / f"{prefix}_visible.png"
+            
         path_ir = fissure_dir / f"{prefix}_thermique.png"
         path_gt = fissure_dir / f"{prefix}_verite_terrain.png"
-        
-        if not path_ir.exists():
-             path_ir = fissure_dir / f"{prefix}_visible.png" 
              
         img_vis = cv2.imread(str(path_vis), cv2.IMREAD_COLOR)
         if img_vis is not None: img_vis = cv2.cvtColor(img_vis, cv2.COLOR_BGR2GRAY)
@@ -950,7 +952,7 @@ class VT-GraFDatasetSubset(Dataset):
         
         return {'id': fissure_name, 'visible': vis_t, 'infrared': ir_t, 'gt': gt_t}
 
-vt_graf_dataset = VT-GraFDatasetSubset('.')
+vt_graf_dataset = VTGraFDatasetSubset('.')
 
 
 

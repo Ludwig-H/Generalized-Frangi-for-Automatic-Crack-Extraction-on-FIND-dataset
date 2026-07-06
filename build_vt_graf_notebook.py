@@ -64,7 +64,7 @@ from pathlib import Path
 from torch.utils.data import Dataset
 import matplotlib.pyplot as plt
 
-class VT-GraFDataset(Dataset):
+class VTGraFDataset(Dataset):
     def __init__(self, root_dir):
         self.root_dir = None
         for path in Path(root_dir).rglob('Fissure 1'):
@@ -91,13 +91,15 @@ class VT-GraFDataset(Dataset):
         prefix = f"fissure{num}"
         
         path_vis = fissure_dir / f"{prefix}_visible.png"
+        
+        # Fallback pour la Fissure 2 si l'ancienne convention de nommage 'fissure6' est toujours présente
+        if num == '2' and not path_vis.exists():
+            prefix = 'fissure6'
+            path_vis = fissure_dir / f"{prefix}_visible.png"
+            
         path_ir = fissure_dir / f"{prefix}_thermique.png"
         path_gt = fissure_dir / f"{prefix}_verite_terrain.png"
         
-        if not path_ir.exists():
-             # Fallback if typo in filename
-             path_ir = fissure_dir / f"{prefix}_visible.png" 
-             
         # Chargement et conversion en N&B (Niveaux de gris)
         img_vis = cv2.imread(str(path_vis), cv2.IMREAD_COLOR)
         if img_vis is not None:
@@ -138,7 +140,7 @@ class VT-GraFDataset(Dataset):
             'gt': gt_t
         }
 
-dataset = VT-GraFDataset('.')""")
+dataset = VTGraFDataset('.')""")
 
 add_md("""## 2. Calcul Hessien Multi-échelles sur GPU""")
 

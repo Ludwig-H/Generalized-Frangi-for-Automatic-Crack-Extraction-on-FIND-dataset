@@ -50,13 +50,14 @@ class VTGraFDataset(Dataset):
         fissure_name = fissure_dir.name
         num = fissure_name.split(' ')[-1]
         
-        # Fissure 2 actually contains files prefixed with fissure6
-        if num == '2':
-            prefix = 'fissure6'
-        else:
-            prefix = f"fissure{num}"
-        
+        prefix = f"fissure{num}"
         path_vis = fissure_dir / f"{prefix}_visible.png"
+        
+        # Fallback if old 'fissure6' naming convention is still present for Fissure 2
+        if num == '2' and not path_vis.exists():
+            prefix = 'fissure6'
+            path_vis = fissure_dir / f"{prefix}_visible.png"
+            
         path_ir = fissure_dir / f"{prefix}_thermique.png"
         path_gt = fissure_dir / f"{prefix}_verite_terrain.png"
         
