@@ -20,9 +20,9 @@ def add_code(text):
     })
 
 add_md("""# Extraction de Fissures via Frangi Graph Généralisé sur GPU (A100)
-## Benchmark : Raphael
+## Benchmark : VT-GraF
 
-Ce Colab implémente l'approche non supervisée décrite dans l'article EUSIPCO **"Multi-Modal, Training-Free Crack Extraction via Generalized Frangi Graph"**, adaptée pour le dataset Raphael.
+Ce Colab implémente l'approche non supervisée décrite dans l'article EUSIPCO **"Multi-Modal, Training-Free Crack Extraction via Generalized Frangi Graph"**, adaptée pour le dataset VT-GraF.
 
 ### Caractéristiques de l'implémentation :
 - Chargement robuste des données (modalités visible et thermique en niveaux de gris).
@@ -37,7 +37,7 @@ import gdown
 from pathlib import Path
 
 folder_id = '1d79CVf9Vqgwwjqn6b2gbc40eu2MM7B7-'
-dest_dir = 'Raphael-Dataset'
+dest_dir = 'VT-GraF-Dataset'
 
 def check_dataset_exists():
     for path in Path('.').rglob('Fissure 1'):
@@ -45,7 +45,7 @@ def check_dataset_exists():
     return False
 
 if not check_dataset_exists():
-    print("Téléchargement du dataset Raphael depuis Google Drive...")
+    print("Téléchargement du dataset VT-GraF depuis Google Drive...")
     gdown.download_folder(id=folder_id, output=dest_dir, quiet=False, use_cookies=False)
     print("Téléchargement terminé.")
 else:
@@ -53,7 +53,7 @@ else:
 
 add_md("""## 1. Dataloader Rigoureux
 
-Nous respectons la topologie du dataset Raphael avec une classe PyTorch personnalisée :
+Nous respectons la topologie du dataset VT-GraF avec une classe PyTorch personnalisée :
 - Modalités : Visible et Thermique (JET convertie en N&B).
 - Vérité terrain : Image avec transparence (les pixels de fissure apparaissent en noir, on utilise le canal alpha).""")
 
@@ -64,7 +64,7 @@ from pathlib import Path
 from torch.utils.data import Dataset
 import matplotlib.pyplot as plt
 
-class RaphaelDataset(Dataset):
+class VT-GraFDataset(Dataset):
     def __init__(self, root_dir):
         self.root_dir = None
         for path in Path(root_dir).rglob('Fissure 1'):
@@ -138,7 +138,7 @@ class RaphaelDataset(Dataset):
             'gt': gt_t
         }
 
-dataset = RaphaelDataset('.')""")
+dataset = VT-GraFDataset('.')""")
 
 add_md("""## 2. Calcul Hessien Multi-échelles sur GPU""")
 
@@ -716,7 +716,7 @@ for i in range(num_eval):
 
 df_results = pd.DataFrame(results)
 
-csv_filename = "evaluation_results_raphael.csv"
+csv_filename = "evaluation_results_vt_graf.csv"
 df_results.to_csv(csv_filename, index=False)
 print(f"\\nRésultats sauvegardés dans {csv_filename}\\n")
 
@@ -733,14 +733,14 @@ notebook = {
         "accelerator": "GPU",
         "colab": {
             "gpuType": "A100",
-            "name": "Frangi_Raphael_GPU.ipynb"
+            "name": "Frangi_VT-GraF_GPU.ipynb"
         }
     },
     "nbformat": 4,
     "nbformat_minor": 4
 }
 
-with open("Raphael/Frangi_Raphael_GPU.ipynb", "w", encoding="utf-8") as f:
+with open("VT-GraF/Frangi_VT-GraF_GPU.ipynb", "w", encoding="utf-8") as f:
     json.dump(notebook, f, indent=2, ensure_ascii=False)
 
-print("Notebook generated successfully in Raphael/Frangi_Raphael_GPU.ipynb.")
+print("Notebook generated successfully in VT-GraF/Frangi_VT-GraF_GPU.ipynb.")

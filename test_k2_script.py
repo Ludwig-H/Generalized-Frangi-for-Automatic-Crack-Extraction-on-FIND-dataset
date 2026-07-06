@@ -879,7 +879,7 @@ import pandas as pd
 from IPython.display import display
 
 folder_id = '1d79CVf9Vqgwwjqn6b2gbc40eu2MM7B7-'
-dest_dir = 'Raphael-Dataset'
+dest_dir = 'VT-GraF-Dataset'
 
 def check_dataset_exists():
     for path in Path('.').rglob('Fissure 1'):
@@ -887,13 +887,13 @@ def check_dataset_exists():
     return False
 
 if not check_dataset_exists():
-    print("Téléchargement du dataset Raphael depuis Google Drive...")
+    print("Téléchargement du dataset VT-GraF depuis Google Drive...")
     gdown.download_folder(id=folder_id, output=dest_dir, quiet=False, use_cookies=False)
     print("Téléchargement terminé.")
 else:
-    print("Dataset Raphael déjà présent.")
+    print("Dataset VT-GraF déjà présent.")
 
-class RaphaelDatasetSubset(Dataset):
+class VT-GraFDatasetSubset(Dataset):
     def __init__(self, root_dir):
         self.root_dir = None
         for path in Path(root_dir).rglob('Fissure 1'):
@@ -904,7 +904,7 @@ class RaphaelDatasetSubset(Dataset):
             raise FileNotFoundError("Structure du dataset non trouvée.")
             
         self.fissure_dirs = sorted([d for d in self.root_dir.glob('Fissure *') if d.is_dir()])
-        print(f"Dataset Raphael chargé avec {len(self.fissure_dirs)} fissures : {[d.name for d in self.fissure_dirs]}")
+        print(f"Dataset VT-GraF chargé avec {len(self.fissure_dirs)} fissures : {[d.name for d in self.fissure_dirs]}")
 
     def __len__(self):
         return len(self.fissure_dirs)
@@ -950,28 +950,28 @@ class RaphaelDatasetSubset(Dataset):
         
         return {'id': fissure_name, 'visible': vis_t, 'infrared': ir_t, 'gt': gt_t}
 
-raphael_dataset = RaphaelDatasetSubset('.')
+vt_graf_dataset = VT-GraFDatasetSubset('.')
 
 
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 # Mêmes paramètres par défaut que pour CrackForest (single modality => visible only)
-# Toutefois, pour Raphael, nous utilisons la fusion des deux modalités.
-weights_raphael = {'visible': 0.5, 'infrared': 0.5}
+# Toutefois, pour VT-GraF, nous utilisons la fusion des deux modalités.
+weights_vt_graf = {'visible': 0.5, 'infrared': 0.5}
 
-num_eval_raphael = len(raphael_dataset)
-results_raphael = []
+num_eval_vt_graf = len(vt_graf_dataset)
+results_vt_graf = []
 
-print(f"Évaluation sur le dataset Raphael ({num_eval_raphael} images)...")
+print(f"Évaluation sur le dataset VT-GraF ({num_eval_vt_graf} images)...")
 import matplotlib.pyplot as plt
 
-for i in range(num_eval_raphael):
-    sample_i = raphael_dataset[i]
+for i in range(num_eval_vt_graf):
+    sample_i = vt_graf_dataset[i]
     imgs_i = {'visible': sample_i['visible'], 'infrared': sample_i['infrared']}
     
     # Appel de la fonction avec les paramètres par défaut + K=2 et Σ=[20.0] pour le benchmark
-    frangi_response, similarity_img, centrality_i, timings, diagnostics = extract_frangi_graph_gpu(imgs_i, weights_raphael, Σ=[20.0], K=2, device=device)
+    frangi_response, similarity_img, centrality_i, timings, diagnostics = extract_frangi_graph_gpu(imgs_i, weights_vt_graf, Σ=[20.0], K=2, device=device)
     
     pred_i = (centrality_i > 0.025).astype(np.uint8)
     pred_i = skeletonize_lee(pred_i)
@@ -984,7 +984,7 @@ for i in range(num_eval_raphael):
     j, t = compute_metrics(sk_pred_thick_i, sk_gt_thick_i)
     w = wasserstein_distance_skeletons(sk_pred_thick_i, sk_gt_thick_i)
     
-    results_raphael.append({
+    results_vt_graf.append({
         'ID': sample_i['id'],
         'Jaccard (IoU)': j,
         'Tversky': t,
@@ -1049,14 +1049,14 @@ for i in range(num_eval_raphael):
     plt.tight_layout()
     plt.show()
 
-if results_raphael:
-    df_results_raphael = pd.DataFrame(results_raphael)
-    display(df_results_raphael)
+if results_vt_graf:
+    df_results_vt_graf = pd.DataFrame(results_vt_graf)
+    display(df_results_vt_graf)
 
-    print("\n--- Statistiques Globales (Raphael Fissures 1-3) ---")
-    print(f"Jaccard (IoU) Moyen : {df_results_raphael['Jaccard (IoU)'].mean():.4f} ± {df_results_raphael['Jaccard (IoU)'].std():.4f}")
-    print(f"Tversky Moyen       : {df_results_raphael['Tversky'].mean():.4f} ± {df_results_raphael['Tversky'].std():.4f}")
-    print(f"Wasserstein Moyen   : {df_results_raphael['Wasserstein'].mean():.4f} ± {df_results_raphael['Wasserstein'].std():.4f}")
+    print("\n--- Statistiques Globales (VT-GraF Fissures 1-3) ---")
+    print(f"Jaccard (IoU) Moyen : {df_results_vt_graf['Jaccard (IoU)'].mean():.4f} ± {df_results_vt_graf['Jaccard (IoU)'].std():.4f}")
+    print(f"Tversky Moyen       : {df_results_vt_graf['Tversky'].mean():.4f} ± {df_results_vt_graf['Tversky'].std():.4f}")
+    print(f"Wasserstein Moyen   : {df_results_vt_graf['Wasserstein'].mean():.4f} ± {df_results_vt_graf['Wasserstein'].std():.4f}")
 else:
     print("Aucun résultat à afficher (dataset introuvable ou vide).")
 
