@@ -8,3 +8,7 @@ CrackForest-dataset/
 
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints/
+
+# Scratch folder
+scratch/
+
