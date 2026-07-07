@@ -29,12 +29,42 @@ def decode_jet_to_grayscale(img_bgr):
     gray_img = indices.reshape(H, W).astype(np.uint8)
     return gray_img
 
+import os
+
 class VTGraFDataset(Dataset):
     def __init__(self, root_dir):
         self.root_dir = None
-        for path in Path(root_dir).rglob('Fissure 1'):
-            self.root_dir = path.parent
-            break
+        # Check standard known directories first for speed
+        known_dirs = [
+            Path(root_dir) / 'VT-GraF-Dataset',
+            Path(root_dir) / 'VT-GraF',
+            Path(root_dir) / 'Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset' / 'VT-GraF-Dataset',
+            Path(root_dir) / 'Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset' / 'VT-GraF',
+            Path('/content/drive/MyDrive/Datasets/Raphael'),
+            Path('/content/drive/MyDrive/Datasets/Raphael/VT-GraF-Dataset'),
+        ]
+        for kd in known_dirs:
+            if kd.exists() and (kd / 'Fissure 1').exists():
+                self.root_dir = kd
+                break
+                
+        if self.root_dir is None:
+            # Fallback search avoiding hidden directories (like .git)
+            def find_fissure_dir(path):
+                try:
+                    for entry in os.scandir(path):
+                        if entry.name.startswith('.'):
+                            continue
+                        if entry.is_dir():
+                            if entry.name == 'Fissure 1':
+                                return Path(entry.path).parent
+                            res = find_fissure_dir(entry.path)
+                            if res is not None:
+                                return res
+                except Exception:
+                    pass
+                return None
+            self.root_dir = find_fissure_dir(root_dir)
             
         if self.root_dir is None:
             raise FileNotFoundError("VT-GraF dataset structure (Fissure 1 directory) not found.")

@@ -929,9 +929,35 @@ folder_id = '1d79CVf9Vqgwwjqn6b2gbc40eu2MM7B7-'
 dest_dir = 'VT-GraF-Dataset'
 
 def check_dataset_exists():
-    for path in Path('.').rglob('Fissure 1'):
-        return True
-    return False
+    # 1. Check known directories first to avoid slow rglob
+    known_dirs = [
+        Path('VT-GraF-Dataset'),
+        Path('VT-GraF'),
+        Path('Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset/VT-GraF-Dataset'),
+        Path('Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset/VT-GraF'),
+        Path('/content/drive/MyDrive/Datasets/Raphael'),
+        Path('/content/drive/MyDrive/Datasets/Raphael/VT-GraF-Dataset')
+    ]
+    for kd in known_dirs:
+        if (kd / 'Fissure 1').exists():
+            return True
+            
+    # 2. Fast scan fallback that ignores hidden directories (e.g. .git, .config, .gemini)
+    def scan_dir(p):
+        try:
+            for entry in os.scandir(p):
+                if entry.name.startswith('.'):
+                    continue
+                if entry.is_dir():
+                    if entry.name == 'Fissure 1':
+                        return True
+                    if scan_dir(entry.path):
+                        return True
+        except Exception:
+            pass
+        return False
+        
+    return scan_dir('.')
 
 if not check_dataset_exists():
     print("Téléchargement du dataset VT-GraF depuis Google Drive...")
@@ -943,9 +969,36 @@ else:
 class VTGraFDatasetSubset(Dataset):
     def __init__(self, root_dir):
         self.root_dir = None
-        for path in Path(root_dir).rglob('Fissure 1'):
-            self.root_dir = path.parent
-            break
+        known_dirs = [
+            Path(root_dir) / 'VT-GraF-Dataset',
+            Path(root_dir) / 'VT-GraF',
+            Path(root_dir) / 'Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset' / 'VT-GraF-Dataset',
+            Path(root_dir) / 'Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset' / 'VT-GraF',
+            Path('/content/drive/MyDrive/Datasets/Raphael'),
+            Path('/content/drive/MyDrive/Datasets/Raphael/VT-GraF-Dataset'),
+        ]
+        for kd in known_dirs:
+            if kd.exists() and (kd / 'Fissure 1').exists():
+                self.root_dir = kd
+                break
+                
+        if self.root_dir is None:
+            # Fallback search avoiding hidden directories (like .git)
+            def find_fissure_dir(path):
+                try:
+                    for entry in os.scandir(path):
+                        if entry.name.startswith('.'):
+                            continue
+                        if entry.is_dir():
+                            if entry.name == 'Fissure 1':
+                                return Path(entry.path).parent
+                            res = find_fissure_dir(entry.path)
+                            if res is not None:
+                                return res
+                except Exception:
+                    pass
+                return None
+            self.root_dir = find_fissure_dir(root_dir)
             
         if self.root_dir is None:
             raise FileNotFoundError("Structure du dataset non trouvée.")
@@ -1463,7 +1516,7 @@ notebook = {
     "nbformat_minor": 4
 }
 
-with open("Frangi_CrackForest_GPU.ipynb", "w", encoding="utf-8") as f:
+with open("CrackForest/Frangi_CrackForest_GPU.ipynb", "w", encoding="utf-8") as f:
     json.dump(notebook, f, indent=2, ensure_ascii=False)
 
 print("Notebook CrackForest généré avec succès.")
