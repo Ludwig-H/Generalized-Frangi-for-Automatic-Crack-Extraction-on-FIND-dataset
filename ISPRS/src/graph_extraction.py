@@ -7,8 +7,8 @@ from scipy.sparse import coo_matrix
 from scipy.sparse.csgraph import minimum_spanning_tree, breadth_first_order, connected_components
 from .frangi_hessian import FrangiHessianGPU
 
-def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=5,
-                             ss=1.0, si=0.25, sa=0.3, τ=0.2, min_rel_size=150.0, K=1, device='cuda'):
+def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
+                             ss=1.0, si=0.25, sa=0.3, τ=0.18, min_rel_size=120.0, K=1, device='cuda'):
     t0 = time.time()
     
     fh = FrangiHessianGPU(Σ, device=device)

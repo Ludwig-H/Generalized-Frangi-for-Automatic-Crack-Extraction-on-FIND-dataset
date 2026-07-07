@@ -57,7 +57,9 @@ For evaluations on the VT-GraF dataset, the optimal parameters established in th
 *   **Scales ($\Sigma$)**: Multi-scale set `Σ = [20, 30, 40]` to handle large and variable crack widths.
 *   **Search Radius ($R$)**: $R = 3$ (local neighborhood of $7 \times 7$ pixels) to construct graph edges.
 *   **Graph Clique ($K$)**: $K = 2$ (simplicial complexes of dual triangle cliques) to enforce 2D topological continuity.
-*   **Centrality Threshold**: $\tau_{\text{centrality}} = 0.025$ to prune the pruned graph components.
+*   **Pruning Threshold ($\tau$)**: $\tau = 0.18$ to remove weak connections.
+*   **Minimum Component Size (`min_rel_size`)**: $120.0$ to filter small spurious branches.
+*   **Centrality Threshold**: $\tau_{\text{centrality}} = 0.020$ to prune the centerline components (optimizing for Wasserstein/spatial alignment).
 *   **Evaluation Skeleton Thickness**: **5 pixels** (`pixels=5` in `thicken()`) for both the prediction and the ground truth skeletons (to increase evaluation robustness on high-resolution images).
 
 ---
