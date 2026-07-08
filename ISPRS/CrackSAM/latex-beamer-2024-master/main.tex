@@ -60,6 +60,68 @@
 \section{Les modèles de fondation, le cas de CrackSAM}
 \frame{\sectionpage}
 
+\begin{frame}{SAM : Segment Anything Model}
+    \begin{columns}
+        \begin{column}{0.5\textwidth}
+            \begin{block}{Modèle de fondation de vision (Meta AI)}
+                \begin{itemize}
+                    \item \textbf{Entraîné sur SA-1B} : 11M d'images, 1B+ de masques.
+                    \item \textbf{Invite (Promptable)} : segmentation guidée par points, rectangles ou texte.
+                    \item \textbf{Forces} : Zéro-shot puissant pour les objets généraux, contours nets.
+                    \item \textbf{Faiblesses} : Inadapté aux structures fines (fissures) sans sémantique spécifique.
+                \end{itemize}
+            \end{block}
+        \end{column}
+        \begin{column}{0.48\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{imgs/sam_model_diagram.png}
+            \vskip 1ex
+            {\scriptsize Architecture de SAM : Encodeur d'image lourd (ViT) + Encodeur de prompt + Décodeur rapide.}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{CrackSAM : Fine-Tuning Efficace par LoRA}
+    \begin{columns}
+        \begin{column}{0.55\textwidth}
+            \begin{block}{S'attaquer au décalage de domaine (Domain Shift)}
+                \begin{itemize}
+                    \item Les scènes de génie civil ont des textures et bruits spécifiques très différents des images de pré-entraînement de SAM.
+                    \item \textbf{Trop lourd de réentraîner} le modèle entier (ViT-H $\approx 640$M de paramètres).
+                    \item \textbf{PEFT / LoRA} : On gèle le backbone de SAM et on ajoute des dérivations de bas rang ($r \ll d$) sur les projections d'attention $Q$ et $V$.
+                    \item \textbf{Léger} : Moins de $1\%$ de paramètres entraînables ($4.4$M). Entraînable sur une seule GPU RTX 3090.
+                \end{itemize}
+            \end{block}
+        \end{column}
+        \begin{column}{0.42\textwidth}
+            \centering
+            \includegraphics[width=0.85\textwidth]{imgs/extracted_p6_2.jpg}
+            \vskip 1.5ex
+            {\scriptsize Stratégie de mise à jour Low-Rank (LoRA) : $\Delta W = A \cdot B$.}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{CrackSAM : Performances en Zéro-Shot}
+    \begin{columns}
+        \begin{column}{0.48\textwidth}
+            \begin{block}{Éclate l'état de l'art}
+                \begin{itemize}
+                    \item \textbf{Robustesse au bruit} : IoU supérieure de $27\%$ à $42\%$ par rapport aux modèles classiques (U-Net, SegFormer) sous fort flou.
+                    \item \textbf{Généralisation} : Évaluation directe en zéro-shot sur de nouvelles bases complexes (\texttt{Road420}, \texttt{Facade390} par drone).
+                    \item \textbf{Distillation} : Possibilité de distiller le savoir de CrackSAM (Teacher) dans un élève léger (Student) pour l'embarqué.
+                \end{itemize}
+            \end{block}
+        \end{column}
+        \begin{column}{0.48\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{imgs/extracted_p11_0.jpg}
+            \vskip 1ex
+            {\scriptsize Comparaisons zéro-shot de CrackSAM vs SOTA sur le dataset de route \texttt{Road420}.}
+        \end{column}
+    \end{columns}
+\end{frame}
+
 \begin{frame}{Introduction et Problématique}
     \begin{block}{Auscultation des structures et risques géologiques}
         \begin{itemize}
