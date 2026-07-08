@@ -62,21 +62,21 @@
 
 \begin{frame}{SAM : Segment Anything Model}
     \begin{columns}
-        \begin{column}{0.5\textwidth}
-            \begin{block}{Modèle de fondation de vision (Meta AI)}
+        \begin{column}{0.53\textwidth}
+            \begin{block}{Un modèle géant pour tout segmenter}
                 \begin{itemize}
-                    \item \textbf{Entraîné sur SA-1B} : 11M d'images, 1B+ de masques.
-                    \item \textbf{Invite (Promptable)} : segmentation guidée par points, rectangles ou texte.
-                    \item \textbf{Forces} : Zéro-shot puissant pour les objets généraux, contours nets.
-                    \item \textbf{Faiblesses} : Inadapté aux structures fines (fissures) sans sémantique spécifique.
+                    \item \textbf{Modèle très lourd} : nécessite d'immenses ressources de calcul (plusieurs centaines de millions de paramètres).
+                    \item \textbf{Entraînement colossal} : 11 millions d'images, plus de 1 milliard de masques.
+                    \item \textbf{Interactivité par invite (Prompt)} : guidé par un point cliqué, un rectangle tracé ou un mot saisi.
+                    \item \textbf{Dans l'exemple ci-contre} : pour détourer les ciseaux, on peut cliquer sur les ciseaux (point), les entourer d'un cadre (box) ou écrire le mot «~\textit{scissors}~» (texte).
                 \end{itemize}
             \end{block}
         \end{column}
-        \begin{column}{0.48\textwidth}
+        \begin{column}{0.45\textwidth}
             \centering
             \includegraphics[width=\textwidth]{imgs/sam_model_diagram.png}
             \vskip 1ex
-            {\scriptsize Architecture de SAM : Encodeur d'image lourd (ViT) + Encodeur de prompt + Décodeur rapide.}
+            {\scriptsize Schéma de SAM : Encodeur d'image très lourd + Encodeur d'invite + Décodeur de masque rapide.}
         \end{column}
     \end{columns}
 \end{frame}
