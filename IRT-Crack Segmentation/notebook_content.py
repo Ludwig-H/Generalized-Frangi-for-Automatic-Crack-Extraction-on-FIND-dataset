@@ -728,7 +728,7 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[1, 3, 5, 7, 9, 11], R=3,
 
     N_total = H * W
 
-    num_to_keep_nodes = max(1, int(N_total * τ))
+    num_to_keep_nodes = max(1, int(N * τ))
 
     
 

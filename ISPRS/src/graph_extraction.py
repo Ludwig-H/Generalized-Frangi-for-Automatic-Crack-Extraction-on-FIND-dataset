@@ -166,7 +166,7 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
         np.maximum.at(node_sim_max, j_v, S_v)
         
     N_total = H * W
-    num_to_keep_nodes = max(1, int(N_total * τ))
+    num_to_keep_nodes = max(1, int(N * τ))
     
     valid_nodes_candidates = np.unique(np.concatenate([i_v, j_v])) if len(i_v) > 0 else np.array([], dtype=np.int32)
     
