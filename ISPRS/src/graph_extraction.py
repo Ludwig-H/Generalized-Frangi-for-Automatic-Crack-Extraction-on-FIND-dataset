@@ -445,23 +445,17 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
                         v_m_preds = preds >= 0
                         p_v, i_v_l = preds[v_m_preds], np.arange(N_L)[v_m_preds]
                         
-                        W_p_np = np.zeros(N_L, dtype=np.float32)
-                        if len(p_v) > 0:
-                            w1 = np.asarray(s_dual_S_c[p_v, i_v_l]).flatten()
-                            w2 = np.asarray(s_dual_S_c[i_v_l, p_v]).flatten()
-                            W_p_np[i_v_l] = np.maximum(w1, w2)
-                        
-                        E_m_np = np.zeros(N_L, dtype=np.float32)
+                        S_active_comp = S_v_t[active_e[n_comp_idx]].cpu().numpy()
+                        E_m_np = S_active_comp.copy()
                         for i in order[::-1]:
                             p = preds[i]
                             if p >= 0: 
-                                E_m_np[p] += E_m_np[i] + W_p_np[i]
+                                E_m_np[p] += E_m_np[i]
                             
                         M_tot = float(E_m_np[order[0]])
-                        W_p = torch.tensor(W_p_np, dtype=torch.float32, device=device)
                         E_m = torch.tensor(E_m_np, dtype=torch.float32, device=device)
                         
-                        M_child_dual = E_m + W_p
+                        M_child_dual = E_m
                         
                         sum_M_dual = torch.zeros(N_L, dtype=torch.float32, device=device)
                         sum_M2_dual = torch.zeros(N_L, dtype=torch.float32, device=device)
