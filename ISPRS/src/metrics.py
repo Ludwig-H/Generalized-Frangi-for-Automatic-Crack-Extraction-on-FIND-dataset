@@ -8,10 +8,9 @@ from skimage.morphology import skeletonize
 def skeletonize_lee(binary_mask: np.ndarray) -> np.ndarray:
     m = (binary_mask > 0).astype(np.uint8)
     
-    # Morphological closing/opening to smooth out contour irregularities
+    # Morphological closing to smooth out contour irregularities
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
     m = cv2.morphologyEx(m, cv2.MORPH_CLOSE, kernel)
-    m = cv2.morphologyEx(m, cv2.MORPH_OPEN, kernel)
     
     sk = skeletonize(m > 0, method='lee')
     return sk.astype(np.uint8)
