@@ -84,10 +84,9 @@
                     \item \textbf{Queries ($Q$) :} $Q = W_Q X$ (Ce que l'élément cherche)
                     \item \textbf{Keys ($K$) :} $K = W_K X$ (Le descripteur de chaque élément)
                     \item \textbf{Values ($V$) :} $V = W_V X$ (Le contenu de chaque élément)
-                    \item \textbf{Facteur $\sqrt{d_k}$ :} Empêche la saturation du Softmax
+                    \item \textbf{Facteur $\sqrt{d_k}$ :} Empêche la saturation du Softmax\footnotemark
                 \end{itemize}
             \end{block}
-            \footnote[frame]{\nom{Vaswani} \etal, \og Attention Is All You Need\fg{}, \textit{NeurIPS}, 2017.}
         \end{column}
         \begin{column}{0.48\textwidth}
             \centering
@@ -112,6 +111,7 @@
             \end{tikzpicture}
         \end{column}
     \end{columns}
+    \footnotetext[1]{\nom{Vaswani} \etal, \og Attention Is All You Need\fg{}, \textit{NeurIPS}, 2017.}
 \end{frame}
 
 \begin{frame}{Vision Transformers (ViT) : De l'Image aux Patchs}
@@ -122,10 +122,9 @@
                     \item \textbf{Patch Cut :} Découpage de l'image en grille de patchs plats $x_p \in \mathbb{R}^{N \times (P^2 \cdot C)}$ (ex: $P=16$).
                     \item \textbf{Patch Embedding :} Projection linéaire des patchs dans un espace de dimension $D$.
                     \item \textbf{Position :} Ajout de \textit{Positional Embeddings} 1D/2D pour retenir l'information spatiale.
-                    \item \textbf{Jeton \texttt{[CLS]} :} Ajouté au début pour résumer la sémantique de l'image.
+                    \item \textbf{Jeton \texttt{[CLS]} :} Ajouté au début pour résumer la sémantique de l'image\footnotemark.
                 \end{itemize}
             \end{block}
-            \footnote[frame]{\nom{Dosovitskiy} \etal, \og An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale\fg{}, \textit{ICLR}, 2021.}
         \end{column}
         \begin{column}{0.48\textwidth}
             \centering
@@ -134,6 +133,7 @@
             {\scriptsize Architecture d'un bloc de Transformer ViT (attention locale + MLP).}
         \end{column}
     \end{columns}
+    \footnotetext[1]{\nom{Dosovitskiy} \etal, \og An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale\fg{}, \textit{ICLR}, 2021.}
 \end{frame}
 
 \begin{frame}{SAM : Segment Anything Model}
