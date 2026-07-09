@@ -136,7 +136,7 @@
 \begin{frame}{SAM : \emph{Segment Anything Model}}
     \begin{columns}
         \begin{column}{0.56\textwidth}
-            \begin{block}{Architecture doublement asymétrique}
+            \begin{block}{Architecture asymétrique}
                 \begin{itemize}
                     \item \textbf{\emph{Image Encoder}} : Un grand \emph{ViT} (ViT-H, 637M paramètres) pré-entraîné (\emph{MAE}). Extrait un \emph{embedding} d'image de taille $64 \times 64$.
                     \item \textbf{\emph{Prompt Encoder}} : Module très léger. Encode les invites spatiales (points, boîtes via codage positionnel) ou textuelles (via \emph{CLIP}).
