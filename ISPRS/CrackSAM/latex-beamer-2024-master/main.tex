@@ -60,6 +60,71 @@
 \section{Les modèles de fondation, le cas de CrackSAM}
 \frame{\sectionpage}
 
+\begin{frame}{Le Mécanisme d'Attention des Transformers}
+    \begin{columns}
+        \begin{column}{0.5\textwidth}
+            \begin{block}{Scaled Dot-Product Attention}
+                Calcul de la similarité entre Requêtes ($Q$), Clés ($K$) et Valeurs ($V$) :
+                \begin{equation*}
+                    \text{Attention}(Q, K, V) = \text{softmax}\left(\frac{Q K^T}{\sqrt{d_k}}\right) V
+                \end{equation*}
+                \vskip 1ex
+                \begin{itemize}
+                    \item \textbf{Queries ($Q$) :} $Q = W_Q X$ (Ce que l'élément cherche)
+                    \item \textbf{Keys ($K$) :} $K = W_K X$ (Le descripteur de chaque élément)
+                    \item \textbf{Values ($V$) :} $V = W_V X$ (Le contenu de chaque élément)
+                    \item \textbf{Facteur $\sqrt{d_k}$ :} Empêche la saturation du Softmax
+                \end{itemize}
+            \end{block}
+            \footnote[frame]{\nom{Vaswani} \etal, «~Attention Is All You Need~», \textit{NeurIPS}, 2017.}
+        \end{column}
+        \begin{column}{0.48\textwidth}
+            \centering
+            \begin{tikzpicture}[scale=0.8, every node/.style={transform shape}]
+                \node (q) at (0,0) [draw, fill=rouge_inria!20, minimum width=1.0cm, minimum height=0.5cm, rounded corners] {$Q$};
+                \node (k) at (1.2,0) [draw, fill=rouge_inria!20, minimum width=1.0cm, minimum height=0.5cm, rounded corners] {$K$};
+                \node (v) at (3.2,2.4) [draw, fill=rouge_inria!20, minimum width=1.0cm, minimum height=0.5cm, rounded corners] {$V$};
+                
+                \node (matmul1) at (0.6,1.0) [draw, fill=gray!20, minimum width=1.6cm, minimum height=0.5cm] {MatMul ($QK^T$)};
+                \node (scale) at (0.6,1.8) [draw, fill=gray!20, minimum width=1.6cm, minimum height=0.5cm] {Scale ($\frac{1}{\sqrt{d_k}}$)};
+                \node (softmax) at (0.6,2.6) [draw, fill=gray!20, minimum width=1.6cm, minimum height=0.5cm] {Softmax};
+                \node (matmul2) at (1.9,3.5) [draw, fill=gray!20, minimum width=1.6cm, minimum height=0.5cm] {MatMul};
+                \node (out) at (1.9,4.4) [draw, fill=rouge_inria!40, minimum width=1.6cm, minimum height=0.5cm, rounded corners] {$Output$};
+                
+                \draw[->, >=stealth] (q) -- (matmul1);
+                \draw[->, >=stealth] (k) -- (matmul1);
+                \draw[->, >=stealth] (matmul1) -- (scale);
+                \draw[->, >=stealth] (scale) -- (softmax);
+                \draw[->, >=stealth] (softmax) -- (matmul2);
+                \draw[->, >=stealth] (v) -- (matmul2);
+                \draw[->, >=stealth] (matmul2) -- (out);
+            \end{tikzpicture}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Vision Transformers (ViT) : De l'Image aux Patchs}
+    \begin{columns}
+        \begin{column}{0.5\textwidth}
+            \begin{block}{De l'image aux jetons (tokens)}
+                \begin{itemize}
+                    \item \textbf{Patch Cut :} Découpage de l'image en grille de patchs plats $x_p \in \mathbb{R}^{N \times (P^2 \cdot C)}$ (ex: $P=16$).
+                    \item \textbf{Patch Embedding :} Projection linéaire des patchs dans un espace de dimension $D$.
+                    \item \textbf{Position :} Ajout de \textit{Positional Embeddings} 1D/2D pour retenir l'information spatiale.
+                    \item \textbf{Jeton \texttt{[CLS]} :} Ajouté au début pour résumer la sémantique de l'image.
+                \end{itemize}
+            \end{block}
+            \footnote[frame]{\nom{Dosovitskiy} \etal, «~An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale~», \textit{ICLR}, 2021.}
+        \end{column}
+        \begin{column}{0.48\textwidth}
+            \centering
+            \includegraphics[height=0.7\textheight]{imgs/extracted_p6_1.jpg}
+            \vskip 1ex
+            {\scriptsize Architecture d'un bloc de Transformer ViT (attention locale + MLP).}
+        \end{column}
+    \end{columns}
+\end{frame}
+
 \begin{frame}{SAM : Segment Anything Model}
     \begin{columns}
         \begin{column}{0.53\textwidth}
