@@ -417,6 +417,24 @@
     \footnotetext[4]{\nom{Luo} \etal, \og Geometric Consistency Protocol for Foundation Model Features in Multi-View Satellite Imagery\fg{}, \textit{arXiv:2606.17564}, 2026.}
 \end{frame}
 
+\begin{frame}{Proposition : CrackSAM Guidé par la Géométrie}
+    \begin{block}{Repenser l'Entrée du Modèle (Fusion Précoce)}
+        Pour intégrer la géométrie et la multi-modalité sans modifier l'architecture à 3 canaux de \emph{SAM}, nous proposons d'encoder :
+        \begin{itemize}
+            \item \textbf{Canal 1 (Visuel)} : Image optique RGB convertie en niveaux de gris.
+            \item \textbf{Canal 2 (Physique)} : Seconde modalité brute (Thermique pour VT-GraF, ou Range/Profondeur pour FIND).
+            \item \textbf{Canal 3 (Géométrique)} : Notre prior géométrique (carte de distance continue construite à partir du graphe de Frangi).
+        \end{itemize}
+    \end{block}
+    
+    \begin{block}{Avantages Attendus}
+        \begin{itemize}
+            \item \textbf{Zéro modification structurelle} : Le modèle \emph{SAM} d'origine accepte nativement l'image ainsi formatée.
+            \item \textbf{Apprentissage LoRA synergique} : Les adaptateurs \emph{LoRA} apprennent à associer le prior géométrique (Canal 3) à la présence physique de fissures, tout en exploitant les canaux bruts (1 et 2) pour détourer précisément les contours.
+        \end{itemize}
+    \end{block}
+\end{frame}
+
 \frame{\merci}
 
 \end{document}
