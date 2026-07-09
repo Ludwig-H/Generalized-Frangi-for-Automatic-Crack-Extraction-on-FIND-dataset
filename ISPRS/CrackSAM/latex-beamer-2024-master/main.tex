@@ -179,20 +179,33 @@
 
 \begin{frame}{CrackSAM : Performances en \emph{Zéro-Shot}}
     \begin{columns}
-        \begin{column}{0.48\textwidth}
-            \begin{block}{Pulvérise l'état de l'art}
-                \begin{itemize}
-                    \item \textbf{Version LoRA} : Très robuste au bruit. \emph{IoU} supérieure de $27\%$ à $42\%$ par rapport aux modèles classiques (\emph{U-Net}, \emph{SegFormer}) sous fort flou.
-                    \item \textbf{LoRA vs Adapter} : \emph{LoRA} ($4,4$M param.) supérieur sur bruit, \texttt{Road420} et \texttt{Concrete3k}. \emph{Adapter} ($9,1$M param.) en tête sur \texttt{Facade390}.
-                    \item \textbf{Distillation} : Transfert possible vers un modèle léger (\emph{Student}) pour l'embarqué.
-                \end{itemize}
+        \begin{column}{0.54\textwidth}
+            \begin{block}{Comparatif des performances (\emph{IoU})}
+                \centering
+                \scriptsize
+                \begin{tabular}{lccc}
+                    \toprule
+                    Dataset & \emph{SOTA} & Adapter & LoRA \\
+                    \midrule
+                    \texttt{Road420} & $58,2\%$ & $61,5\%$ & \textbf{62,2\%} \\
+                    \texttt{Facade390} & $46,2\%$ & \textbf{47,2\%} & $45,4\%$ \\
+                    \texttt{Concrete3k} & $65,3\%$ & $67,2\%$ & \textbf{68,0\%} \\
+                    \midrule
+                    Bruit fort & $44,4\%$ & $47,6\%$ & \textbf{49,1\%} \\
+                    \bottomrule
+                \end{tabular}
+                \vskip 1ex
+                {\tiny SOTA : SegFormer (MiT-B5). Bruit fort : Noisy test set 2.}
+            \end{block}
+            \begin{block}{Distillation}
+                \scriptsize Transfert possible de CrackSAM vers un modèle léger (\emph{Student}) pour l'embarqué.
             \end{block}
         \end{column}
-        \begin{column}{0.48\textwidth}
+        \begin{column}{0.42\textwidth}
             \centering
             \includegraphics[width=\textwidth]{imgs/extracted_p11_0.jpg}
             \vskip 1ex
-            {\scriptsize Comparaisons \emph{zéro-shot} de CrackSAM vs \emph{SOTA} sur le \emph{dataset} de route \texttt{Road420}.}
+            {\scriptsize Comparaisons \emph{zéro-shot} de CrackSAM vs \emph{SOTA} sur \texttt{Road420}.}
         \end{column}
     \end{columns}
 \end{frame}
