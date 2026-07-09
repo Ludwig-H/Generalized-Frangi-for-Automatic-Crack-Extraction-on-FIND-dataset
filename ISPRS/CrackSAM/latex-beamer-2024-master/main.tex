@@ -392,24 +392,30 @@
 
 
 \begin{frame}{Inspiration : Consistance Géométrique (Luo et al., 2026)}
-    \begin{block}{Le Problème et la Solution (Images Satellites)}
+    \begin{block}{Le Problème : Le piège des éléments identiques}
         \begin{itemize}
-            \item \textbf{Recherche globale trompeuse} : Trouver des points correspondants sur toute l'image échoue en zone urbaine à cause d'éléments identiques (toits, routes similaires).
-            \item \textbf{Contrainte physique (RPC)} : La géométrie du satellite impose que le point recherché se trouve obligatoirement sur une ligne courbe (ligne épipolaire).
-            \item \textbf{Recherche contrainte} : Limiter la recherche à une bande étroite ($\pm 4$~px) le long de cette courbe élimine drastiquement les faux positifs.
+            \item Une ville contient des dizaines de toits, routes ou parkings identiques.
+            \item Chercher un point dans toute l'image conduit à des confusions systématiques.
         \end{itemize}
     \end{block}
     
-    \begin{block}{Résultats et Enseignements}
+    \begin{block}{La Solution : La géométrie comme guide}
         \begin{itemize}
-            \item \textbf{Ressemblance $\neq$ Précision} : Les modèles 3D spécialisés créent des zones de ressemblance larges et floues. Les modèles 2D généraux (\emph{SAM}, \emph{DINO}) restent plus nets et géométriquement précis.
-            \item \textbf{Importance des contraintes} : La contrainte géométrique externe est indispensable pour rendre les modèles d'apprentissage profond exploitables en imagerie réelle.
+            \item La trajectoire du satellite et le relief imposent une contrainte physique.
+            \item Le point recherché se trouve obligatoirement sur une ligne courbe précise.
+            \item Limiter la recherche à cette zone élimine les fausses correspondances.
         \end{itemize}
     \end{block}
     
-    \begin{block}{Référence}
-        {\scriptsize Q. Luo, J. Yang, Y. Pi, L. Wen et M. Wang, \emph{Geometric Consistency Protocol for Foundation Model Features in Multi-View Satellite Imagery}, arXiv:2606.17564, 2026.}
+    \begin{block}{Les Enseignements}
+        \begin{itemize}
+            \item \textbf{Ressemblance $\neq$ Précision} : Les modèles 3D complexes créent des zones floues, alors qu'on a besoin d'une précision au pixel près.
+            \item Les modèles 2D généraux (\emph{SAM}) conservent des détails beaucoup plus nets.
+        \end{itemize}
     \end{block}
+    
+    \vfill
+    {\tiny Référence : Luo et al., \emph{Geometric Consistency Protocol for Foundation Model Features in Multi-View Satellite Imagery}, arXiv:2606.17564, 2026.}
 \end{frame}
 
 \frame{\merci}
