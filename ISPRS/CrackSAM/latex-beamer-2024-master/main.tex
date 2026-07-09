@@ -74,7 +74,7 @@
 \begin{frame}{Le Mécanisme d'Attention des Transformers}
     L'attention calcule la contribution de chaque élément $j$ à la représentation de l'élément $i$ (les vecteurs sont notés en gras) :
     \begin{equation*}
-        \mathbf{y}_i = \sum_{j} a_{ij} \mathbf{v}_j \quad \text{avec} \quad a_{ij} = \frac{\exp\left(\frac{\mathbf{q}_i \mathbf{k}_j^T}{\sqrt{d_k}}\right)}{\sum_{l} \exp\left(\frac{\mathbf{q}_i \mathbf{k}_l^T}{\sqrt{d_k}}\right)}
+        \mathbf{y}_i = \sum_{j} a_{ij} \mathbf{v}_j \quad \text{avec} \quad a_{ij} = \frac{\exp\left(\frac{\mathbf{q}_i \, {}^t \mathbf{k}_j}{\sqrt{d_k}}\right)}{\sum_{l} \exp\left(\frac{\mathbf{q}_i \, {}^t \mathbf{k}_l}{\sqrt{d_k}}\right)}
     \end{equation*}
     \vskip 1ex
     \begin{block}{Composantes de l'attention}
