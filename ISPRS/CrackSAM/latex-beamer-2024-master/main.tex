@@ -180,25 +180,22 @@
 \begin{frame}{CrackSAM : Performances en \emph{Zéro-Shot}}
     \begin{columns}
         \begin{column}{0.54\textwidth}
-            \begin{block}{Comparatif des performances (\emph{IoU})}
-                \centering
-                \scriptsize
-                \begin{tabular}{lccc}
-                    \toprule
-                    Dataset & \emph{SOTA} & Adapter & LoRA \\
-                    \midrule
-                    \texttt{Road420} & $58,2\%$ & $61,5\%$ & \textbf{62,2\%} \\
-                    \texttt{Facade390} & $46,2\%$ & \textbf{47,2\%} & $45,4\%$ \\
-                    \texttt{Concrete3k} & $65,3\%$ & $67,2\%$ & \textbf{68,0\%} \\
-                    \midrule
-                    Bruit fort & $44,4\%$ & $47,6\%$ & \textbf{49,1\%} \\
-                    \bottomrule
-                \end{tabular}
-                \vskip 1ex
-                {\tiny SOTA : SegFormer (MiT-B5). Bruit fort : Noisy test set 2.}
+            \begin{block}{Entraînement et Évaluation}
+                \begin{itemize}
+                    \item \textbf{Entraînement} : Ajustement fin (\emph{Fine-tuning}) sur le \emph{dataset} de \href{https://github.com/khanhha/crack_segmentation}{Khanhha} ($9\,603$ images de fissures).
+                    \item \textbf{Évaluation} : Testé en \emph{zéro-shot} (sans réapprentissage) sur 3 benchmarks :
+                        \begin{itemize}
+                            \item \href{https://github.com/KG-TSI-Civil/CrackSAM}{\texttt{Road420}} (routes, ombres, nuit).
+                            \item \href{https://github.com/KG-TSI-Civil/CrackSAM}{\texttt{Facade390}} (façades par drone, flou).
+                            \item \href{https://github.com/Yuliang-Li/HrSegNet}{\texttt{Concrete3k}} ($3\,000$ images de béton).
+                        \end{itemize}
+                \end{itemize}
             \end{block}
-            \begin{block}{Distillation}
-                \scriptsize Transfert possible de CrackSAM vers un modèle léger (\emph{Student}) pour l'embarqué.
+            \begin{block}{Résultats et Distillation}
+                \begin{itemize}
+                    \item \textbf{SOTA pulvérisée} : Robustesse extrême au bruit (\emph{IoU} $+27\%$ à $+42\%$ sous fort flou face aux modèles classiques comme \emph{U-Net} ou \emph{SegFormer}).
+                    \item \textbf{Distillation} : Possibilité de distiller vers un modèle élève (\emph{Student}) léger pour l'embarqué.
+                \end{itemize}
             \end{block}
         \end{column}
         \begin{column}{0.42\textwidth}
