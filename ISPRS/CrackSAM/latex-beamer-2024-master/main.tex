@@ -127,10 +127,10 @@
             \item \textbf{Découpage en patchs} : L'image est divisée en une grille de patchs de $16 \times 16$ pixels (qui jouent le rôle de mots).
             \item \textbf{Projection linéaire (\emph{Patch Embedding})} : Chaque patch est projeté vectoriellement dans un espace sémantique de dimension fixe.
             \item \textbf{\emph{Embeddings} de Position} : Ajout d'une coordonnée de position à chaque patch pour conserver la géométrie 2D de l'image.
-            \item \textbf{Jeton sémantique global} : Ajout d'un jeton spécial (\texttt{[CLS]}) en début de séquence pour résumer l'image entière\footnotemark[1].
+            \item \textbf{Jeton sémantique global} : Ajout d'un jeton spécial (\texttt{[CLS]}) en début de séquence pour résumer l'image entière\footnotemark[2].
         \end{enumerate}
     \end{block}
-    \footnotetext[1]{\nom{Dosovitskiy} \etal, \og An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale\fg{}, \textit{ICLR}, 2021.}
+    \footnotetext[2]{\nom{Dosovitskiy} \etal, \og An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale\fg{}, \textit{ICLR}, 2021.}
 \end{frame}
 
 \begin{frame}{SAM : \emph{Segment Anything Model}}
