@@ -392,11 +392,18 @@
 
 
 \begin{frame}{Inspiration : Consistance Géométrique (Luo et al., 2026)}
-    \begin{block}{Principes et Constats}
+    \begin{block}{Le Problème et la Solution (Images Satellites)}
         \begin{itemize}
-            \item \textbf{Limites de l'apprentissage profond} : La recherche globale non contrainte (\emph{unconstrained matching}) est trompeuse à cause des structures répétitives et de l'auto-similarité.
-            \item \textbf{La géométrie comme guide} : Restreindre la recherche à l'espace physiquement cohérent (bande épipolaire) élimine les faux positifs.
-            \item \textbf{Découplage Ressemblance/Précision} : Les modèles 3D complexes améliorent l'accord sémantique global mais lissent les détails locaux, tandis que les modèles 2D robustes (\emph{SAM}, \emph{DINO}) conservent une meilleure précision géométrique locale.
+            \item \textbf{Recherche globale trompeuse} : Trouver des points correspondants sur toute l'image échoue en zone urbaine à cause d'éléments identiques (toits, routes similaires).
+            \item \textbf{Contrainte physique (RPC)} : La géométrie du satellite impose que le point recherché se trouve obligatoirement sur une ligne courbe (ligne épipolaire).
+            \item \textbf{Recherche contrainte} : Limiter la recherche à une bande étroite ($\pm 4$~px) le long de cette courbe élimine drastiquement les faux positifs.
+        \end{itemize}
+    \end{block}
+    
+    \begin{block}{Résultats et Enseignements}
+        \begin{itemize}
+            \item \textbf{Ressemblance $\neq$ Précision} : Les modèles 3D spécialisés créent des zones de ressemblance larges et floues. Les modèles 2D généraux (\emph{SAM}, \emph{DINO}) restent plus nets et géométriquement précis.
+            \item \textbf{Importance des contraintes} : La contrainte géométrique externe est indispensable pour rendre les modèles d'apprentissage profond exploitables en imagerie réelle.
         \end{itemize}
     \end{block}
     
