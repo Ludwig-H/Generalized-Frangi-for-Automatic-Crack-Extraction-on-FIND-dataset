@@ -120,24 +120,19 @@
 \end{frame}
 
 \begin{frame}{\emph{Vision Transformers} (\emph{ViT}) : De l'Image aux Patchs}
-    \begin{columns}
-        \begin{column}{0.5\textwidth}
-            \begin{block}{De l'image aux jetons (\emph{tokens})}
-                \begin{itemize}
-                    \item \textbf{\emph{Patch Cut} :} Découpage de l'image en grille de patchs plats $x_p \in \mathbb{R}^{N \times (P^2 \cdot C)}$ (ex: $P=16$).
-                    \item \textbf{\emph{Patch Embedding} :} Projection linéaire des patchs dans un espace de dimension $D$.
-                    \item \textbf{Position :} Ajout de \emph{Positional Embeddings} 1D/2D pour retenir l'information spatiale.
-                    \item \textbf{Jeton \texttt{[CLS]} :} Ajouté au début pour résumer la sémantique de l'image\footnotemark.
-                \end{itemize}
-            \end{block}
-        \end{column}
-        \begin{column}{0.48\textwidth}
-            \centering
-            \includegraphics[height=0.7\textheight]{imgs/extracted_p6_1.jpg}
-            \vskip 1ex
-            {\scriptsize Architecture d'un bloc de \emph{Transformer} \emph{ViT} (attention locale + \emph{MLP}).}
-        \end{column}
-    \end{columns}
+    L'architecture \emph{ViT} adapte les \emph{Transformers} au traitement d'images en transformant la grille 2D de pixels en une séquence linéaire de vecteurs :
+    \vskip 1ex
+    \begin{block}{Étapes clés de traitement}
+        \begin{enumerate}
+            \item \textbf{Découpage en patchs} : L'image est découpée en une grille de $N$ patchs plats $\mathbf{x}_p^i \in \mathbb{R}^{P^2 \cdot C}$ (ex: $P=16$ pixels).
+            \item \textbf{Projection linéaire (\emph{Patch Embedding})} : Chaque patch est projeté vectoriellement dans un espace de dimension $D$ (équivalent à des \emph{tokens} de mots) :
+                \begin{equation*}
+                    \mathbf{e}_i = \mathbf{x}_p^i \mathbf{E} \quad \text{avec} \quad \mathbf{E} \in \mathbb{R}^{(P^2 \cdot C) \times D}
+                \end{equation*}
+            \item \textbf{Embeddings de Position} : Ajout d'un vecteur de position $\mathbf{E}_{\text{pos}}$ pour conserver la géométrie 2D de l'image.
+            \item \textbf{Jeton sémantique global} : Insertion du jeton \texttt{[CLS]} au début de la séquence pour résumer la représentation globale de l'image\footnotemark.
+        \end{enumerate}
+    \end{block}
     \footnotetext[1]{\nom{Dosovitskiy} \etal, \og An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale\fg{}, \textit{ICLR}, 2021.}
 \end{frame}
 
