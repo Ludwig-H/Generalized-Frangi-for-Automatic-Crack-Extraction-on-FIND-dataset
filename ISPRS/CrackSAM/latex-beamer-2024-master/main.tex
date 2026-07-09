@@ -158,21 +158,21 @@
 \begin{frame}{CrackSAM : \emph{Fine-Tuning} Efficace par \emph{LoRA}}
     \begin{block}{Difficultés de la détection de fissures}
         \begin{itemize}
-            \item \textbf{Déséquilibre extrême} : Les fissures fines ne représentent qu'une fraction infime des pixels de l'image.
-            \item \textbf{Perturbations complexes} : Présence d'ombres, de flous, d'humidité et textures rugueuses du béton.
-            \item \textbf{Changement de domaine} : Les scènes de génie civil diffèrent fortement du pré-entraînement de SAM.
+            \item \textbf{Déséquilibre extrême} : Fissures couvrant une fraction infime des pixels.
+            \item \textbf{Perturbations} : Présence d'ombres, de flous, d'humidité et textures rugueuses.
+            \item \textbf{Changement de domaine} : Écart important avec le pré-entraînement généraliste.
         \end{itemize}
     \end{block}
     \vskip 1ex
     \begin{block}{Principe de la \emph{Low-Rank Adaptation} (\emph{LoRA})}
-        On part de la matrice de poids pré-entraînée $W_0$ (gelée) et on cherche deux matrices $A$ et $B$ de petit rang $r$ telles que :
+        On cherche les matrices $A$ et $B$ de petit rang $r$ à partir des poids gelés $W_0$ :
         \begin{equation*}
             W = W_0 + \Delta W \quad \text{avec} \quad \Delta W = B \cdot A
         \end{equation*}
         \textbf{Avantages :}
         \begin{itemize}
-            \item Seules les petites matrices $A$ et $B$ sont entraînées, tandis que $W_0$ reste figée.
-            \item Division par plus de 100 du nombre de paramètres à entraîner ($\sim 4,4$M au lieu de $637$M).
+            \item Seules les matrices $A$ et $B$ sont entraînées ($W_0$ reste figée).
+            \item Paramètres à entraîner divisés par 100 ($4,4$M contre $637$M).
         \end{itemize}
     \end{block}
 \end{frame}
