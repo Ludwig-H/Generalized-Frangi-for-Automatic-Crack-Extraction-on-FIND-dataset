@@ -423,15 +423,22 @@
         \begin{center}
         \begin{tikzpicture}[scale=0.8, every node/.style={transform shape}]
             % Nodes for channels
-            \node[draw, fill=gray!15, minimum width=4.5cm, minimum height=0.5cm, rounded corners=2pt, align=center] (c1) at (0, 1.0) {\scriptsize \textbf{Canal 1 (Visuel)} : Optique en gris};
-            \node[draw, fill=red!10, minimum width=4.5cm, minimum height=0.5cm, rounded corners=2pt, align=center] (c2) at (0, 0.3) {\scriptsize \textbf{Canal 2 (Physique)} : Thermique / Range};
-            \node[draw, fill=blue!10, minimum width=4.5cm, minimum height=0.5cm, rounded corners=2pt, align=center] (c3) at (0, -0.4) {\scriptsize \textbf{Canal 3 (Géométrique)} : Distance du graphe};
+            \node[draw, fill=gray!15, minimum width=5.2cm, minimum height=0.5cm, rounded corners=2pt, align=center] (c1) at (0, 1.0) {\scriptsize \textbf{Canal 1 (Visuel)} : Optique en gris};
+            \node[draw, fill=blue!10, minimum width=5.2cm, minimum height=0.5cm, rounded corners=2pt, align=center] (c2) at (0, 0.3) {\scriptsize \textbf{Canal 2 (Géométrique)} : Similarité Frangi-graphe};
+            \node[draw, fill=orange!5, draw=orange, dashed, minimum width=5.2cm, minimum height=0.5cm, rounded corners=2pt, align=center] (c3) at (0, -0.4) {\scriptsize \textbf{Canal 3} : \textbf{\textit{À définir}} (discussion en réunion)};
 
             % Concat node
-            \node[draw, fill=orange!15, minimum width=2.4cm, minimum height=2.1cm, rounded corners=4pt, align=center] (concat) at (4.6, 0.3) {
+            \node[draw, fill=orange!15, minimum width=2.4cm, minimum height=2.1cm, rounded corners=4pt, align=center] (concat) at (4.9, 0.3) {
                 \scriptsize \textbf{Image d'entrée}\\
                 \scriptsize \textbf{à 3 canaux}\\
                 \tiny (Format $H \times W \times 3$)
+            };
+
+            % SAM block
+            \node[draw, fill=mygreen!20, minimum width=3.0cm, minimum height=1.6cm, rounded corners=4pt, thick, align=center] (sam) at (9.1, 0.3) {
+                \textbf{CrackSAM}\\
+                \scriptsize Encodeur d'image (\emph{ViT})\\
+                \tiny + Adaptateurs \emph{LoRA}
             };
 
             % Arrows to concat
@@ -440,22 +447,15 @@
             \draw[-stealth, thick] (c3.east) -- (concat.200);
 
             % Arrow to SAM
-            \draw[-stealth, ultra thick, myred] (concat.east) -- (7.2, 0.3) node[above, midway] {\scriptsize Entrée};
-
-            % SAM block
-            \node[draw, fill=mygreen!20, minimum width=3.0cm, minimum height=1.6cm, rounded corners=4pt, thick, align=center] (sam) at (9.0, 0.3) {
-                \textbf{CrackSAM}\\
-                \scriptsize Encodeur d'image (\emph{ViT})\\
-                \tiny + Adaptateurs \emph{LoRA}
-            };
+            \draw[-stealth, ultra thick, myred] (concat.east) -- (sam.west) node[above, midway] {\scriptsize Entrée};
         \end{tikzpicture}
         \end{center}
     \end{block}
     
-    \begin{block}{Avantages Attendus}
+    \begin{block}{Pistes de Réflexion pour la Réunion}
         \begin{itemize}
-            \item \textbf{Zéro modification structurelle} : Le modèle \emph{SAM} d'origine accepte nativement l'image ainsi formatée.
-            \item \textbf{Apprentissage LoRA synergique} : Les adaptateurs apprennent à associer le prior géométrique (Canal 3) à la présence physique de fissures, tout en exploitant les canaux bruts (1 et 2) pour détourer précisément les contours.
+            \item \textbf{Zéro modification structurelle} : Conserver l'architecture d'origine de \emph{SAM} sans modifier son nombre de canaux d'entrée.
+            \item \textbf{Choix du Canal 3} : Quelle information ajouter pour maximiser les performances ? (ex. Thermique/Range brut, carte d'incertitude physique, ou autre information géométrique complémentaire ?).
         \end{itemize}
     \end{block}
 \end{frame}
