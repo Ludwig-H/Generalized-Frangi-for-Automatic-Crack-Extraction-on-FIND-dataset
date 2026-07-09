@@ -157,21 +157,60 @@
 
 \begin{frame}{CrackSAM : \emph{Fine-Tuning} Efficace par \emph{LoRA}}
     \begin{columns}
-        \begin{column}{0.55\textwidth}
-            \begin{block}{S'attaquer au décalage de domaine (\emph{Domain Shift})}
+        \begin{column}{0.54\textwidth}
+            \begin{block}{Difficultés de la détection de fissures}
                 \begin{itemize}
-                    \item Les scènes de génie civil ont des textures et bruits spécifiques très différents des images de pré-entraînement de SAM.
-                    \item \textbf{Trop lourd de réentraîner} le modèle entier (\emph{ViT}-H $\approx 640$M de paramètres).
-                    \item \textbf{\emph{PEFT} / \emph{LoRA}} : On gèle le \emph{backbone} de SAM et on ajoute des dérivations de bas rang ($r \ll d$) sur les projections d'attention $Q$ et $V$.
-                    \item \textbf{Léger} : Moins de $1\%$ de paramètres entraînables ($4.4$M). Entraînable sur une seule \emph{GPU} RTX 3090.
+                    \item \textbf{Déséquilibre extrême} : Fissures fines représentant une fraction infime des pixels.
+                    \item \textbf{Perturbations complexes} : Ombres, flous, humidité et textures rugueuses du béton.
+                \end{itemize}
+            \end{block}
+            \begin{block}{Changement de domaine et \emph{LoRA}}
+                \begin{itemize}
+                    \item Les images de génie civil diffèrent fortement du pré-entraînement généraliste de SAM.
+                    \item \textbf{Gélification} : Les poids d'origine $W_0$ du modèle SAM sont gelés.
+                    \item \textbf{Ajustement de bas rang} : Ajout d'une déviation $\Delta W = B \cdot A$ de rang réduit $r$ ($r \ll d$) sur l'attention.
+                    \item \textbf{Efficacité} : Division par 100 des paramètres à entraîner.
                 \end{itemize}
             \end{block}
         \end{column}
-        \begin{column}{0.42\textwidth}
+        \begin{column}{0.44\textwidth}
             \centering
-            \includegraphics[width=0.85\textwidth]{imgs/extracted_p6_2.jpg}
-            \vskip 1.5ex
-            {\scriptsize Stratégie de mise à jour \emph{Low-Rank} (\emph{LoRA}) : $\Delta W = A \cdot B$.}
+            \begin{tikzpicture}[
+                box/.style={draw, rectangle, minimum width=1.4cm, minimum height=0.55cm, align=center, font=\scriptsize, thick},
+                frozen/.style={fill=blue!10, draw=blue!80},
+                trainable/.style={fill=orange!10, draw=orange!80}
+            ]
+                % Input
+                \node (x) at (0,0) {\scriptsize $x$};
+                
+                % Branches split
+                \node (split) [circle, fill, inner sep=1.2pt] at (0.4,0) {};
+                
+                % Main Path (Frozen)
+                \node (w0) [box, frozen] at (1.8,0.7) {Poids $W_0$\\ (\emph{Gelés})};
+                
+                % Bypass Path (Trainable LoRA)
+                \node (b) [box, trainable] at (1.4,-0.7) {Matrice $B$\\ ($r \times k$)};
+                \node (a) [box, trainable] at (3.0,-0.7) {Matrice $A$\\ ($d \times r$)};
+                
+                % Summation
+                \node (sum) [circle, draw, thick, inner sep=1.5pt] at (4.2,0) {\scriptsize $+$};
+                
+                % Output
+                \node (y) at (4.8,0) {\scriptsize $y$};
+                
+                % Connections
+                \draw[->, >=stealth, thick] (x) -- (split);
+                \draw[->, >=stealth, thick] (split) |- (w0.west);
+                \draw[->, >=stealth, thick] (split) |- (b.west);
+                \draw[->, >=stealth, thick] (b) -- (a);
+                
+                \draw[->, >=stealth, thick] (w0.east) -| (sum.north);
+                \draw[->, >=stealth, thick] (a.east) -| (sum.south);
+                \draw[->, >=stealth, thick] (sum) -- (y);
+            \end{tikzpicture}
+            \vskip 1ex
+            {\scriptsize Principe de \emph{LoRA} : Décomposition de la déviation $\Delta W = B \cdot A$ avec $B$ initialisée à $0$ (soit $\Delta W = 0$ au départ).}
         \end{column}
     \end{columns}
 \end{frame}
