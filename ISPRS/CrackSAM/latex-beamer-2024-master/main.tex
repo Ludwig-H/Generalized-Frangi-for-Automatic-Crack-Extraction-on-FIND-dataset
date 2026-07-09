@@ -135,23 +135,24 @@
 
 \begin{frame}{SAM : \emph{Segment Anything Model}}
     \begin{columns}
-        \begin{column}{0.53\textwidth}
-            \begin{block}{Un modèle géant pour tout segmenter}
+        \begin{column}{0.56\textwidth}
+            \begin{block}{Architecture doublement asymétrique}
                 \begin{itemize}
-                    \item \textbf{Modèle très lourd} : nécessite d'immenses ressources de calcul (plusieurs centaines de millions de paramètres).
-                    \item \textbf{Entraînement colossal} : 11 millions d'images, plus de 1 milliard de masques.
-                    \item \textbf{Interactivité par invite (\emph{Prompt})} : guidé par un point cliqué, un rectangle tracé ou un mot saisi.
-                    \item \textbf{Dans l'exemple ci-contre} : pour détourer les ciseaux, on peut cliquer sur les ciseaux (point), les entourer d'un cadre (\emph{box}) ou écrire le mot \og~\textit{scissors}~\fg{} (texte).
+                    \item \textbf{\emph{Image Encoder}} : Un grand \emph{ViT} (ViT-H, 637M paramètres) pré-entraîné (\emph{MAE}). Extrait un \emph{embedding} d'image de taille $64 \times 64$.
+                    \item \textbf{\emph{Prompt Encoder}} : Module très léger. Encode les invites spatiales (points, boîtes via codage positionnel) ou textuelles (via \emph{CLIP}).
+                    \item \textbf{\emph{Mask Decoder}} : Décodeur rapide par \emph{Transformer} bidirectionnel. Génère les masques en temps réel ($\sim 50$ ms)\footnotemark[3].
+                    \item \textbf{\emph{Dataset} SA-1B} : 11M d'images, 1,1 milliard de masques de haute qualité.
                 \end{itemize}
             \end{block}
         \end{column}
-        \begin{column}{0.45\textwidth}
+        \begin{column}{0.41\textwidth}
             \centering
             \includegraphics[width=\textwidth]{imgs/sam_model_diagram.png}
             \vskip 1ex
-            {\scriptsize Schéma de SAM : Encodeur d'image très lourd + Encodeur d'invite + Décodeur de masque rapide.}
+            {\scriptsize Schéma de SAM : Séparation stricte entre le calcul lourd (image) et le calcul rapide (invites).}
         \end{column}
     \end{columns}
+    \footnotetext[3]{\nom{Kirillov} \etal, \og Segment Anything\fg{}, \textit{ICCV}, 2023. Code : \texttt{github.com/facebookresearch/segment-anything}}
 \end{frame}
 
 \begin{frame}{CrackSAM : \emph{Fine-Tuning} Efficace par \emph{LoRA}}
