@@ -72,45 +72,19 @@
 \frame{\sectionpage}
 
 \begin{frame}{Le Mécanisme d'Attention des Transformers}
-    \begin{columns}
-        \begin{column}{0.5\textwidth}
-            \begin{block}{Scaled Dot-Product Attention}
-                Calcul de la similarité entre Requêtes ($Q$), Clés ($K$) et Valeurs ($V$) :
-                \begin{equation*}
-                    \text{Attention}(Q, K, V) = \text{softmax}\left(\frac{Q K^T}{\sqrt{d_k}}\right) V
-                \end{equation*}
-                \vskip 1ex
-                \begin{itemize}
-                    \item \textbf{Queries ($Q$) :} $Q = W_Q X$ (Ce que l'élément cherche)
-                    \item \textbf{Keys ($K$) :} $K = W_K X$ (Le descripteur de chaque élément)
-                    \item \textbf{Values ($V$) :} $V = W_V X$ (Le contenu de chaque élément)
-                    \item \textbf{Facteur $\sqrt{d_k}$ :} Empêche la saturation du Softmax\footnotemark
-                \end{itemize}
-            \end{block}
-        \end{column}
-        \begin{column}{0.48\textwidth}
-            \centering
-            \begin{tikzpicture}[scale=0.8, every node/.style={transform shape}]
-                \node (q) at (0,0) [draw, fill=rouge_inria!20, minimum width=1.0cm, minimum height=0.5cm, rounded corners] {$Q$};
-                \node (k) at (1.2,0) [draw, fill=rouge_inria!20, minimum width=1.0cm, minimum height=0.5cm, rounded corners] {$K$};
-                \node (v) at (3.2,2.4) [draw, fill=rouge_inria!20, minimum width=1.0cm, minimum height=0.5cm, rounded corners] {$V$};
-                
-                \node (matmul1) at (0.6,1.0) [draw, fill=gray!20, minimum width=1.6cm, minimum height=0.5cm] {MatMul ($QK^T$)};
-                \node (scale) at (0.6,1.8) [draw, fill=gray!20, minimum width=1.6cm, minimum height=0.5cm] {Scale ($\frac{1}{\sqrt{d_k}}$)};
-                \node (softmax) at (0.6,2.6) [draw, fill=gray!20, minimum width=1.6cm, minimum height=0.5cm] {Softmax};
-                \node (matmul2) at (1.9,3.5) [draw, fill=gray!20, minimum width=1.6cm, minimum height=0.5cm] {MatMul};
-                \node (out) at (1.9,4.4) [draw, fill=rouge_inria!40, minimum width=1.6cm, minimum height=0.5cm, rounded corners] {$Output$};
-                
-                \draw[->, >=stealth] (q) -- (matmul1);
-                \draw[->, >=stealth] (k) -- (matmul1);
-                \draw[->, >=stealth] (matmul1) -- (scale);
-                \draw[->, >=stealth] (scale) -- (softmax);
-                \draw[->, >=stealth] (softmax) -- (matmul2);
-                \draw[->, >=stealth] (v) -- (matmul2);
-                \draw[->, >=stealth] (matmul2) -- (out);
-            \end{tikzpicture}
-        \end{column}
-    \end{columns}
+    Le mécanisme d'auto-attention (\textit{Self-Attention}) agrège dynamiquement les informations d'une séquence en calculant des scores de similarité géométrique entre chacun de ses éléments :
+    \begin{equation*}
+        \text{Attention}(Q, K, V) = \text{softmax}\left(\frac{Q K^T}{\sqrt{d_k}}\right) V
+    \end{equation*}
+    \vskip 1ex
+    \begin{block}{Composantes de l'attention}
+        \begin{itemize}
+            \item \textbf{Queries ($Q$) :} $Q = W_Q X$ (Ce que l'élément cherche)
+            \item \textbf{Keys ($K$) :} $K = W_K X$ (Le descripteur de chaque élément)
+            \item \textbf{Values ($V$) :} $V = W_V X$ (Le contenu sémantique de chaque élément)
+            \item \textbf{Facteur $\sqrt{d_k}$ :} Empêche la saturation du Softmax\footnotemark
+        \end{itemize}
+    \end{block}
     \footnotetext[1]{\nom{Vaswani} \etal, \og Attention Is All You Need\fg{}, \textit{NeurIPS}, 2017.}
 \end{frame}
 
