@@ -72,16 +72,16 @@
 \frame{\sectionpage}
 
 \begin{frame}{Le Mécanisme d'Attention des Transformers}
-    Le mécanisme d'auto-attention (\textit{Self-Attention}) agrège dynamiquement les informations d'une séquence en calculant des scores de similarité géométrique entre chacun de ses éléments :
+    L'attention calcule la contribution de chaque élément $j$ à la représentation de l'élément $i$ :
     \begin{equation*}
-        \text{Attention}(Q, K, V) = \text{softmax}\left(\frac{Q K^T}{\sqrt{d_k}}\right) V
+        y_i = \sum_{j} a_{ij} v_j \quad \text{avec} \quad a_{ij} = \frac{\exp\left(\frac{q_i k_j^T}{\sqrt{d_k}}\right)}{\sum_{l} \exp\left(\frac{q_i k_l^T}{\sqrt{d_k}}\right)}
     \end{equation*}
     \vskip 1ex
     \begin{block}{Composantes de l'attention}
         \begin{itemize}
-            \item \textbf{Queries ($Q$) :} $Q = W_Q X$ (Ce que l'élément cherche)
-            \item \textbf{Keys ($K$) :} $K = W_K X$ (Le descripteur de chaque élément)
-            \item \textbf{Values ($V$) :} $V = W_V X$ (Le contenu sémantique de chaque élément)
+            \item \textbf{Queries ($q_i$) :} Requête de l'élément $i$ (ce qu'il cherche)
+            \item \textbf{Keys ($k_j$) :} Clé de l'élément $j$ (ce qu'il propose)
+            \item \textbf{Values ($v_j$) :} Valeur de l'élément $j$ (son contenu sémantique)
             \item \textbf{Facteur $\sqrt{d_k}$ :} Empêche la saturation du Softmax\footnotemark
         \end{itemize}
     \end{block}
