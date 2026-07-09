@@ -182,9 +182,9 @@
         \begin{column}{0.48\textwidth}
             \begin{block}{Pulvérise l'état de l'art}
                 \begin{itemize}
-                    \item \textbf{Robustesse au bruit} : \emph{IoU} supérieure de $27\%$ à $42\%$ par rapport aux modèles classiques (\emph{U-Net}, \emph{SegFormer}) sous fort flou.
-                    \item \textbf{Généralisation} : Évaluation directe en \emph{zéro-shot} sur de nouvelles bases complexes (\texttt{Road420}, \texttt{Facade390} par drone, et \texttt{Concrete3k}).
-                    \item \textbf{Distillation} : Possibilité de distiller le savoir de CrackSAM (\emph{Teacher}) dans un élève léger (\emph{Student}) pour l'embarqué.
+                    \item \textbf{Version LoRA} : Très robuste au bruit. \emph{IoU} supérieure de $27\%$ à $42\%$ par rapport aux modèles classiques (\emph{U-Net}, \emph{SegFormer}) sous fort flou.
+                    \item \textbf{LoRA vs Adapter} : \emph{LoRA} ($4,4$M param.) supérieur sur bruit, \texttt{Road420} et \texttt{Concrete3k}. \emph{Adapter} ($9,1$M param.) en tête sur \texttt{Facade390}.
+                    \item \textbf{Distillation} : Transfert possible vers un modèle léger (\emph{Student}) pour l'embarqué.
                 \end{itemize}
             \end{block}
         \end{column}
