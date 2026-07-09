@@ -71,7 +71,7 @@
 \section{Les modèles de fondation, le cas de CrackSAM}
 \frame{\sectionpage}
 
-\begin{frame}{Le Mécanisme d'Attention des Transformers}
+\begin{frame}{Le Mécanisme d'Attention des \emph{Transformers}}
     L'attention calcule la contribution de chaque élément $j$ à la représentation de l'élément $i$ :
     \begin{equation*}
         \mathbf{y}_i = \sum_{j} a_{ij} \mathbf{v}_j \quad \text{avec} \quad a_{ij} = \frac{\exp\left(\frac{\mathbf{q}_i \, {}^t \mathbf{k}_j}{\sqrt{d_k}}\right)}{\sum_{l} \exp\left(\frac{\mathbf{q}_i \, {}^t \mathbf{k}_l}{\sqrt{d_k}}\right)}
@@ -79,34 +79,34 @@
     \vskip 1ex
     \begin{block}{Composantes de l'attention}
         \begin{itemize}
-            \item \textbf{Queries ($\mathbf{q}_i$) :} Requête de l'élément $i$ (ce qu'il cherche)
-            \item \textbf{Keys ($\mathbf{k}_j$) :} Clé de l'élément $j$ (ce qu'il propose)
-            \item \textbf{Values ($\mathbf{v}_j$) :} Valeur de l'élément $j$ (son contenu sémantique)
+            \item \textbf{\emph{Queries} ($\mathbf{q}_i$) :} Requête de l'élément $i$ (ce qu'il cherche)
+            \item \textbf{\emph{Keys} ($\mathbf{k}_j$) :} Clé de l'élément $j$ (ce qu'il propose)
+            \item \textbf{\emph{Values} ($\mathbf{v}_j$) :} Valeur de l'élément $j$ (son contenu sémantique)
             \item \textbf{Facteur $\sqrt{d_k}$ et poids $a_{ij}$ :} Facteur d'échelle et score d'attention\footnotemark
         \end{itemize}
     \end{block}
     \footnotetext[1]{\nom{Vaswani} \etal, \og Attention Is All You Need\fg{}, \textit{NeurIPS}, 2017.}
 \end{frame}
 
-\begin{frame}{Modèles de Fondation \& Transformers}
+\begin{frame}{Modèles de Fondation \& \emph{Transformers}}
     \begin{columns}
         \begin{column}{0.5\textwidth}
             \begin{block}{Trois piliers des modèles de fondation}
                 Un modèle unique pré-entraîné à grande échelle pour être adapté à de nombreuses tâches :
                 \begin{itemize}
-                    \item \textbf{Scale} : taille du modèle (milliards de paramètres) et des données.
+                    \item \textbf{\emph{Scale}} : taille du modèle (milliards de paramètres) et des données.
                     \item \textbf{Auto-supervision} : pré-entraînement autonome sans annotations.
-                    \item \textbf{Homogénéisation} : socle commun réutilisable par transfert d'apprentissage.
+                    \item \textbf{Adaptabilité (\emph{Fine tuning})} : socle commun réutilisable.
                 \end{itemize}
             \end{block}
         \end{column}
         \begin{column}{0.48\textwidth}
-            \begin{block}{Rôle des Transformers}
-                L'architecture Transformer (ViT, GPT) domine largement ce domaine.
+            \begin{block}{Rôle des \emph{Transformers}}
+                L'architecture \emph{Transformer} (\emph{ViT}, \emph{GPT}) domine largement ce domaine.
                 \vskip 1ex
                 \textbf{Avantages :}
                 \begin{itemize}
-                    \item Parallélisation massive (entraînement rapide).
+                    \item Parallélisation massive (entraînement rapide sur \emph{GPU}).
                     \item Capacité de généralisation exceptionnelle.
                 \end{itemize}
                 \textbf{Limites :}
@@ -119,14 +119,14 @@
     \end{columns}
 \end{frame}
 
-\begin{frame}{Vision Transformers (ViT) : De l'Image aux Patchs}
+\begin{frame}{\emph{Vision Transformers} (\emph{ViT}) : De l'Image aux Patchs}
     \begin{columns}
         \begin{column}{0.5\textwidth}
-            \begin{block}{De l'image aux jetons (tokens)}
+            \begin{block}{De l'image aux jetons (\emph{tokens})}
                 \begin{itemize}
-                    \item \textbf{Patch Cut :} Découpage de l'image en grille de patchs plats $x_p \in \mathbb{R}^{N \times (P^2 \cdot C)}$ (ex: $P=16$).
-                    \item \textbf{Patch Embedding :} Projection linéaire des patchs dans un espace de dimension $D$.
-                    \item \textbf{Position :} Ajout de \textit{Positional Embeddings} 1D/2D pour retenir l'information spatiale.
+                    \item \textbf{\emph{Patch Cut} :} Découpage de l'image en grille de patchs plats $x_p \in \mathbb{R}^{N \times (P^2 \cdot C)}$ (ex: $P=16$).
+                    \item \textbf{\emph{Patch Embedding} :} Projection linéaire des patchs dans un espace de dimension $D$.
+                    \item \textbf{Position :} Ajout de \emph{Positional Embeddings} 1D/2D pour retenir l'information spatiale.
                     \item \textbf{Jeton \texttt{[CLS]} :} Ajouté au début pour résumer la sémantique de l'image\footnotemark.
                 \end{itemize}
             \end{block}
@@ -135,21 +135,21 @@
             \centering
             \includegraphics[height=0.7\textheight]{imgs/extracted_p6_1.jpg}
             \vskip 1ex
-            {\scriptsize Architecture d'un bloc de Transformer ViT (attention locale + MLP).}
+            {\scriptsize Architecture d'un bloc de \emph{Transformer} \emph{ViT} (attention locale + \emph{MLP}).}
         \end{column}
     \end{columns}
     \footnotetext[1]{\nom{Dosovitskiy} \etal, \og An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale\fg{}, \textit{ICLR}, 2021.}
 \end{frame}
 
-\begin{frame}{SAM : Segment Anything Model}
+\begin{frame}{SAM : \emph{Segment Anything Model}}
     \begin{columns}
         \begin{column}{0.53\textwidth}
             \begin{block}{Un modèle géant pour tout segmenter}
                 \begin{itemize}
                     \item \textbf{Modèle très lourd} : nécessite d'immenses ressources de calcul (plusieurs centaines de millions de paramètres).
                     \item \textbf{Entraînement colossal} : 11 millions d'images, plus de 1 milliard de masques.
-                    \item \textbf{Interactivité par invite (Prompt)} : guidé par un point cliqué, un rectangle tracé ou un mot saisi.
-                    \item \textbf{Dans l'exemple ci-contre} : pour détourer les ciseaux, on peut cliquer sur les ciseaux (point), les entourer d'un cadre (box) ou écrire le mot \og~\textit{scissors}~\fg{} (texte).
+                    \item \textbf{Interactivité par invite (\emph{Prompt})} : guidé par un point cliqué, un rectangle tracé ou un mot saisi.
+                    \item \textbf{Dans l'exemple ci-contre} : pour détourer les ciseaux, on peut cliquer sur les ciseaux (point), les entourer d'un cadre (\emph{box}) ou écrire le mot \og~\textit{scissors}~\fg{} (texte).
                 \end{itemize}
             \end{block}
         \end{column}
@@ -162,15 +162,15 @@
     \end{columns}
 \end{frame}
 
-\begin{frame}{CrackSAM : Fine-Tuning Efficace par LoRA}
+\begin{frame}{CrackSAM : \emph{Fine-Tuning} Efficace par \emph{LoRA}}
     \begin{columns}
         \begin{column}{0.55\textwidth}
-            \begin{block}{S'attaquer au décalage de domaine (Domain Shift)}
+            \begin{block}{S'attaquer au décalage de domaine (\emph{Domain Shift})}
                 \begin{itemize}
                     \item Les scènes de génie civil ont des textures et bruits spécifiques très différents des images de pré-entraînement de SAM.
-                    \item \textbf{Trop lourd de réentraîner} le modèle entier (ViT-H $\approx 640$M de paramètres).
-                    \item \textbf{PEFT / LoRA} : On gèle le backbone de SAM et on ajoute des dérivations de bas rang ($r \ll d$) sur les projections d'attention $Q$ et $V$.
-                    \item \textbf{Léger} : Moins de $1\%$ de paramètres entraînables ($4.4$M). Entraînable sur une seule GPU RTX 3090.
+                    \item \textbf{Trop lourd de réentraîner} le modèle entier (\emph{ViT}-H $\approx 640$M de paramètres).
+                    \item \textbf{\emph{PEFT} / \emph{LoRA}} : On gèle le \emph{backbone} de SAM et on ajoute des dérivations de bas rang ($r \ll d$) sur les projections d'attention $Q$ et $V$.
+                    \item \textbf{Léger} : Moins de $1\%$ de paramètres entraînables ($4.4$M). Entraînable sur une seule \emph{GPU} RTX 3090.
                 \end{itemize}
             \end{block}
         \end{column}
@@ -178,19 +178,19 @@
             \centering
             \includegraphics[width=0.85\textwidth]{imgs/extracted_p6_2.jpg}
             \vskip 1.5ex
-            {\scriptsize Stratégie de mise à jour Low-Rank (LoRA) : $\Delta W = A \cdot B$.}
+            {\scriptsize Stratégie de mise à jour \emph{Low-Rank} (\emph{LoRA}) : $\Delta W = A \cdot B$.}
         \end{column}
     \end{columns}
 \end{frame}
 
-\begin{frame}{CrackSAM : Performances en Zéro-Shot}
+\begin{frame}{CrackSAM : Performances en \emph{Zéro-Shot}}
     \begin{columns}
         \begin{column}{0.48\textwidth}
             \begin{block}{Éclate l'état de l'art}
                 \begin{itemize}
-                    \item \textbf{Robustesse au bruit} : IoU supérieure de $27\%$ à $42\%$ par rapport aux modèles classiques (U-Net, SegFormer) sous fort flou.
-                    \item \textbf{Généralisation} : Évaluation directe en zéro-shot sur de nouvelles bases complexes (\texttt{Road420}, \texttt{Facade390} par drone).
-                    \item \textbf{Distillation} : Possibilité de distiller le savoir de CrackSAM (Teacher) dans un élève léger (Student) pour l'embarqué.
+                    \item \textbf{Robustesse au bruit} : \emph{IoU} supérieure de $27\%$ à $42\%$ par rapport aux modèles classiques (\emph{U-Net}, \emph{SegFormer}) sous fort flou.
+                    \item \textbf{Généralisation} : Évaluation directe en \emph{zéro-shot} sur de nouvelles bases complexes (\texttt{Road420}, \texttt{Facade390} par drone).
+                    \item \textbf{Distillation} : Possibilité de distiller le savoir de CrackSAM (\emph{Teacher}) dans un élève léger (\emph{Student}) pour l'embarqué.
                 \end{itemize}
             \end{block}
         \end{column}
@@ -198,7 +198,7 @@
             \centering
             \includegraphics[width=\textwidth]{imgs/extracted_p11_0.jpg}
             \vskip 1ex
-            {\scriptsize Comparaisons zéro-shot de CrackSAM vs SOTA sur le dataset de route \texttt{Road420}.}
+            {\scriptsize Comparaisons \emph{zéro-shot} de CrackSAM vs \emph{SOTA} sur le \emph{dataset} de route \texttt{Road420}.}
         \end{column}
     \end{columns}
 \end{frame}
@@ -210,7 +210,7 @@
             \item Le relevé manuel est chronophage, subjectif et difficile à généraliser à grande échelle.
         \end{itemize}
     \end{block}
-    \begin{block}{Limites des approches par Apprentissage Profond (Deep Learning)}
+    \begin{block}{Limites des approches par Apprentissage Profond (\emph{Deep Learning})}
         \begin{itemize}
             \item Les modèles de segmentation actuels (\eg CrackSegDiff) obtiennent de très bons scores mais se comportent comme des \og boîtes noires \fg{}.
             \item Dépendance critique à de grands volumes de données annotées par des experts.
