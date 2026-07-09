@@ -71,7 +71,7 @@
 \section{Les modèles de fondation, le cas de CrackSAM}
 \frame{\sectionpage}
 
-\begin{frame}{Le Mécanisme d'Attention des \emph{Transformers}}
+\begin{frame}{Le Mécanisme d'Attention des \emph{Transformers}\footnotemark[1]}
     L'attention calcule la contribution de chaque élément $j$ à la représentation de l'élément $i$ :
     \begin{equation*}
         \mathbf{y}_i = \sum_{j} a_{ij} \mathbf{v}_j \quad \text{avec} \quad a_{ij} = \frac{\exp\left(\frac{\mathbf{q}_i \, {}^t \mathbf{k}_j}{\sqrt{d_k}}\right)}{\sum_{l} \exp\left(\frac{\mathbf{q}_i \, {}^t \mathbf{k}_l}{\sqrt{d_k}}\right)}
@@ -82,7 +82,7 @@
             \item \textbf{\emph{Queries} ($\mathbf{q}_i$) :} Requête de l'élément $i$ (ce qu'il cherche)
             \item \textbf{\emph{Keys} ($\mathbf{k}_j$) :} Clé de l'élément $j$ (ce qu'il propose)
             \item \textbf{\emph{Values} ($\mathbf{v}_j$) :} Valeur de l'élément $j$ (son contenu sémantique)
-            \item \textbf{Facteur $\sqrt{d_k}$ et poids $a_{ij}$ :} Facteur d'échelle et score d'attention\footnotemark
+            \item \textbf{Facteur $\sqrt{d_k}$ et poids $a_{ij}$ :} Facteur d'échelle et score d'attention.
         \end{itemize}
     \end{block}
     \footnotetext[1]{\nom{Vaswani} \etal, \og Attention Is All You Need\fg{}, \textit{NeurIPS}, 2017.}
@@ -119,7 +119,7 @@
     \end{columns}
 \end{frame}
 
-\begin{frame}{\emph{Vision Transformers} (\emph{ViT}) : De l'Image aux Patchs}
+\begin{frame}{\emph{Vision Transformers} (\emph{ViT}) : De l'Image aux Patchs\footnotemark[2]}
     L'architecture \emph{ViT} adapte les \emph{Transformers} au traitement d'images en découpant l'image en une séquence de morceaux :
     \vskip 1ex
     \begin{block}{Étapes clés de traitement}
@@ -127,20 +127,20 @@
             \item \textbf{Découpage en patchs} : L'image est divisée en une grille de patchs de $16 \times 16$ pixels (qui jouent le rôle de mots).
             \item \textbf{Projection linéaire (\emph{Patch Embedding})} : Chaque patch est projeté vectoriellement dans un espace sémantique de dimension fixe.
             \item \textbf{\emph{Embeddings} de Position} : Ajout d'une coordonnée de position à chaque patch pour conserver la géométrie 2D de l'image.
-            \item \textbf{Jeton sémantique global} : Ajout d'un jeton virtuel en début de séquence pour résumer toute l'image\footnotemark[2].
+            \item \textbf{Jeton sémantique global} : Ajout d'un jeton virtuel en début de séquence pour résumer toute l'image.
         \end{enumerate}
     \end{block}
     \footnotetext[2]{\nom{Dosovitskiy} \etal, \og An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale\fg{}, \textit{ICLR}, 2021.}
 \end{frame}
 
-\begin{frame}{SAM : \emph{Segment Anything Model}}
+\begin{frame}{SAM : \emph{Segment Anything Model}\footnotemark[3]}
     \begin{columns}
         \begin{column}{0.56\textwidth}
             \begin{block}{Architecture asymétrique}
                 \begin{itemize}
                     \item \textbf{\emph{Image Encoder}} : Un grand \emph{ViT} (ViT-H, 637M paramètres) pré-entraîné (\emph{MAE}). Extrait un \emph{embedding} d'image de taille $64 \times 64$.
                     \item \textbf{\emph{Prompt Encoder}} : Module très léger. Encode les invites spatiales (points, boîtes via codage positionnel) ou textuelles (via \emph{CLIP}).
-                    \item \textbf{\emph{Mask Decoder}} : Décodeur rapide par \emph{Transformer} bidirectionnel. Génère les masques en temps réel ($\sim 50$ ms)\footnotemark[3].
+                    \item \textbf{\emph{Mask Decoder}} : Décodeur rapide par \emph{Transformer} bidirectionnel. Génère les masques en temps réel ($\sim 50$ ms).
                     \item \textbf{\emph{Dataset} SA-1B} : 11M d'images, 1,1 milliard de masques de haute qualité.
                 \end{itemize}
             \end{block}
