@@ -207,35 +207,6 @@
     \end{columns}
 \end{frame}
 
-\begin{frame}{Introduction et Problématique}
-    \begin{block}{Auscultation des structures et risques géologiques}
-        \begin{itemize}
-            \item L'évaluation de l'intégrité des infrastructures (ponts, routes, centrales nucléaires) et la surveillance des risques géologiques (failles, glissements de terrain) requièrent une cartographie précise des fissures.
-            \item Le relevé manuel est chronophage, subjectif et difficile à généraliser à grande échelle.
-        \end{itemize}
-    \end{block}
-    \begin{block}{Limites des approches par Apprentissage Profond (\emph{Deep Learning})}
-        \begin{itemize}
-            \item Les modèles de segmentation actuels (\eg CrackSegDiff) obtiennent de très bons scores mais se comportent comme des \og boîtes noires \fg{}.
-            \item Dépendance critique à de grands volumes de données annotées par des experts.
-            \item \textbf{Manque de robustesse} face aux décalages de domaine (nouveaux capteurs, textures inédites, bruits inconnus).
-        \end{itemize}
-    \end{block}
-\end{frame}
-
-\begin{frame}{Objectifs et Contributions}
-    \begin{block}{Notre approche : universelle, géométrique et sans apprentissage}
-        Nous proposons une méthode non supervisée qui fusionne des données multi-modales (optique et profondeur) dans une représentation de graphe géométrique robuste.
-    \end{block}
-    \begin{block}{Contributions principales}
-        \begin{enumerate}
-            \item \textbf{Fusion au niveau de l'opérateur (Hessien) :} Combinaison des matrices Hessiennes normalisées pour exploiter la cohérence géométrique (vecteurs propres) des fissures à travers les modalités.
-            \item \textbf{Graphe de Frangi Généralisé :} Modélisation sous forme de graphe spatial à grand rayon ($R=10$ px) codant la similarité géométrique locale (élongation, contraste, alignement).
-            \item \textbf{Algorithme d'extraction topologique :} Prétraitement par double seuillage, réduction par arbre couvrant minimal (MST) et squelettisation par centralité de degré pondérée.
-            \item \textbf{Robustesse et validation :} Stabilité face aux bruits intenses sur le benchmark FIND et transférabilité en zéro-shot (Palais des Papes).
-        \end{enumerate}
-    \end{block}
-\end{frame}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Insertion d'\emph{a priori} géométriques}
