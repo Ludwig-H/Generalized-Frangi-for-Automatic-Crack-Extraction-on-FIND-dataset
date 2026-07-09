@@ -87,7 +87,7 @@
                     \item \textbf{Facteur $\sqrt{d_k}$ :} Empêche la saturation du Softmax
                 \end{itemize}
             \end{block}
-            \footnote[frame]{\nom{Vaswani} \etal, «~Attention Is All You Need~», \textit{NeurIPS}, 2017.}
+            \footnote[frame]{\nom{Vaswani} \etal, \og Attention Is All You Need\fg{}, \textit{NeurIPS}, 2017.}
         \end{column}
         \begin{column}{0.48\textwidth}
             \centering
@@ -125,7 +125,7 @@
                     \item \textbf{Jeton \texttt{[CLS]} :} Ajouté au début pour résumer la sémantique de l'image.
                 \end{itemize}
             \end{block}
-            \footnote[frame]{\nom{Dosovitskiy} \etal, «~An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale~», \textit{ICLR}, 2021.}
+            \footnote[frame]{\nom{Dosovitskiy} \etal, \og An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale\fg{}, \textit{ICLR}, 2021.}
         \end{column}
         \begin{column}{0.48\textwidth}
             \centering
@@ -144,7 +144,7 @@
                     \item \textbf{Modèle très lourd} : nécessite d'immenses ressources de calcul (plusieurs centaines de millions de paramètres).
                     \item \textbf{Entraînement colossal} : 11 millions d'images, plus de 1 milliard de masques.
                     \item \textbf{Interactivité par invite (Prompt)} : guidé par un point cliqué, un rectangle tracé ou un mot saisi.
-                    \item \textbf{Dans l'exemple ci-contre} : pour détourer les ciseaux, on peut cliquer sur les ciseaux (point), les entourer d'un cadre (box) ou écrire le mot «~\textit{scissors}~» (texte).
+                    \item \textbf{Dans l'exemple ci-contre} : pour détourer les ciseaux, on peut cliquer sur les ciseaux (point), les entourer d'un cadre (box) ou écrire le mot \og~\textit{scissors}~\fg{} (texte).
                 \end{itemize}
             \end{block}
         \end{column}
@@ -207,7 +207,7 @@
     \end{block}
     \begin{block}{Limites des approches par Apprentissage Profond (Deep Learning)}
         \begin{itemize}
-            \item Les modèles de segmentation actuels (\eg CrackSegDiff) obtiennent de très bons scores mais se comportent comme des « boîtes noires ».
+            \item Les modèles de segmentation actuels (\eg CrackSegDiff) obtiennent de très bons scores mais se comportent comme des \og boîtes noires \fg{}.
             \item Dépendance critique à de grands volumes de données annotées par des experts.
             \item \textbf{Manque de robustesse} face aux décalages de domaine (nouveaux capteurs, textures inédites, bruits inconnus).
         \end{itemize}
@@ -246,17 +246,17 @@
                 \mathcal{H}_{\sigma}^{\text{fused}}(\mathbf{x}) = \sum_{m} w_m \hat{\mathcal{H}}_{\sigma}^{(m)}(\mathbf{x})
             \end{equation*}
             \item Décomposition spectrale : valeurs propres $\lambda_1, \lambda_2$ ($|\lambda_1| \le |\lambda_2|$) et vecteurs propres associés.
-            \item Prior physique : les fissures sont modélisées comme des « vallées sombres » ($\lambda_2 > 0$).
+            \item Prior physique : les fissures sont modélisées comme des \og vallées sombres \fg{} ($\lambda_2 > 0$).
         \end{itemize}
     \end{block}
 \end{frame}
 
 \begin{frame}{Graphe de Similarité de Frangi Généralisé}
-    On définit un graphe spatial $G=(V, E)$ où les nœuds $V$ sont les pixels et les arêtes $E$ connectent les voisins dans un rayon $R = 10\text{ px}$ (permettant de franchir les discontinuités dues au bruit).
+    On définit un graphe spatial $G=(V, E)$ où les n\oe{}uds $V$ sont les pixels et les arêtes $E$ connectent les voisins dans un rayon $R = 10\text{ px}$ (permettant de franchir les discontinuities dues au bruit).
     \begin{block}{Similarité d'arête $S_{ij} = \max_{\sigma} ( \mathcal{S}_{\text{shape}}^\sigma \cdot \mathcal{S}_{\text{int}}^\sigma \cdot \mathcal{S}_{\text{align}}^\sigma ) \in [0, 1]$}
         \begin{itemize}
             \item \textbf{Élongation ($\mathcal{S}_{\text{shape}}$) :} Utilise le ratio de Frangi $\mathcal{R}_B = |\lambda_1|/|\lambda_2|$ pour rejeter les structures de type bulles/blobs.
-            \item \textbf{Intensité/Contraste ($\mathcal{S}_{\text{int}}$) :} Favorise les zones à forte courbure ($\lambda_2$) de manière multiplicative (les deux nœuds doivent être sur la fissure).
+            \item \textbf{Intensité/Contraste ($\mathcal{S}_{\text{int}}$) :} Favorise les zones à forte courbure ($\lambda_2$) de manière multiplicative (les deux n\oe{}uds doivent être sur la fissure).
             \item \textbf{Alignement géométrique ($\mathcal{S}_{\text{align}}$) :} Colle topologique pénalisant la désorientation des vecteurs propres principaux ($\delta_\theta$).
         \end{itemize}
     \end{block}
@@ -302,9 +302,9 @@
     L'extraction se fait en 4 étapes clés :
     \begin{block}{Algorithme d'extraction}
         \begin{enumerate}
-            \item \textbf{Double Seuillage :} Filtrage des nœuds sur la courbure $\lambda_2$ puis des arêtes sur la similarité $S_{ij}$ pour éliminer le bruit.
+            \item \textbf{Double Seuillage :} Filtrage des n\oe{}uds sur la courbure $\lambda_2$ puis des arêtes sur la similarité $S_{ij}$ pour éliminer le bruit.
             \item \textbf{Arbre Couvrant Minimal (MST) :} Réduction du graphe sur la composante principale. Le MST simplifie le réseau en une structure arborescente légère tout en conservant les connexions les plus fortes.
-            \item \textbf{Centralité de Degré Pondérée (Weighted Betweenness) :} Calcul rapide sur l'arbre. Les nœuds situés sur l'axe central de la fissure accumulent un grand nombre de chemins minimaux et obtiennent un score de centralité élevé.
+            \item \textbf{Centralité de Degré Pondérée (Weighted Betweenness) :} Calcul rapide sur l'arbre. Les n\oe{}uds situés sur l'axe central de la fissure accumulent un grand nombre de chemins minimaux et obtiennent un score de centralité élevé.
             \item \textbf{Élagage Adaptatif :} Suppression des branches secondaires à faible centralité pour obtenir un squelette précis de 1 pixel d'épaisseur.
         \end{enumerate}
     \end{block}
@@ -376,7 +376,7 @@
                 \end{tabular}
             \end{table}
             \begin{block}{Observations}
-                Le modèle supervisé CrackSegDiff surpasse notre méthode sur les données propres de la distribution d'apprentissage. C'est attendu car il apprend par cœur la texture et le bruit spécifique de cette base de données.
+                Le modèle supervisé CrackSegDiff surpasse notre méthode sur les données propres de la distribution d'apprentissage. C'est attendu car il apprend par c\oe{}ur la texture et le bruit spécifique de cette base de données.
             \end{block}
         \end{column}
         \begin{column}{0.48\textwidth}
