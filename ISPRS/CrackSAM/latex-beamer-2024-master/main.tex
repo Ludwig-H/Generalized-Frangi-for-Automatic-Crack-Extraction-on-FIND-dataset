@@ -110,6 +110,37 @@
     \footnotetext[1]{\nom{Dosovitskiy} \etal, \og An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale\fg{}, \textit{ICLR}, 2021.}
 \end{frame}
 
+\begin{frame}{Modèles de Fondation \& Transformers}
+    \begin{columns}
+        \begin{column}{0.5\textwidth}
+            \begin{block}{Trois piliers des modèles de fondation}
+                Un modèle unique pré-entraîné à grande échelle pour être adapté à de nombreuses tâches :
+                \begin{itemize}
+                    \item \textbf{Scale} : taille du modèle (milliards de paramètres) et des données.
+                    \item \textbf{Auto-supervision} : pré-entraînement autonome sans annotations.
+                    \item \textbf{Homogénéisation} : socle commun réutilisable par transfert d'apprentissage.
+                \end{itemize}
+            \end{block}
+        \end{column}
+        \begin{column}{0.48\textwidth}
+            \begin{block}{Rôle des Transformers}
+                L'architecture Transformer (ViT, GPT) domine largement ce domaine.
+                \vskip 1ex
+                \textbf{Avantages :}
+                \begin{itemize}
+                    \item Parallélisation massive (entraînement rapide).
+                    \item Capacité de généralisation exceptionnelle.
+                \end{itemize}
+                \textbf{Limites :}
+                \begin{itemize}
+                    \item Complexité quadratique $O(N^2)$ sur la longueur des séquences.
+                    \item Modèles complexes agissant comme des \og boîtes noires \fg{}.
+                \end{itemize}
+            \end{block}
+        \end{column}
+    \end{columns}
+\end{frame}
+
 \begin{frame}{SAM : Segment Anything Model}
     \begin{columns}
         \begin{column}{0.53\textwidth}
