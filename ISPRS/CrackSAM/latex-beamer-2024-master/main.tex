@@ -88,6 +88,20 @@
     \footnotetext[1]{\nom{Vaswani} \etal, \og Attention Is All You Need\fg{}, \textit{NeurIPS}, 2017.}
 \end{frame}
 
+\begin{frame}{\emph{Vision Transformers} (\emph{ViT}) : De l'Image aux Patchs\footnotemark[2]}
+    L'architecture \emph{ViT} adapte les \emph{Transformers} au traitement d'images en découpant l'image en une séquence de morceaux :
+    \vskip 1ex
+    \begin{block}{Étapes clés de traitement}
+        \begin{enumerate}
+            \item \textbf{Découpage en patchs} : L'image est divisée en une grille de patchs de $16 \times 16$ pixels (qui jouent le rôle de mots).
+            \item \textbf{Projection linéaire (\emph{Patch Embedding})} : Chaque patch est projeté vectoriellement dans un espace sémantique de dimension fixe.
+            \item \textbf{\emph{Embeddings} de Position} : Ajout d'une coordonnée de position à chaque patch pour conserver la géométrie 2D de l'image.
+            \item \textbf{Jeton sémantique global} : Ajout d'un jeton virtuel en début de séquence pour résumer toute l'image.
+        \end{enumerate}
+    \end{block}
+    \footnotetext[2]{\nom{Dosovitskiy} \etal, \og An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale\fg{}, \textit{ICLR}, 2021.}
+\end{frame}
+
 \begin{frame}{Modèles de Fondation \& \emph{Transformers}}
     \begin{columns}
         \begin{column}{0.5\textwidth}
@@ -117,20 +131,6 @@
             \end{block}
         \end{column}
     \end{columns}
-\end{frame}
-
-\begin{frame}{\emph{Vision Transformers} (\emph{ViT}) : De l'Image aux Patchs\footnotemark[2]}
-    L'architecture \emph{ViT} adapte les \emph{Transformers} au traitement d'images en découpant l'image en une séquence de morceaux :
-    \vskip 1ex
-    \begin{block}{Étapes clés de traitement}
-        \begin{enumerate}
-            \item \textbf{Découpage en patchs} : L'image est divisée en une grille de patchs de $16 \times 16$ pixels (qui jouent le rôle de mots).
-            \item \textbf{Projection linéaire (\emph{Patch Embedding})} : Chaque patch est projeté vectoriellement dans un espace sémantique de dimension fixe.
-            \item \textbf{\emph{Embeddings} de Position} : Ajout d'une coordonnée de position à chaque patch pour conserver la géométrie 2D de l'image.
-            \item \textbf{Jeton sémantique global} : Ajout d'un jeton virtuel en début de séquence pour résumer toute l'image.
-        \end{enumerate}
-    \end{block}
-    \footnotetext[2]{\nom{Dosovitskiy} \etal, \og An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale\fg{}, \textit{ICLR}, 2021.}
 \end{frame}
 
 \begin{frame}{SAM : \emph{Segment Anything Model}\footnotemark[3]}
