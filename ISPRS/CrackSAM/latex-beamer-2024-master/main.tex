@@ -49,6 +49,17 @@
 
 \usetheme{inria}
 
+% Personnalisation des notes de bas de page pour éviter qu'elles ne coupent la ligne du footer
+\renewcommand{\footnoterule}{}
+\setbeamertemplate{footnote}{%
+  \parindent 0pt%
+  \noindent%
+  \raggedright%
+  \hbox to 0.8em{\hfil\insertfootnotemark}%
+  \insertfootnotetext\par%
+  \vspace*{2.2ex}%
+}
+
 \begin{document}
 
 \frame{\titlepage}
