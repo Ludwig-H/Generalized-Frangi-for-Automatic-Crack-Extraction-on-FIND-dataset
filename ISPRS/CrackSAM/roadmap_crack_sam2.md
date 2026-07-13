@@ -22,17 +22,28 @@ Le dépôt actuel contient les dossiers et fichiers suivants qu'il faudra exploi
 
 ## 2. Configuration des Jeux de Données (Datasets)
 
-Pour l'entraînement et l'évaluation, ChatGPT doit utiliser et télécharger les datasets suivants, en reprenant exactement la configuration originale de CrackSAM :
+Pour reproduire exactement l'évaluation du papier **CrackSAM.pdf**, le protocole doit intégrer les ensembles de données suivants :
 
-### A. Jeu de données d'entraînement, de validation et de test (Khanhha Dataset)
-*   **Nom** : Khanhha Crack Segmentation Dataset (incluant des sous-ensembles comme CrackForest).
-*   **Lien de téléchargement** : [https://github.com/khanhha/crack_segmentation](https://github.com/khanhha/crack_segmentation)
-*   **Splits et Dossiers** :
-    *   **Entraînement** : `--root_path` pointant vers `trainingset/` (contenant `images/` et `masks/`), référencé par `lists/lists_khanhha/train.txt`.
-    *   **Validation** : `--val_path` pointant vers `validationset/` (contenant `images/` et `masks/`), référencé par `lists/lists_khanhha/val_vol.txt`.
-    *   **Test/Évaluation** : `--volume_path` pointant vers `testset/` (contenant `images/` et `masks/`), référencé par `lists/lists_khanhha/test_vol.txt`.
+### A. Dataset principal d'entraînement et de validation (Khanhha Dataset)
+*   **Nom** : Khanhha Crack Segmentation Dataset (9 603 images d'entraînement, 1 695 images de test).
+*   **Lien** : [https://github.com/khanhha/crack_segmentation](https://github.com/khanhha/crack_segmentation)
+*   **Dossiers** :
+    *   `trainingset/` (images et masques) référencé par `lists/lists_khanhha/train.txt`.
+    *   `validationset/` (images et masques) référencé par `lists/lists_khanhha/val_vol.txt`.
 
-*Note: D'autres jeux de données optionnels issus du README de CrackSAM peuvent être utilisés si besoin (ex. CrackTree200 relabellisé, Road420 ou Concrete3k), mais l'évaluation par défaut doit se faire sur le split de test de Khanhha.*
+### B. Ensembles d'évaluation (Test & Robustesse)
+L'évaluation finale du modèle doit se faire sur les 6 configurations de test définies dans le papier :
+1.  **Test Set (Original)** : Le split de test propre de Khanhha (1 695 images) référencé par `lists/lists_khanhha/test_vol.txt`.
+2.  **Noisy Test Set 1 (Luminosité réduite + Flou)** :
+    *   *Perturbation* : Convertir les images de test de Khanhha dans l'espace colorimétrique HSV, soustraire 50 au canal V (Value) pour simuler une faible luminosité, repasser en RGB, puis appliquer un flou gaussien avec un noyau de $9 \times 9$.
+3.  **Noisy Test Set 2 (Flou sévère + Sous-échantillonnage)** :
+    *   *Perturbation* : Appliquer un flou gaussien avec un noyau de $21 \times 21$, sous-échantillonner à la moitié de la taille originale (par interpolation cubique), puis ré-échantillonner (redimensionner) à $448 \times 448$.
+4.  **Road420 (Zero-Shot)** : 420 images réelles de fissures sur route avec interférences (ombres, marquages).
+    *   *Lien de téléchargement* : [Google Drive - 1khUfS2uDZb5eDOhpL1qJPYsOxso7Limu](https://drive.google.com/file/d/1khUfS2uDZb5eDOhpL1qJPYsOxso7Limu/view)
+5.  **Facade390 (Zero-Shot)** : 390 images de fissures sur murs extérieurs capturées par drone.
+    *   *Lien de téléchargement* : [Google Drive - 1P1b15kRQpVcT7cNDzZB_1vFTrN0WKPB_](https://drive.google.com/file/d/1P1b15kRQpVcT7cNDzZB_1vFTrN0WKPB_/view)
+6.  **Concrete3k (Zero-Shot)** : 3 000 paires d'images de fissures de béton.
+    *   *Lien de téléchargement* : [https://github.com/CHDyshli/HrSegNet4CrackSegmentation](https://github.com/CHDyshli/HrSegNet4CrackSegmentation)
 
 ---
 
@@ -41,26 +52,26 @@ Pour l'entraînement et l'évaluation, ChatGPT doit utiliser et télécharger le
 Nous voulons comparer deux configurations distinctes :
 
 ### Configuration 1 : Baseline SAM 2 + LoRA (Sans Frangi)
-1.  **Architecture** : Remplacer l'architecture SAM 1 (`vit_h`, `vit_l`, `vit_b`) par le modèle **SAM 2** (par exemple, `sam2_hiera_large.pt` de Meta).
-2.  **Fine-Tuning LoRA** : Appliquer l'adaptation de bas rang (LoRA) sur les couches d'attention du visual encoder (Hiera) et du mask decoder de SAM 2.
+1.  **Architecture** : Utiliser **SAM 2** (modèle `sam2_hiera_large.pt` de Meta).
+2.  **Fine-Tuning LoRA** : Appliquer l'adaptation LoRA sur les couches d'attention du visual encoder (Hiera) et du mask decoder de SAM 2.
 3.  **Entraînement/Validation** : Identique à la boucle originale de CrackSAM (Focal Loss + Dice Loss, batch size 8 ou 12, optimisation via AdamW).
-4.  **Inférence** : Prédiction de masques classique sans prompt externe.
+4.  **Inférence** : Prédiction de masques classique sans prompt externe sur les 6 ensembles de test.
 
 ### Configuration 2 : SAM 2 + LoRA + Guidage Frangi-Graphe (Notre Méthode)
 1.  **Génération de la Carte Frangi-Graphe sur GPU** :
-    *   Puisque les images du dataset Khanhha sont des images classiques (RGB ou niveaux de gris) et non multimodales, exécuter la fonction `extract_frangi_graph_gpu` avec un canal unique en entrée (ex. `imgs = {'visible': image}`) et un poids de 1.0 (`weights = {'visible': 1.0}`).
+    *   Exécuter la fonction `extract_frangi_graph_gpu` avec un canal unique en entrée (ex. `imgs = {'visible': image}`) et un poids de 1.0 (`weights = {'visible': 1.0}`).
     *   **Paramètres par défaut obligatoires** :
         *   `K = 1` (graphe de cliques d'arêtes simples, MST classique).
-        *   `Σ = [1.0, 3.0, 5.0, 9.0, 15.0]` (multi-échelle pour capturer les fissures très fines à larges).
-        *   `R = 3` (rayon de voisinage pour la construction du graphe).
+        *   `Σ = [1.0, 3.0, 5.0, 9.0, 15.0]` (multi-échelle).
+        *   `R = 3` (rayon de voisinage).
     *   La fonction retourne la carte `similarity_img` (valeurs réelles dans $[0, 1]$ issues de `node_sim_max`).
 2.  **Transformation en Pseudo-Logits** :
-    *   Puisque le décodeur de masques de SAM 2 attend des logits en entrée comme prompt spatial (`mask_input`), transformer la carte de probabilités $P$ (similarité) en logits $L$ :
+    *   Transformer la carte de probabilités $P$ (similarité) en logits $L$ :
         $$L = \log\left(\frac{P}{1-P}\right)$$
     *   *Note d'implémentation* : Écrêter $P$ sur l'intervalle $[\epsilon, 1-\epsilon]$ avec $\epsilon = 10^{-5}$ avant le calcul pour éviter le logarithme de 0 ou la division par 0.
 3.  **Prompt Spatial de SAM 2** :
-    *   Redimensionner la carte de logits obtenue à la dimension $256 \times 256$.
-    *   Injecter ce tenseur de dimension `(B, 1, 256, 256)` comme argument `mask_input` lors des passes avant (*forward*) d'entraînement et de test de SAM 2. Le calcul du graphe de Frangi n'est pas différentiable (opérations MST non différentiables), il agit donc comme un tenseur de prompt statique (pas de gradients rétropropagés à travers Frangi-Graphe).
+    *   Redimensionner la carte de logits à la dimension $256 \times 256$.
+    *   Injecter ce tenseur de dimension `(B, 1, 256, 256)` comme argument `mask_input` lors des passes avant (*forward*) d'entraînement et de test de SAM 2. Le calcul du graphe de Frangi n'est pas différentiable, il agit donc comme un tenseur de prompt statique (pas de gradients rétropropagés à travers Frangi-Graphe).
 4.  **Fine-Tuning LoRA** : Les gradients sont rétropropagés uniquement à travers les poids LoRA de l'encodeur d'images et du décodeur de masques de SAM 2.
 
 ---
