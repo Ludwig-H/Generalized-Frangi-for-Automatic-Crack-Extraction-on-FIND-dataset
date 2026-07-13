@@ -1,5 +1,8 @@
 # Roadmap : Migration de CrackSAM vers SAM 2 avec guidage par Frangi-Graphe (GPU)
 
+> [!IMPORTANT]
+> **Consigne initiale pour ChatGPT** : Avant de commencer à coder quoi que ce soit, lis attentivement le papier scientifique de référence fourni : [CrackSAM.pdf](file:///workspaces/Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset/ISPRS/CrackSAM/CrackSAM.pdf). Ce papier détaille la méthodologie de fine-tuning PEFT (LoRA/Adapter) et sert de base scientifique à ce projet.
+
 Ce document constitue un plan de route détaillé destiné à guider le codage de l'implémentation de **SAM 2** adapté aux fissures et guidé géométriquement par la similarité de **Frangi-Graphe**.
 
 ---
