@@ -47,14 +47,39 @@ L'évaluation finale du modèle doit se faire sur les 6 configurations de test d
 
 ---
 
-## 3. Plan de Comparaison Expérimentale
+## 3. Choix d'Architecture LoRA et Hyperparamètres d'Entraînement
+
+Pour respecter scrupuleusement la configuration validée dans **CrackSAM.pdf**, implémenter les hyperparamètres et choix d'architecture suivants :
+
+### A. Cibles de LoRA sur SAM 2
+*   **Emplacements** : Appliquer LoRA uniquement sur les projections de **requête (query - q)** et de **valeur (value - v)** au sein des couches d'attention du visual encoder (Hiera) et du mask decoder.
+    *   *Note du papier* : L'ablation (Table 3) montre qu'appliquer LoRA sur toutes les projections (`qkvo`) améliore légèrement le test set propre mais **dégrade la généralisation zero-shot** (sur Road420/Facade390). La configuration `qv` est donc requise pour garantir la robustesse trans-domaine.
+*   **Rang (Rank)** : Configurer $r = 4$ ou $r = 8$ (Table 2 & Table 4 du papier).
+
+### B. Hyperparamètres d'optimisation
+*   **Loss Function** : Somme pondérée d'une Cross-Entropy (CE) et d'une Dice Loss :
+    $$L = \lambda L_{CE} + (1 - \lambda) L_{Dice} \quad \text{avec} \quad \lambda = 0.2$$
+*   **Optimiseur** : `AdamW` avec $\beta_1 = 0.9$, $\beta_2 = 0.999$, et `weight_decay = 0.01`.
+*   **Taux d'apprentissage (Learning Rate)** :
+    *   LR initial maximal : `0.0004`.
+    *   **Scheduler** : Planificateur de type `poly` précédé d'un échauffement linéaire (*linear warmup*) :
+        *   *Warmup* : Augmentation linéaire de 0 à `0.0004` durant les **300 premières itérations**.
+        *   *Poly Decay* : Décroissance selon la formule $(1 - \frac{\text{iter} - \text{warmup}}{\text{max\_iter} - \text{warmup}})^{\text{power}}$ avec **$\text{power} = 6$**.
+*   **Nombre d'Époques (Epochs)** : 140 époques.
+*   **Batch Size** : 8.
+*   **Seuil de binarisation du masque** : 0.5.
+*   **Augmentations de données** : Rotations aléatoires et retournements horizontaux/verticaux (déjà présents dans le dataloader).
+
+---
+
+## 4. Plan de Comparaison Expérimentale
 
 Nous voulons comparer deux configurations distinctes :
 
 ### Configuration 1 : Baseline SAM 2 + LoRA (Sans Frangi)
 1.  **Architecture** : Utiliser **SAM 2** (modèle `sam2_hiera_large.pt` de Meta).
-2.  **Fine-Tuning LoRA** : Appliquer l'adaptation LoRA sur les couches d'attention du visual encoder (Hiera) et du mask decoder de SAM 2.
-3.  **Entraînement/Validation** : Identique à la boucle originale de CrackSAM (Focal Loss + Dice Loss, batch size 8 ou 12, optimisation via AdamW).
+2.  **Fine-Tuning LoRA** : Appliquer LoRA sur `q` et `v` (encodeur Hiera + décodeur de masques).
+3.  **Entraînement/Validation** : Selon les paramètres définis dans la Section 3.
 4.  **Inférence** : Prédiction de masques classique sans prompt externe sur les 6 ensembles de test.
 
 ### Configuration 2 : SAM 2 + LoRA + Guidage Frangi-Graphe (Notre Méthode)
@@ -76,7 +101,7 @@ Nous voulons comparer deux configurations distinctes :
 
 ---
 
-## 4. Métriques d'Évaluation
+## 5. Métriques d'Évaluation
 
 ChatGPT doit coder l'évaluation sur l'ensemble de test en calculant les métriques suivantes (définies dans [utils.py](file:///workspaces/Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset/ISPRS/CrackSAM/CrackSAM/CrackSAM/utils.py#L96) et [test_k2_clean.py](file:///workspaces/Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset/test_k2_clean.py#L734)) :
 1.  **Précision (Precision)**
@@ -89,7 +114,7 @@ ChatGPT doit coder l'évaluation sur l'ensemble de test en calculant les métriq
 
 ---
 
-## 5. Exécution et Déploiement sur GPU Blackwell (GCP)
+## 6. Exécution et Déploiement sur GPU Blackwell (GCP)
 
 Pour exécuter le code sur la VM Google Cloud Platform dotée d'une carte NVIDIA RTX PRO 6000 Blackwell (96 Go de VRAM), ChatGPT devra générer des scripts ou fournir les commandes suivantes :
 
