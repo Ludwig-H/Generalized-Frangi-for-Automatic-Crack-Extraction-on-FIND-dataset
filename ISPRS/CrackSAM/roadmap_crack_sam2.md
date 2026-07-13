@@ -117,9 +117,10 @@ ChatGPT doit coder l'évaluation sur l'ensemble de test en calculant les métriq
 2.  **Rappel (Recall)**
 3.  **Dice Coefficient (F1-Score)**
 4.  **IoU / Jaccard**
-5.  **Wasserstein Distance sur Squelette** :
-    *   Calculer la distance de Wasserstein (EMD) sur les squelettes extraits et épaissis des prédictions et vérités terrains (en utilisant `skeletonize_lee` et `thicken(..., pixels=3)`).
-    *   Utiliser la bibliothèque `POT` (Python Optimal Transport) via `ot.emd2` sur les coordonnées spatiales normalisées des pixels actifs du squelette, comme implémenté dans la fonction `wasserstein_distance_skeletons` de [test_k2_clean.py](file:///workspaces/Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset/test_k2_clean.py#L752).
+5.  **Wasserstein Distance sur Masque Direct** :
+    *   Appliquer la distance de Wasserstein (EMD) **directement sur les masques obtenus** (sans squelettisation préalable).
+    *   Normaliser les masques pour les traiter comme des distributions de probabilité discrètes dans $\mathbb{R}^2$ (la somme des poids de chaque masque doit être égale à 1).
+    *   Utiliser la bibliothèque `POT` (Python Optimal Transport) via `ot.emd2` sur les coordonnées spatiales $(y, x)$ des pixels actifs du masque pondérés par leur valeur normalisée.
 
 ---
 
