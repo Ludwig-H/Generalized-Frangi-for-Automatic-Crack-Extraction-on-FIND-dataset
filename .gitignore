@@ -12,3 +12,9 @@ CrackForest-dataset/
 # Scratch folder
 scratch/
 
+# GCP & CLI temporary files
+.gcloud/
+gcp-migration/*.log
+
+# Pretrained weights and training checkpoints
+checkpoints/

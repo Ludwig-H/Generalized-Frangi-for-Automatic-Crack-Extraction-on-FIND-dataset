@@ -11,3 +11,8 @@ Ce projet utilise des instances de calcul temporaires (VMs SPOT) sur Google Clou
 - **Instabilité du mode SPOT** : Les VMs SPOT peuvent être préemptées (arrêtées brusquement) par Google à tout moment.
 - **Sauvegarde et Checkpoints** : Lors de l'entraînement d'un modèle, configurez impérativement des sauvegardes régulières et fréquentes (checkpoints) de l'état du modèle et de l'optimiseur.
 - **Reprise des calculs** : Le code d'entraînement doit être capable de détecter la présence d'un checkpoint existant et de reprendre automatiquement les calculs là où ils s'étaient arrêtés avant la préemption.
+
+## 3. Utilisation de la CLI gcloud dans le Codespace
+- **CLI installée** : La CLI Google Cloud (`gcloud`) est pré-installée et opérationnelle dans le terminal du Codespace.
+- **Gestion des Quotas (Métrique Spot RTX PRO 6000)** : La métrique régionale de GPU RTX Pro 6000 Spot (`PREEMPTIBLE_NVIDIA_RTX_PRO_6000_GPUS`) n'est pas listée par défaut par l'API Compute Engine. Le script `./gcp-migration/check_quotas.sh` émet un avertissement non bloquant en cas d'absence (`UNKNOWN`), car la création de la VM G4 est validée par GCP au niveau du quota global de GPU (`GPUS_ALL_REGIONS` >= 1) et des CPU Spot (`PREEMPTIBLE_CPUS` >= 48).
+
