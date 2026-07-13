@@ -1,7 +1,13 @@
 # Roadmap : Migration de CrackSAM vers SAM 2 avec guidage par Frangi-Graphe (GPU)
 
 > [!IMPORTANT]
-> **Consigne initiale pour ChatGPT** : Avant de commencer à coder quoi que ce soit, lis attentivement le papier scientifique de référence fourni : [CrackSAM.pdf](file:///workspaces/Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset/ISPRS/CrackSAM/CrackSAM.pdf). Ce papier détaille la méthodologie de fine-tuning PEFT (LoRA/Adapter) et sert de base scientifique à ce projet.
+> **Consignes initiales pour ChatGPT** :
+> 1. Avant de commencer à coder quoi que ce soit, lis attentivement le papier scientifique de référence fourni : [CrackSAM.pdf](file:///workspaces/Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset/ISPRS/CrackSAM/CrackSAM.pdf). Ce papier détaille la méthodologie de fine-tuning PEFT (LoRA/Adapter) et sert de base scientifique à ce projet.
+> 2. Dans ce projet, nous ciblons le modèle de fondation **SAM 2** disponible sur le dépôt officiel : [Meta Research - SAM 2](https://github.com/facebookresearch/sam2). 
+> 3. Note que le passage de SAM 1 à SAM 2 nécessitera **plusieurs adaptations importantes au niveau du code** :
+>    * La bibliothèque Python à utiliser est `sam2` (et non plus `segment_anything`).
+>    * Les classes et fonctions d'initialisation du modèle (`build_sam2`, `SAM2ImagePredictor`) diffèrent légèrement de SAM 1.
+>    * Le backbone d'image de SAM 2 est **Hiera** (au lieu du ViT plat de SAM 1). Les couches de projection de l'attention à cibler pour LoRA ne porteront pas les mêmes noms (ex. cibles dans les blocs d'attention de Hiera).
 
 Ce document constitue un plan de route détaillé destiné à guider le codage de l'implémentation de **SAM 2** adapté aux fissures et guidé géométriquement par la similarité de **Frangi-Graphe**.
 
