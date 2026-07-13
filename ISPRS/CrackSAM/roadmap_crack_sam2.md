@@ -22,19 +22,17 @@ Le dépôt actuel contient les dossiers et fichiers suivants qu'il faudra exploi
 
 ## 2. Configuration des Jeux de Données (Datasets)
 
-Pour l'entraînement et l'évaluation, ChatGPT doit utiliser et télécharger les datasets suivants :
+Pour l'entraînement et l'évaluation, ChatGPT doit utiliser et télécharger les datasets suivants, en reprenant exactement la configuration originale de CrackSAM :
 
-### A. Jeu de données d'entraînement (Fine-Tuning)
-*   **Khanhha Crack Segmentation Dataset** : 
-    *   **Lien** : [https://github.com/khanhha/crack_segmentation](https://github.com/khanhha/crack_segmentation)
-    *   **Structure** : Les images d'entraînement sont listées dans [lists/lists_khanhha/train.txt](file:///workspaces/Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset/ISPRS/CrackSAM/CrackSAM/CrackSAM/lists/lists_khanhha/train.txt). Le dossier contient les sous-dossiers `images/` et `masks/`.
-*   **Alternative / Complément (Relabelled CrackTree200)** :
-    *   **Lien** : [Google Drive - 1dOOoAGQFsOr3myZJF7v0Onjmj-g33J_9](https://drive.google.com/file/d/1dOOoAGQFsOr3myZJF7v0Onjmj-g33J_9/view)
+### A. Jeu de données d'entraînement, de validation et de test (Khanhha Dataset)
+*   **Nom** : Khanhha Crack Segmentation Dataset (incluant des sous-ensembles comme CrackForest).
+*   **Lien de téléchargement** : [https://github.com/khanhha/crack_segmentation](https://github.com/khanhha/crack_segmentation)
+*   **Splits et Dossiers** :
+    *   **Entraînement** : `--root_path` pointant vers `trainingset/` (contenant `images/` et `masks/`), référencé par `lists/lists_khanhha/train.txt`.
+    *   **Validation** : `--val_path` pointant vers `validationset/` (contenant `images/` et `masks/`), référencé par `lists/lists_khanhha/val_vol.txt`.
+    *   **Test/Évaluation** : `--volume_path` pointant vers `testset/` (contenant `images/` et `masks/`), référencé par `lists/lists_khanhha/test_vol.txt`.
 
-### B. Jeu de données d'évaluation (Benchmarking)
-*   **VT-GraF-Dataset (Visible-Thermal Fissures)** :
-    *   **Lien** : Google Drive Folder ID `1d79CVf9Vqgwwjqn6b2gbc40eu2MM7B7-` (téléchargeable via la bibliothèque Python `gdown` avec `gdown.download_folder(id='1d79CVf9Vqgwwjqn6b2gbc40eu2MM7B7-', output='VT-GraF-Dataset')`).
-    *   **Structure** : Dossiers `Fissure 1` à `Fissure 5`. Attention à l'anomalie de nommage pour la Fissure 2 (fichiers préfixés par `fissure6_` au lieu de `fissure2_`) qui doit être gérée par le dataloader.
+*Note: D'autres jeux de données optionnels issus du README de CrackSAM peuvent être utilisés si besoin (ex. CrackTree200 relabellisé, Road420 ou Concrete3k), mais l'évaluation par défaut doit se faire sur le split de test de Khanhha.*
 
 ---
 
@@ -50,7 +48,7 @@ Nous voulons comparer deux configurations distinctes :
 
 ### Configuration 2 : SAM 2 + LoRA + Guidage Frangi-Graphe (Notre Méthode)
 1.  **Génération de la Carte Frangi-Graphe sur GPU** :
-    *   Lors du chargement d'une image, calculer sa carte de similarité de Frangi-Graphe sur GPU à l'aide de la fonction `extract_frangi_graph_gpu(imgs, weights, ...)` définie dans [test_k2_clean.py](file:///workspaces/Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset/test_k2_clean.py#L140).
+    *   Puisque les images du dataset Khanhha sont des images classiques (RGB ou niveaux de gris) et non multimodales, exécuter la fonction `extract_frangi_graph_gpu` avec un canal unique en entrée (ex. `imgs = {'visible': image}`) et un poids de 1.0 (`weights = {'visible': 1.0}`).
     *   **Paramètres par défaut obligatoires** :
         *   `K = 1` (graphe de cliques d'arêtes simples, MST classique).
         *   `Σ = [1.0, 3.0, 5.0, 9.0, 15.0]` (multi-échelle pour capturer les fissures très fines à larges).
