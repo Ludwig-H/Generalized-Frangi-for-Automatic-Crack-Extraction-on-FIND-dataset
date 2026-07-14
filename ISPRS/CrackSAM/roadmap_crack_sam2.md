@@ -207,3 +207,19 @@ les comparaisons aux deux modèles publiés, les réussites, les échecs, les ca
 clairsemés et douze pseudo-logits Frangi bruts. Les poids conservés, leurs
 SHA-256 et leurs chemins de restauration figurent dans
 [`results/2026-07-14_checkpoint_manifest.json`](results/2026-07-14_checkpoint_manifest.json).
+
+## 8. Orientation recommandée après analyse des échecs
+
+Le test CPU luminance/chrominance et l'analyse du mode d'injection conduisent à
+ne pas poursuivre une variante chrominance seule ni une fusion fixe de deux
+prompts denses. La suite recommandée, nommée **SafeFrangi**, conserve la
+baseline époque 20 gelée et traduit la similarité Frangi en un résidu
+neutralisable autour de l'embedding officiel `no_mask`. L'image est encodée
+une fois, les branches baseline et Frangi sont décodées séparément, puis une
+porte d'abstention globale et spatiale fusionne tardivement leurs logits afin
+de pouvoir sélectionner exactement la sortie baseline.
+
+La justification, l'architecture tensorielle, les pertes, les ablations, les
+critères go/no-go, la politique de checkpoints et les points d'intégration sont
+détaillés dans
+[`results/frangi_safe_recommendation/RAPPORT_RECOMMANDATION_SAFE_FRANGI.md`](results/frangi_safe_recommendation/RAPPORT_RECOMMANDATION_SAFE_FRANGI.md).

@@ -1,0 +1,191 @@
+{
+  "format": 1,
+  "purpose": "exploratory luminance versus chrominance Frangi audit",
+  "execution_device": "cpu",
+  "cuda_visible_devices": "",
+  "vm_or_cloud_operations_in_script": false,
+  "source_limitation": "RGB and GT are reconstructed from 216x216 JPEG panel tiles; original 448x448 data are absent locally. Chroma is JPEG 4:2:0 subsampled.",
+  "panel_rgb_box": [
+    41,
+    101,
+    257,
+    317
+  ],
+  "panel_target_box": [
+    309,
+    101,
+    525,
+    317
+  ],
+  "panel_size": [
+    216,
+    216
+  ],
+  "original_size": [
+    448,
+    448
+  ],
+  "frangi_scales_at_panel_resolution": [
+    0.5,
+    1.5,
+    2.5,
+    4.5,
+    7.25
+  ],
+  "graph_radius_at_panel_resolution": 2,
+  "full_resolution_sensitivity": {
+    "note": "216² JPEG crop bicubic-upsampled to 448²; no detail restored",
+    "cases": [
+      [
+        "khanhha_noisy2",
+        "gain_baseline"
+      ],
+      [
+        "khanhha_original",
+        "gain_baseline"
+      ],
+      [
+        "road420",
+        "gain_baseline"
+      ],
+      [
+        "road420",
+        "gain_frangi"
+      ]
+    ],
+    "scales": [
+      1.0,
+      3.0,
+      5.0,
+      9.0,
+      15.0
+    ],
+    "graph_radius": 3,
+    "output": "resolution_sensitivity_448.csv"
+  },
+  "frangi_parameters": {
+    "ss": 1.0,
+    "si": 0.25,
+    "sa": 0.3,
+    "tau": 0.18,
+    "K": 1,
+    "compute_centrality": false
+  },
+  "threads": 8,
+  "python": "3.12.1 (main, Mar 11 2026, 12:17:56) [GCC 13.3.0]",
+  "platform": "Linux-6.8.0-1052-azure-x86_64-with-glibc2.39",
+  "torch": "2.12.1+cu130",
+  "numpy": "2.5.1",
+  "opencv": "5.0.0",
+  "elapsed_seconds": 50.799601554870605,
+  "cases": [
+    {
+      "dataset": "khanhha_original",
+      "category": "gain_baseline",
+      "case_name": "cracktree200_6266.jpg",
+      "panel": "/workspaces/Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset/ISPRS/CrackSAM/results/frangi_milestone_report/figures/cases/khanhha_original/gain_baseline__cracktree200_6266.jpg.jpg",
+      "panel_sha256": "208cbe6d10d11a764a9e5c3c357446e29d0f5114cd397fe2cf1da4cbdf5c521d",
+      "archived_prompt": "/workspaces/Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset/ISPRS/CrackSAM/results/frangi_milestone_report/prompts_npy/khanhha_original/gain_baseline__cracktree200_6266.jpg.npy",
+      "archived_prompt_sha256": "22042e10f05d1ab6c5e840d9a8e3968d52c0de22143585c516890ece6c86642f"
+    },
+    {
+      "dataset": "khanhha_noisy1",
+      "category": "gain_baseline",
+      "case_name": "CRACK500_20160222_115828_641_1.jpg",
+      "panel": "/workspaces/Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset/ISPRS/CrackSAM/results/frangi_milestone_report/figures/cases/khanhha_noisy1/gain_baseline__CRACK500_20160222_115828_641_1.jpg.jpg",
+      "panel_sha256": "4b3a7c1935c09d7c0e7af7cf4a0359190e4ab66cd184259db7dd8cf574b0b5b1",
+      "archived_prompt": "/workspaces/Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset/ISPRS/CrackSAM/results/frangi_milestone_report/prompts_npy/khanhha_noisy1/gain_baseline__CRACK500_20160222_115828_641_1.jpg.npy",
+      "archived_prompt_sha256": "ffc5ec6988a81568e87abaaf7e2060d66ede5228e75e4809cbb9f556bbccab36"
+    },
+    {
+      "dataset": "khanhha_noisy2",
+      "category": "gain_baseline",
+      "case_name": "CRACK500_20160308_073532_1_361.jpg",
+      "panel": "/workspaces/Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset/ISPRS/CrackSAM/results/frangi_milestone_report/figures/cases/khanhha_noisy2/gain_baseline__CRACK500_20160308_073532_1_361.jpg.jpg",
+      "panel_sha256": "0e9e9b395a6d75a31a96d40aee6fb9b3e397547cfd219612dba530b2376a166c",
+      "archived_prompt": "/workspaces/Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset/ISPRS/CrackSAM/results/frangi_milestone_report/prompts_npy/khanhha_noisy2/gain_baseline__CRACK500_20160308_073532_1_361.jpg.npy",
+      "archived_prompt_sha256": "a1a63caf8fe67c8b9a33296cce7d7fbe5858e47bc61a37e311a2c6f7e6c95f24"
+    },
+    {
+      "dataset": "road420",
+      "category": "gain_baseline",
+      "case_name": "2023_10_30_16_44_IMG_6033.jpg",
+      "panel": "/workspaces/Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset/ISPRS/CrackSAM/results/frangi_milestone_report/figures/cases/road420/gain_baseline__2023_10_30_16_44_IMG_6033.jpg.jpg",
+      "panel_sha256": "8a4b4ccb6fbc9b998d6d4ad6b6d9c699660133154caf7f2479f007b735844f77",
+      "archived_prompt": "/workspaces/Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset/ISPRS/CrackSAM/results/frangi_milestone_report/prompts_npy/road420/gain_baseline__2023_10_30_16_44_IMG_6033.jpg.npy",
+      "archived_prompt_sha256": "0c6b1a292db75805d8c2f62080210399540ce8597144b05559ee15c46ba721fb"
+    },
+    {
+      "dataset": "facade390",
+      "category": "gain_baseline",
+      "case_name": "DJ_Wall_231.JPG",
+      "panel": "/workspaces/Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset/ISPRS/CrackSAM/results/frangi_milestone_report/figures/cases/facade390/gain_baseline__DJ_Wall_231.JPG.jpg",
+      "panel_sha256": "4845bdedce6750316750bd8156bdb38c3c10ec8d4034030761d54fa30dc967fc",
+      "archived_prompt": "/workspaces/Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset/ISPRS/CrackSAM/results/frangi_milestone_report/prompts_npy/facade390/gain_baseline__DJ_Wall_231.JPG.npy",
+      "archived_prompt_sha256": "a1d8af8a640371f3176be24924d5e783576a9cb90b354e1c2d120dbb41ceabf6"
+    },
+    {
+      "dataset": "concrete3k",
+      "category": "gain_baseline",
+      "case_name": "128_23.jpg",
+      "panel": "/workspaces/Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset/ISPRS/CrackSAM/results/frangi_milestone_report/figures/cases/concrete3k/gain_baseline__128_23.jpg.jpg",
+      "panel_sha256": "a8706e3c8fe8d71bd253dc17413a573bc69c61112d2c4efe8d73896ff30327ad",
+      "archived_prompt": "/workspaces/Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset/ISPRS/CrackSAM/results/frangi_milestone_report/prompts_npy/concrete3k/gain_baseline__128_23.jpg.npy",
+      "archived_prompt_sha256": "39b1653cda7ad55fb4411b68a0b9cd94e7f00f4f1af6c7db97fc817a494c4d28"
+    },
+    {
+      "dataset": "khanhha_original",
+      "category": "gain_frangi",
+      "case_name": "Sylvie_Chambon_319.jpg",
+      "panel": "/workspaces/Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset/ISPRS/CrackSAM/results/frangi_milestone_report/figures/cases/khanhha_original/gain_frangi__Sylvie_Chambon_319.jpg.jpg",
+      "panel_sha256": "d2c245791fcf79c064574b4e5dd193425f4a2a2bc08864a1bc470b11217455dc",
+      "archived_prompt": "/workspaces/Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset/ISPRS/CrackSAM/results/frangi_milestone_report/prompts_npy/khanhha_original/gain_frangi__Sylvie_Chambon_319.jpg.npy",
+      "archived_prompt_sha256": "da7524f4a0fff88db1e8aeca5060942901d7d23450897771f8bcfd1d07f4e880"
+    },
+    {
+      "dataset": "khanhha_noisy1",
+      "category": "gain_frangi",
+      "case_name": "CRACK500_20160329_093924_1921_721.jpg",
+      "panel": "/workspaces/Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset/ISPRS/CrackSAM/results/frangi_milestone_report/figures/cases/khanhha_noisy1/gain_frangi__CRACK500_20160329_093924_1921_721.jpg.jpg",
+      "panel_sha256": "c324524918238a4b3c814af99b66c44c14ac388f11399fa3d2db5d80765408ca",
+      "archived_prompt": "/workspaces/Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset/ISPRS/CrackSAM/results/frangi_milestone_report/prompts_npy/khanhha_noisy1/gain_frangi__CRACK500_20160329_093924_1921_721.jpg.npy",
+      "archived_prompt_sha256": "6d122a516f284babeeae4cf02f6feaad0a5e58073f82d82eb79a2616e8097a6e"
+    },
+    {
+      "dataset": "khanhha_noisy2",
+      "category": "gain_frangi",
+      "case_name": "Volker_DSC01646_226_19_1273_1645.jpg",
+      "panel": "/workspaces/Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset/ISPRS/CrackSAM/results/frangi_milestone_report/figures/cases/khanhha_noisy2/gain_frangi__Volker_DSC01646_226_19_1273_1645.jpg.jpg",
+      "panel_sha256": "ba485a28979618d3dbead6a997bb4dc1c75e44f71f6e515d4996e91cd6020db1",
+      "archived_prompt": "/workspaces/Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset/ISPRS/CrackSAM/results/frangi_milestone_report/prompts_npy/khanhha_noisy2/gain_frangi__Volker_DSC01646_226_19_1273_1645.jpg.npy",
+      "archived_prompt_sha256": "42cdb6b1ac6ed07685b3cf87ae8f970d0ff0a1dd6404b475711b113d2fa760ab"
+    },
+    {
+      "dataset": "road420",
+      "category": "gain_frangi",
+      "case_name": "2023_11_01_20_33_IMG_6353.jpg",
+      "panel": "/workspaces/Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset/ISPRS/CrackSAM/results/frangi_milestone_report/figures/cases/road420/gain_frangi__2023_11_01_20_33_IMG_6353.jpg.jpg",
+      "panel_sha256": "3041b11ea565003d6b152223c9a2d41e08c2607a8976f7d381bbbd82d2ceb670",
+      "archived_prompt": "/workspaces/Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset/ISPRS/CrackSAM/results/frangi_milestone_report/prompts_npy/road420/gain_frangi__2023_11_01_20_33_IMG_6353.jpg.npy",
+      "archived_prompt_sha256": "22869e177e196028a89666eaec28c9d0adae090dd2ad39533c8b2b6fb9e118b4"
+    },
+    {
+      "dataset": "facade390",
+      "category": "gain_frangi",
+      "case_name": "DJ_Wall_66.JPG",
+      "panel": "/workspaces/Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset/ISPRS/CrackSAM/results/frangi_milestone_report/figures/cases/facade390/gain_frangi__DJ_Wall_66.JPG.jpg",
+      "panel_sha256": "929958d311e024d228db32d1a8c878804016baac28f49730f9c0625d35f4d476",
+      "archived_prompt": "/workspaces/Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset/ISPRS/CrackSAM/results/frangi_milestone_report/prompts_npy/facade390/gain_frangi__DJ_Wall_66.JPG.npy",
+      "archived_prompt_sha256": "ae27fac4e261c360656a9c7554cb44e22fbee8c6b1ba1f538c2fe70ca0f2ab10"
+    },
+    {
+      "dataset": "concrete3k",
+      "category": "gain_frangi",
+      "case_name": "224_37.jpg",
+      "panel": "/workspaces/Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset/ISPRS/CrackSAM/results/frangi_milestone_report/figures/cases/concrete3k/gain_frangi__224_37.jpg.jpg",
+      "panel_sha256": "a24001b5dc8b1b969de57c6bf4386f2322e38c0787b3d0c3299bdd46ca6b3371",
+      "archived_prompt": "/workspaces/Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset/ISPRS/CrackSAM/results/frangi_milestone_report/prompts_npy/concrete3k/gain_frangi__224_37.jpg.npy",
+      "archived_prompt_sha256": "1904ed60143a497225c9cfda91c481c2d666d33cd19ebd32cd967251fd771200"
+    }
+  ]
+}
