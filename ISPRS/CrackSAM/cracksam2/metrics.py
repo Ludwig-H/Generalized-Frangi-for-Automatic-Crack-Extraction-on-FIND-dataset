@@ -10,6 +10,7 @@ import torch
 
 
 ArrayLike = np.ndarray | torch.Tensor
+EMD_NUM_ITER_MAX = 10_000_000
 
 
 def _as_numpy(value: ArrayLike) -> np.ndarray:
@@ -140,7 +141,17 @@ def wasserstein_mask_distance(
         return float(np.hypot(height - 1, width - 1))
 
     cost = ot.dist(pred_coordinates, truth_coordinates, metric="euclidean")
-    return float(ot.emd2(pred_weights, truth_weights, cost))
+    distance, solver_log = ot.emd2(
+        pred_weights,
+        truth_weights,
+        cost,
+        numItermax=EMD_NUM_ITER_MAX,
+        log=True,
+    )
+    warning = solver_log.get("warning")
+    if warning:
+        raise RuntimeError(f"POT exact EMD solver did not converge: {warning}")
+    return float(distance)
 
 
 def evaluate_masks(
@@ -167,6 +178,7 @@ wasserstein_distance_masks = wasserstein_mask_distance
 __all__ = [
     "calculate_metric_percase",
     "compute_metrics",
+    "EMD_NUM_ITER_MAX",
     "evaluate_masks",
     "precision_recall_dice_iou",
     "segmentation_metrics",

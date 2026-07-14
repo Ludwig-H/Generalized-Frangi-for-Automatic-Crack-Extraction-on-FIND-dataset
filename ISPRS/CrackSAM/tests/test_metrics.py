@@ -10,6 +10,7 @@ import torch
 CRACKSAM_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(CRACKSAM_ROOT))
 
+from cracksam2 import metrics  # noqa: E402
 from cracksam2.metrics import (  # noqa: E402
     evaluate_masks,
     segmentation_metrics,
@@ -83,6 +84,24 @@ def test_wasserstein_default_support_cap_matches_explicit_2000_points():
     assert wasserstein_mask_distance(prediction, target) == pytest.approx(
         wasserstein_mask_distance(prediction, target, max_points=2_000)
     )
+
+
+def test_wasserstein_rejects_a_nonconverged_exact_solver(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def failed_emd2(*args: object, **kwargs: object):
+        assert kwargs["numItermax"] == metrics.EMD_NUM_ITER_MAX
+        assert kwargs["log"] is True
+        return 12.0, {"warning": "maximum number of iterations reached"}
+
+    monkeypatch.setattr(metrics.ot, "emd2", failed_emd2)
+    prediction = np.zeros((2, 2), dtype=np.float64)
+    target = np.zeros_like(prediction)
+    prediction[0, 0] = 1.0
+    target[1, 1] = 1.0
+
+    with pytest.raises(RuntimeError, match="did not converge"):
+        wasserstein_mask_distance(prediction, target, max_points=None)
 
 
 def test_metrics_reject_invalid_shapes_and_negative_transport_mass():

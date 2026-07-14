@@ -162,6 +162,11 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _file_identity(path: Path) -> dict[str, Any]:
+    stat = path.stat()
+    return {"name": path.name, "size": stat.st_size, "sha256": _sha256(path)}
+
+
 def _write_json(path: Path, value: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_name(f".{path.name}.tmp")
@@ -481,6 +486,14 @@ def main() -> int:
         "blas_threads_per_worker": 1,
         "memory_budget_gb": args.memory_budget_gb,
         "oversized_policy": "skip" if args.skip_oversized else "error",
+        "code": {
+            path.name: _file_identity(path)
+            for path in (
+                Path(__file__),
+                Path(__file__).parent / "cracksam2" / "metrics.py",
+                Path(__file__).parent / "cracksam2" / "data.py",
+            )
+        },
     }
     output_root.mkdir(parents=True, exist_ok=True)
     contract_path = output_root / "exact_wasserstein_contract.json"
