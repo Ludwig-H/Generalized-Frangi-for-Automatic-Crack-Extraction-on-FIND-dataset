@@ -34,6 +34,8 @@ def _task(tmp_path: Path) -> exact.ExactTask:
         case_name="case.png",
         prediction_path=str(prediction),
         target_path=str(target),
+        prediction_sha256=exact._sha256(prediction),
+        target_sha256=exact._sha256(target),
         prediction_points=1,
         target_points=1,
         cost_entries=1,
@@ -50,6 +52,14 @@ def test_exact_worker_uses_complete_support_and_euclidean_ground_cost(
     assert row["wasserstein"] == pytest.approx(5.0)
     assert row["prediction_points"] == 1
     assert row["target_points"] == 1
+
+
+def test_exact_worker_rejects_a_prediction_changed_after_scan(tmp_path: Path) -> None:
+    task = _task(tmp_path)
+    _save_mask(Path(task.prediction_path), [(11, 21)])
+
+    with pytest.raises(RuntimeError, match="Prediction changed after exact scan"):
+        exact._exact_worker(task)
 
 
 def test_target_loader_uses_nonconstant_rgba_alpha_as_mask(tmp_path: Path) -> None:
@@ -87,6 +97,30 @@ def test_run_tasks_is_resumable_and_repairs_truncated_journal(
     assert journal.read_bytes() == original
 
 
+def test_completed_journal_repairs_a_valid_final_line_without_newline(
+    tmp_path: Path,
+) -> None:
+    journal = tmp_path / "progress.jsonl"
+    first = {
+        "status": "complete",
+        "dataset": "mini",
+        "case_name": "first.png",
+        "wasserstein": 1.0,
+    }
+    journal.write_text(json.dumps(first), encoding="utf-8")
+
+    completed = exact._read_completed(journal)
+    assert completed[("mini", "first.png")]["wasserstein"] == 1.0
+    assert journal.read_bytes().endswith(b"\n")
+
+    second = {**first, "case_name": "second.png", "wasserstein": 2.0}
+    exact._append_jsonl(journal, second)
+    repaired = exact._read_completed(journal)
+
+    assert repaired[("mini", "second.png")]["wasserstein"] == 2.0
+    assert len(journal.read_text(encoding="utf-8").splitlines()) == 2
+
+
 def test_run_tasks_rejects_a_problem_larger_than_memory_budget(
     tmp_path: Path,
 ) -> None:
@@ -102,6 +136,103 @@ def test_run_tasks_rejects_a_problem_larger_than_memory_budget(
             memory_budget=1024,
             journal=tmp_path / "progress.jsonl",
         )
+
+
+def test_run_tasks_rejects_completed_rows_for_changed_mask_content(
+    tmp_path: Path,
+) -> None:
+    task = _task(tmp_path)
+    journal = tmp_path / "progress.jsonl"
+    completed_row = exact._exact_worker(task)
+    exact._append_jsonl(journal, completed_row)
+    changed = exact.ExactTask(
+        **{**task.__dict__, "prediction_sha256": "0" * 64}
+    )
+
+    with pytest.raises(RuntimeError, match="task identity mismatch"):
+        exact.run_tasks(
+            [changed],
+            workers=1,
+            memory_budget=1024,
+            journal=journal,
+        )
+
+
+def _write_evaluation_contract(
+    path: Path,
+    spec: exact.DatasetSpec,
+    *,
+    save_predictions: bool = True,
+    max_samples: int | None = None,
+    root: Path | None = None,
+) -> None:
+    path.write_text(
+        json.dumps(
+            {
+                "format_version": 1,
+                "save_predictions": save_predictions,
+                "max_samples": max_samples,
+                "datasets": [
+                    {
+                        "name": spec.name,
+                        "root": str((root or spec.root).resolve()),
+                        "list_file": {
+                            **exact._file_identity(spec.list_file),
+                            "path": str(spec.list_file.resolve()),
+                        },
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
+def test_evaluation_contract_binds_data_root_and_list(tmp_path: Path) -> None:
+    list_file = tmp_path / "test_vol.txt"
+    list_file.write_text("case.png\n", encoding="utf-8")
+    spec = exact.DatasetSpec("mini", tmp_path / "data", list_file)
+    contract_path = tmp_path / "evaluation_contract.json"
+    _write_evaluation_contract(contract_path, spec)
+
+    observed = exact.validate_evaluation_contract(contract_path, [spec], None)
+
+    assert observed["datasets"][0]["name"] == "mini"
+
+
+def test_evaluation_contract_rejects_a_different_data_root(tmp_path: Path) -> None:
+    list_file = tmp_path / "test_vol.txt"
+    list_file.write_text("case.png\n", encoding="utf-8")
+    spec = exact.DatasetSpec("mini", tmp_path / "data", list_file)
+    contract_path = tmp_path / "evaluation_contract.json"
+    _write_evaluation_contract(contract_path, spec, root=tmp_path / "other-data")
+
+    with pytest.raises(ValueError, match="data root mismatch"):
+        exact.validate_evaluation_contract(contract_path, [spec], None)
+
+
+def test_evaluation_contract_requires_saved_predictions(tmp_path: Path) -> None:
+    list_file = tmp_path / "test_vol.txt"
+    list_file.write_text("case.png\n", encoding="utf-8")
+    spec = exact.DatasetSpec("mini", tmp_path / "data", list_file)
+    contract_path = tmp_path / "evaluation_contract.json"
+    _write_evaluation_contract(contract_path, spec, save_predictions=False)
+
+    with pytest.raises(ValueError, match="--save-predictions"):
+        exact.validate_evaluation_contract(contract_path, [spec], None)
+
+
+def test_evaluation_contract_rejects_exact_cases_beyond_smoke_run(
+    tmp_path: Path,
+) -> None:
+    list_file = tmp_path / "test_vol.txt"
+    list_file.write_text("case.png\n", encoding="utf-8")
+    spec = exact.DatasetSpec("mini", tmp_path / "data", list_file)
+    contract_path = tmp_path / "evaluation_contract.json"
+    _write_evaluation_contract(contract_path, spec, max_samples=1)
+
+    with pytest.raises(ValueError, match="exceeds the evaluation selection"):
+        exact.validate_evaluation_contract(contract_path, [spec], None)
 
 
 def test_publish_results_preserves_segmentation_metrics_and_adds_exact_distance(

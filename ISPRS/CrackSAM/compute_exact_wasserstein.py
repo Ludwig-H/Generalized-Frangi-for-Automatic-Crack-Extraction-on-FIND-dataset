@@ -61,6 +61,8 @@ class ExactTask:
     case_name: str
     prediction_path: str
     target_path: str
+    prediction_sha256: str
+    target_sha256: str
     prediction_points: int
     target_points: int
     cost_entries: int
@@ -171,6 +173,82 @@ def _file_identity(path: Path) -> dict[str, Any]:
     return {"name": path.name, "size": stat.st_size, "sha256": _sha256(path)}
 
 
+def validate_evaluation_contract(
+    path: Path,
+    specs: Iterable[DatasetSpec],
+    max_cases: int | None,
+) -> dict[str, Any]:
+    """Bind exact transport inputs to the inference run that produced them."""
+
+    try:
+        contract = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Invalid evaluation contract: {path}") from exc
+    if not isinstance(contract, dict) or contract.get("format_version") != 1:
+        raise ValueError(f"Unsupported evaluation contract: {path}")
+    if contract.get("save_predictions") is not True:
+        raise ValueError(
+            "Exact Wasserstein requires an evaluation created with --save-predictions"
+        )
+
+    evaluated_max = contract.get("max_samples")
+    if evaluated_max is not None and (
+        isinstance(evaluated_max, bool)
+        or not isinstance(evaluated_max, int)
+        or evaluated_max <= 0
+    ):
+        raise ValueError("Evaluation contract has an invalid max_samples value")
+    if evaluated_max is not None and (
+        max_cases is None or max_cases > evaluated_max
+    ):
+        raise ValueError(
+            "Exact selection exceeds the evaluation selection: "
+            f"max_cases={max_cases!r}, evaluation max_samples={evaluated_max}"
+        )
+
+    datasets = contract.get("datasets")
+    if not isinstance(datasets, list):
+        raise ValueError("Evaluation contract has no dataset manifest")
+    datasets_by_name: dict[str, dict[str, Any]] = {}
+    for entry in datasets:
+        if not isinstance(entry, dict) or not isinstance(entry.get("name"), str):
+            raise ValueError("Evaluation contract contains an invalid dataset entry")
+        name = entry["name"]
+        if name in datasets_by_name:
+            raise ValueError(f"Evaluation contract contains duplicate dataset {name!r}")
+        datasets_by_name[name] = entry
+
+    for spec in specs:
+        observed = datasets_by_name.get(spec.name)
+        if observed is None:
+            raise ValueError(
+                f"Evaluation contract does not contain selected dataset {spec.name!r}"
+            )
+        try:
+            observed_root = Path(str(observed["root"])).expanduser().resolve()
+        except KeyError as exc:
+            raise ValueError(
+                f"Evaluation contract has no root for dataset {spec.name!r}"
+            ) from exc
+        expected_root = spec.root.expanduser().resolve()
+        if observed_root != expected_root:
+            raise ValueError(
+                f"Evaluation data root mismatch for {spec.name}: "
+                f"{observed_root} != {expected_root}"
+            )
+
+        expected_list = {
+            **_file_identity(spec.list_file),
+            "path": str(spec.list_file.expanduser().resolve()),
+        }
+        if observed.get("list_file") != expected_list:
+            raise ValueError(
+                f"Evaluation list identity mismatch for {spec.name}: "
+                f"{observed.get('list_file')!r} != {expected_list!r}"
+            )
+    return contract
+
+
 def _write_json(path: Path, value: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_name(f".{path.name}.tmp")
@@ -196,6 +274,7 @@ def _read_completed(path: Path) -> dict[tuple[str, str], dict[str, Any]]:
         return completed
     size = path.stat().st_size
     valid_end = 0
+    append_newline = False
     with path.open("rb") as source:
         while True:
             line_start = source.tell()
@@ -213,9 +292,15 @@ def _read_completed(path: Path) -> dict[tuple[str, str], dict[str, Any]]:
             if row.get("status") == "complete":
                 completed[(str(row["dataset"]), str(row["case_name"]))] = row
             valid_end = line_end
+            append_newline = not raw.endswith(b"\n")
     if valid_end < size:
         with path.open("r+b") as output:
             output.truncate(valid_end)
+            output.flush()
+            os.fsync(output.fileno())
+    elif append_newline:
+        with path.open("ab") as output:
+            output.write(b"\n")
             output.flush()
             os.fsync(output.fileno())
     return completed
@@ -249,6 +334,8 @@ def scan_tasks(
                     case_name=case_name,
                     prediction_path=str(prediction_path),
                     target_path=str(target_path),
+                    prediction_sha256=_sha256(prediction_path),
+                    target_sha256=_sha256(target_path),
                     prediction_points=prediction_points,
                     target_points=target_points,
                     cost_entries=cost_entries,
@@ -256,6 +343,34 @@ def scan_tasks(
                 )
             )
     return tasks
+
+
+def _task_identity(task: ExactTask) -> dict[str, Any]:
+    return {
+        "dataset": task.dataset,
+        "case_name": task.case_name,
+        "prediction_sha256": task.prediction_sha256,
+        "target_sha256": task.target_sha256,
+        "prediction_points": task.prediction_points,
+        "target_points": task.target_points,
+        "cost_entries": task.cost_entries,
+        "estimated_bytes": task.estimated_bytes,
+    }
+
+
+def task_manifest_sha256(tasks: Iterable[ExactTask]) -> str:
+    digest = hashlib.sha256()
+    for task in tasks:
+        digest.update(
+            json.dumps(
+                _task_identity(task),
+                sort_keys=True,
+                separators=(",", ":"),
+                ensure_ascii=True,
+            ).encode("utf-8")
+        )
+        digest.update(b"\n")
+    return digest.hexdigest()
 
 
 def scan_summary(tasks: list[ExactTask]) -> dict[str, Any]:
@@ -290,14 +405,41 @@ def scan_summary(tasks: list[ExactTask]) -> dict[str, Any]:
 
 def _exact_worker(task: ExactTask) -> dict[str, Any]:
     started = time.perf_counter()
+    prediction_path = Path(task.prediction_path)
+    target_path = Path(task.target_path)
+    observed_prediction_sha256 = _sha256(prediction_path)
+    observed_target_sha256 = _sha256(target_path)
+    if observed_prediction_sha256 != task.prediction_sha256:
+        raise RuntimeError(
+            f"Prediction changed after exact scan: {task.dataset}/{task.case_name}"
+        )
+    if observed_target_sha256 != task.target_sha256:
+        raise RuntimeError(
+            f"Target changed after exact scan: {task.dataset}/{task.case_name}"
+        )
     prediction = _load_prediction(task.prediction_path).astype(np.float64)
     target = _load_target(task.target_path).astype(np.float64)
+    prediction_points = int(np.count_nonzero(prediction))
+    target_points = int(np.count_nonzero(target))
+    if prediction_points != task.prediction_points or target_points != task.target_points:
+        raise RuntimeError(
+            f"Mask support changed after exact scan: {task.dataset}/{task.case_name}"
+        )
+    if (
+        _sha256(prediction_path) != task.prediction_sha256
+        or _sha256(target_path) != task.target_sha256
+    ):
+        raise RuntimeError(
+            f"Mask file changed while loading exact task: {task.dataset}/{task.case_name}"
+        )
     distance = wasserstein_mask_distance(prediction, target, max_points=None)
     return {
         "status": "complete",
         "dataset": task.dataset,
         "case_name": task.case_name,
         "wasserstein": float(distance),
+        "prediction_sha256": task.prediction_sha256,
+        "target_sha256": task.target_sha256,
         "prediction_points": task.prediction_points,
         "target_points": task.target_points,
         "cost_entries": task.cost_entries,
@@ -314,6 +456,24 @@ def run_tasks(
     journal: Path,
 ) -> dict[tuple[str, str], dict[str, Any]]:
     completed = _read_completed(journal)
+    tasks_by_key = {(task.dataset, task.case_name): task for task in tasks}
+    unexpected = sorted(set(completed) - set(tasks_by_key))
+    if unexpected:
+        raise RuntimeError(
+            "Exact journal contains cases outside the current task manifest: "
+            f"{unexpected[:5]}"
+        )
+    for key, row in completed.items():
+        expected = _task_identity(tasks_by_key[key])
+        mismatches = {
+            field: {"observed": row.get(field), "expected": value}
+            for field, value in expected.items()
+            if row.get(field) != value
+        }
+        if mismatches:
+            raise RuntimeError(
+                f"Exact journal task identity mismatch for {key}: {mismatches}"
+            )
     pending = [
         task for task in tasks if (task.dataset, task.case_name) not in completed
     ]
@@ -468,13 +628,14 @@ def main() -> int:
         raise ValueError("--memory-budget-gb must be positive")
     if args.max_cases is not None and args.max_cases <= 0:
         raise ValueError("--max-cases must be positive")
+    args.data_root = args.data_root.expanduser().resolve()
     args.evaluation_root = args.evaluation_root.expanduser().resolve()
     output_root = (
         args.output.expanduser().resolve()
         if args.output is not None
         else args.evaluation_root / "wasserstein_exact"
     )
-    specs = dataset_specs(args.data_root.expanduser())
+    specs = dataset_specs(args.data_root)
     if args.datasets:
         selected = set(args.datasets)
         specs = [spec for spec in specs if spec.name in selected]
@@ -482,13 +643,19 @@ def main() -> int:
     evaluation_contract = args.evaluation_root / "evaluation_contract.json"
     if not evaluation_contract.is_file():
         raise FileNotFoundError(f"Evaluation contract missing: {evaluation_contract}")
+    validate_evaluation_contract(evaluation_contract, specs, args.max_cases)
+    tasks = scan_tasks(specs, args.evaluation_root, args.max_cases)
     contract = {
-        "format_version": 1,
+        "format_version": 2,
         "algorithm": "POT ot.emd2 exact dense Euclidean direct-mask",
         "pot_version": ot.__version__,
+        "data_root": str(args.data_root),
+        "evaluation_root": str(args.evaluation_root),
         "evaluation_contract_sha256": _sha256(evaluation_contract),
         "datasets": [spec.name for spec in specs],
         "max_cases": args.max_cases,
+        "task_manifest_sha256": task_manifest_sha256(tasks),
+        "tasks": len(tasks),
         "matrix_bytes_per_entry_estimate": MATRIX_BYTES_PER_ENTRY,
         "blas_threads_per_worker": 1,
         "memory_budget_gb": args.memory_budget_gb,
@@ -511,7 +678,6 @@ def main() -> int:
     else:
         _write_json(contract_path, contract)
 
-    tasks = scan_tasks(specs, args.evaluation_root, args.max_cases)
     summary = scan_summary(tasks)
     _write_json(output_root / "support_scan.json", summary)
     print(json.dumps(summary, indent=2, sort_keys=True), flush=True)
