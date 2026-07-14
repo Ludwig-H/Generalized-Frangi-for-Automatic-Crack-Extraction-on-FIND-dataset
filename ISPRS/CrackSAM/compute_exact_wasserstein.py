@@ -13,11 +13,11 @@ import argparse
 import csv
 import hashlib
 import json
-import math
+import multiprocessing
 import os
 import time
 from concurrent.futures import FIRST_COMPLETED, Future, ProcessPoolExecutor, wait
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -299,7 +299,11 @@ def run_tasks(
     active_bytes = 0
     completed_count = len(completed)
     total = len(tasks)
-    with ProcessPoolExecutor(max_workers=workers) as executor:
+    # ``spawn`` avoids inheriting OpenCV/POT/BLAS thread state into the workers.
+    # This is also safe when the scan is launched after a CUDA inference process.
+    with ProcessPoolExecutor(
+        max_workers=workers, mp_context=multiprocessing.get_context("spawn")
+    ) as executor:
         while pending or active:
             submitted = False
             index = 0
