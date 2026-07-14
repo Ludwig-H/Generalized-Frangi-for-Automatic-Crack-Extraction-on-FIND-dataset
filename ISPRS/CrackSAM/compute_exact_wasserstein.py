@@ -21,6 +21,17 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
 
+# Dense cost construction can otherwise start a full BLAS thread pool inside
+# every process.  Exact EMD itself is single-threaded, so one BLAS thread per
+# process prevents severe oversubscription on the 48-vCPU experiment VM.
+for _thread_variable in (
+    "OMP_NUM_THREADS",
+    "OPENBLAS_NUM_THREADS",
+    "MKL_NUM_THREADS",
+    "NUMEXPR_NUM_THREADS",
+):
+    os.environ[_thread_variable] = "1"
+
 import cv2
 import numpy as np
 import ot
@@ -31,7 +42,10 @@ from cracksam2.metrics import wasserstein_mask_distance
 
 
 LIST_ROOT = Path(__file__).parent / "CrackSAM" / "CrackSAM" / "lists"
-MATRIX_BYTES_PER_ENTRY = 24
+# Measured with POT 0.9.7 on the target VM: cost construction plus the network
+# simplex peaks near 46 bytes per dense transport arc.  Round upward so the
+# scheduler leaves enough room for worker imports and image buffers.
+MATRIX_BYTES_PER_ENTRY = 48
 
 
 @dataclass(frozen=True)
@@ -244,6 +258,7 @@ def scan_summary(tasks: list[ExactTask]) -> dict[str, Any]:
     return {
         "tasks": len(tasks),
         "matrix_bytes_per_entry_estimate": MATRIX_BYTES_PER_ENTRY,
+        "blas_threads_per_worker": 1,
         "prediction_points": quantiles([task.prediction_points for task in tasks]),
         "target_points": quantiles([task.target_points for task in tasks]),
         "cost_entries": quantiles([task.cost_entries for task in tasks]),
@@ -434,6 +449,7 @@ def main() -> int:
         "datasets": [spec.name for spec in specs],
         "max_cases": args.max_cases,
         "matrix_bytes_per_entry_estimate": MATRIX_BYTES_PER_ENTRY,
+        "blas_threads_per_worker": 1,
     }
     output_root.mkdir(parents=True, exist_ok=True)
     contract_path = output_root / "exact_wasserstein_contract.json"

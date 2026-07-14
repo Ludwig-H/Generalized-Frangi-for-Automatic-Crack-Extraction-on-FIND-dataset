@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import os
 import shutil
@@ -21,6 +22,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--target-epoch", type=int, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--training-pid", type=int, required=True)
+    parser.add_argument(
+        "--validation-csv",
+        type=Path,
+        help=(
+            "Wait until this CSV contains the target epoch before snapshotting. "
+            "Use this when an epoch-boundary periodic checkpoint can precede "
+            "validation."
+        ),
+    )
     parser.add_argument("--poll-seconds", type=float, default=2.0)
     return parser.parse_args()
 
@@ -64,6 +74,20 @@ def atomic_copy(source: Path, destination: Path) -> None:
         raise
 
 
+def validation_completed(path: Path, target_epoch: int) -> bool:
+    if not path.is_file():
+        return False
+    with path.open(newline="", encoding="utf-8") as source:
+        for row in csv.DictReader(source):
+            try:
+                epoch = int(row.get("epoch", ""))
+            except (TypeError, ValueError):
+                continue
+            if epoch == target_epoch:
+                return True
+    return False
+
+
 def main() -> int:
     args = parse_args()
     if args.target_epoch <= 0:
@@ -86,6 +110,16 @@ def main() -> int:
                     flush=True,
                 )
                 if epoch == args.target_epoch and next_batch == 0:
+                    if args.validation_csv is not None and not validation_completed(
+                        args.validation_csv, args.target_epoch
+                    ):
+                        print(
+                            f"waiting for validation epoch={args.target_epoch} in "
+                            f"{args.validation_csv}",
+                            flush=True,
+                        )
+                        time.sleep(args.poll_seconds)
+                        continue
                     atomic_copy(args.checkpoint, args.output)
                     saved_epoch, saved_batch, saved_step, saved_state = load_position(
                         args.output
