@@ -8,7 +8,8 @@ from scipy.sparse.csgraph import minimum_spanning_tree, breadth_first_order, con
 from .frangi_hessian import FrangiHessianGPU
 
 def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
-                             ss=1.0, si=0.25, sa=0.3, τ=0.18, min_rel_size=120.0, K=1, device='cuda'):
+                             ss=1.0, si=0.25, sa=0.3, τ=0.18, min_rel_size=120.0,
+                             K=1, device='cuda', compute_centrality=True):
     t0 = time.time()
     
     fh = FrangiHessianGPU(Σ, device=device)
@@ -164,6 +165,32 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
     if len(S_v) > 0:
         np.maximum.at(node_sim_max, i_v, S_v)
         np.maximum.at(node_sim_max, j_v, S_v)
+
+    # CrackSAM consumes only node_sim_max. Avoid the MST/betweenness branch
+    # when callers do not request centrality; this leaves similarity unchanged.
+    if not compute_centrality:
+        orig_coords_cpu = coords.cpu().numpy().astype(int)
+        sim_img = np.zeros((H, W), dtype=np.float32)
+        sim_img[orig_coords_cpu[:, 0], orig_coords_cpu[:, 1]] = node_sim_max
+        if device == 'cuda':
+            torch.cuda.synchronize()
+        t_end = time.time()
+        timings = {
+            "1. Hessian Fusion": t_hessian - t0,
+            "2. Graph Unfold": t_unfold - t_hessian,
+            "3. Frangi Similarity": t_sim - t_unfold,
+            "4. MST (CPU)": 0.0,
+            "5. Betweenness (GPU)": 0.0,
+            "Total": t_end - t0,
+        }
+        empty = np.zeros((H, W), dtype=np.float32)
+        return (
+            max_S_global.cpu().numpy(),
+            sim_img,
+            empty.copy(),
+            timings,
+            {'tau_mask': empty.copy(), 'comp_mask': empty},
+        )
         
     N_total = H * W
     num_to_keep_nodes = max(1, int(N * τ))

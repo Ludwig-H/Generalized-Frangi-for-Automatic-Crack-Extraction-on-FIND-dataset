@@ -18,3 +18,8 @@ gcp-migration/*.log
 
 # Pretrained weights and training checkpoints
 checkpoints/
+
+# CrackSAM 2 local datasets, geometric prompt caches, and experiment outputs
+ISPRS/CrackSAM/data/
+ISPRS/CrackSAM/prompt_cache/
+ISPRS/CrackSAM/artifacts/

@@ -68,7 +68,7 @@ gcloud compute instances create "${INSTANCE_NAME}" \
     --image-project="${IMAGE_PROJECT}" \
     --boot-disk-size="100GB" \
     --boot-disk-type="hyperdisk-balanced" \
-    --network-interface="network=default,access-config-type=ONE_TO_ONE_NAT" \
+    --network-interface="network=default" \
     --metadata="install-nvidia-driver=true"
 
 printf '[SUCCÈS] %s créée. Lancez immédiatement le preflight Blackwell.\n' "${INSTANCE_NAME}"

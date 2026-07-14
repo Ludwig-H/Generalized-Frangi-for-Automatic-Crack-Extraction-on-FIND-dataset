@@ -1,0 +1,10 @@
+# Install with SAM2_BUILD_CUDA=0 and --no-build-isolation. The CUDA extension
+# is only used by optional connected-component post-processing, not this work.
+git+https://github.com/facebookresearch/sam2.git@2b90b9f5ceec907a1c18123530e92e794ad901a4
+gdown>=5.2,<6
+opencv-python-headless>=4.7,<5
+POT>=0.9,<1
+scipy>=1.10
+Pillow>=9.4
+tqdm>=4.66
+
