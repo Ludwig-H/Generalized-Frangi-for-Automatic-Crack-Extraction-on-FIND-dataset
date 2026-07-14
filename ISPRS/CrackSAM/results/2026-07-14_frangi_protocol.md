@@ -1,9 +1,10 @@
 # Protocole CrackSAM 2 — reprise Frangi du 14 juillet 2026
 
-Statut : expérience en cours. Les métriques ci-dessous sont des moyennes par
-image. Les évaluations de jalon utilisent les six jeux complets, sans
-Wasserstein dans un premier temps. Le Wasserstein exact est calculé séparément
-à partir des masques binaires sauvegardés.
+Statut : **note intermédiaire archivée**. L'expérience et les cinq évaluations
+de jalon sont terminées ; les résultats définitifs, corrections de contrat et
+illustrations se trouvent dans
+[`frangi_milestone_report/RAPPORT_FRANGI_MILESTONES.md`](frangi_milestone_report/RAPPORT_FRANGI_MILESTONES.md).
+Les métriques ci-dessous documentent uniquement l'état observé à l'époque 20.
 
 ## Exécution
 

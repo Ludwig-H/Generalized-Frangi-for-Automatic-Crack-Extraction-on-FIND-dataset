@@ -1,0 +1,78 @@
+{
+  "count": 6,
+  "memory_budget_bytes": 150323855360,
+  "tasks": [
+    {
+      "case_name": "CRACK500_20160328_153813_1921_1081.jpg",
+      "cost_entries": 5457170810,
+      "dataset": "khanhha_noisy1",
+      "estimated_bytes": 261944198880,
+      "prediction_path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_comparison/epoch25_best/khanhha_noisy1/predictions/CRACK500_20160328_153813_1921_1081.png",
+      "prediction_points": 67685,
+      "prediction_sha256": "82a9a09ed88e821dfb64bf330a7b6bd97ded9759022fd0bf545d19f5183e95a1",
+      "target_path": "/home/codespace/cracksam2-data/khanhha/test/masks/CRACK500_20160328_153813_1921_1081.jpg",
+      "target_points": 80626,
+      "target_sha256": "54a6508d2aa5f53986e653c2ebba6f597f08d10eb588a8b82cc62e8023e765ea"
+    },
+    {
+      "case_name": "CRACK500_20160328_153813_1921_1081.jpg",
+      "cost_entries": 5365418422,
+      "dataset": "khanhha_original",
+      "estimated_bytes": 257540084256,
+      "prediction_path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_comparison/epoch25_best/khanhha_original/predictions/CRACK500_20160328_153813_1921_1081.png",
+      "prediction_points": 66547,
+      "prediction_sha256": "2886fdc759ddc0683e64de5648c0c8fe91e94ebde04e33d79e184d36c9ceef62",
+      "target_path": "/home/codespace/cracksam2-data/khanhha/test/masks/CRACK500_20160328_153813_1921_1081.jpg",
+      "target_points": 80626,
+      "target_sha256": "54a6508d2aa5f53986e653c2ebba6f597f08d10eb588a8b82cc62e8023e765ea"
+    },
+    {
+      "case_name": "CRACK500_20160328_153813_1921_1081.jpg",
+      "cost_entries": 5155145814,
+      "dataset": "khanhha_noisy2",
+      "estimated_bytes": 247446999072,
+      "prediction_path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_comparison/epoch25_best/khanhha_noisy2/predictions/CRACK500_20160328_153813_1921_1081.png",
+      "prediction_points": 63939,
+      "prediction_sha256": "837a8d9067c2ca6835f655ae15ee9bc4afa93827432461b071aa88b3e5dcd1f9",
+      "target_path": "/home/codespace/cracksam2-data/khanhha/test/masks/CRACK500_20160328_153813_1921_1081.jpg",
+      "target_points": 80626,
+      "target_sha256": "54a6508d2aa5f53986e653c2ebba6f597f08d10eb588a8b82cc62e8023e765ea"
+    },
+    {
+      "case_name": "230_10.jpg",
+      "cost_entries": 3747260975,
+      "dataset": "concrete3k",
+      "estimated_bytes": 179868526800,
+      "prediction_path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_comparison/epoch25_best/concrete3k/predictions/230_10.png",
+      "prediction_points": 30265,
+      "prediction_sha256": "7cda893376a1e188d7be8eb2c51c9e49deb67091c7d5391f15c760bab0918ac8",
+      "target_path": "/home/codespace/cracksam2-data/concrete3k/masks/230_10.jpg",
+      "target_points": 123815,
+      "target_sha256": "98a5b6a53dd952fab59a62d8fea2fb72326bcb67073a8fbd6795d32bb57f0913"
+    },
+    {
+      "case_name": "070_21.jpg",
+      "cost_entries": 3312508444,
+      "dataset": "concrete3k",
+      "estimated_bytes": 159000405312,
+      "prediction_path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_comparison/epoch25_best/concrete3k/predictions/070_21.png",
+      "prediction_points": 38252,
+      "prediction_sha256": "a51d385fc335e520c48c6fa69f523e6496f94efb681da5c9b36edbb54e6d5738",
+      "target_path": "/home/codespace/cracksam2-data/concrete3k/masks/070_21.jpg",
+      "target_points": 86597,
+      "target_sha256": "83e7768d9d1fbf2fe4545dbe7bcdf2a18fbf0a12121b7ce284dd27e9aa12d5b9"
+    },
+    {
+      "case_name": "558_33.jpg",
+      "cost_entries": 3138852915,
+      "dataset": "concrete3k",
+      "estimated_bytes": 150664939920,
+      "prediction_path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_comparison/epoch25_best/concrete3k/predictions/558_33.png",
+      "prediction_points": 36189,
+      "prediction_sha256": "be15da5950a5f8c40814f0fc529dcb9528e46a76dc726d9f86bb41575b06d1e6",
+      "target_path": "/home/codespace/cracksam2-data/concrete3k/masks/558_33.jpg",
+      "target_points": 86735,
+      "target_sha256": "d921341957abb03e0997a19527fbed2ad08d49e8bfcddd7913cc45fe5507adcb"
+    }
+  ]
+}

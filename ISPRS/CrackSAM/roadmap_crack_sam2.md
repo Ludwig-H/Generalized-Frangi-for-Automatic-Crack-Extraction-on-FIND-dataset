@@ -161,3 +161,49 @@ Pour exécuter le code sur la VM Google Cloud Platform dotée d'une carte NVIDIA
     ```bash
     ./gcp-migration/stop_and_verify.sh
     ```
+
+---
+
+## 7. État final de l'expérience du 14 juillet 2026
+
+Les deux entraînements SAM 2 ont atteint leur horizon configuré de 70 époques.
+La meilleure baseline est le checkpoint de l'époque 20 ; le meilleur checkpoint
+Frangi-similarité est celui de l'époque 25, sélectionné uniquement sur le Dice de
+validation. Les cinq jalons Frangi conservés ont été réévalués sous un même
+contrat sur les 8 895 conditions image/jeu, avec sauvegarde de chaque prédiction.
+
+| Modèle/jalon | IoU macro, 6 jeux | Δ vs baseline best |
+|---|---:|---:|
+| Baseline best, époque 20 | 0,567465 | — |
+| Frangi, époque 20 | 0,555058 | −0,012407 |
+| Frangi, époque 25 best | 0,556288 | −0,011177 |
+| Frangi, époque 30 | 0,550911 | −0,016554 |
+| Frangi, époque 55 | 0,546557 | −0,020908 |
+| Frangi, époque 70 | 0,546430 | −0,021035 |
+| CrackSAM Adapter d=32 publié (SAM 1) | 0,571817 | comparaison externe |
+| CrackSAM LoRA qv r=4 publié (SAM 1) | 0,577950 | comparaison externe |
+
+Le guidage Frangi n'améliore donc pas la moyenne globale dans cette expérience.
+Le jalon 25 apporte un léger gain sur Khanhha bruité 1 (+0,002675 IoU), mais
+recule notamment sur Khanhha bruité 2 (−0,029241), Facade390 (−0,016429) et
+Concrete3k (−0,009691). Les comparaisons au papier restent externes : CrackSAM
+utilise SAM 1 ViT-H, alors que cette expérience utilise SAM 2 Hiera Large.
+
+Le calcul Wasserstein exact dense demandé a été pré-scanné pour les six runs.
+Avec un budget de 140 Gio, l'intersection théorique contient 8 888/8 895 cas ;
+sept cas distincts dépassent le budget sur au moins un run. Toutefois, le
+benchmark réel estime 200–300 heures pour les six runs : un cas admissible de
+136,56 Gio n'était toujours pas terminé après 16,5 minutes. La tentative a été
+arrêtée proprement après 1 182/8 890 cas baseline, sans échec, et son journal est
+reprenable. Aucune moyenne partielle n'est présentée comme un résultat final.
+Le scan complet, les seuils de couverture et la politique de publication sont
+consignés dans
+[`results/2026-07-14_wasserstein_feasibility.json`](results/2026-07-14_wasserstein_feasibility.json).
+
+Le rapport chiffré et illustré complet est disponible dans
+[`results/frangi_milestone_report/RAPPORT_FRANGI_MILESTONES.md`](results/frangi_milestone_report/RAPPORT_FRANGI_MILESTONES.md).
+Il contient les métriques exhaustives, les statistiques appariées, les courbes,
+les comparaisons aux deux modèles publiés, les réussites, les échecs, les cas
+clairsemés et douze pseudo-logits Frangi bruts. Les poids conservés, leurs
+SHA-256 et leurs chemins de restauration figurent dans
+[`results/2026-07-14_checkpoint_manifest.json`](results/2026-07-14_checkpoint_manifest.json).

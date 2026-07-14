@@ -121,3 +121,28 @@ caches, LoRA, perte, optimiseur, planning, augmentation et graine.
 Les listes CrackSAM utilisent 9 602 des 9 603 images Khanhha d'entraînement :
 `CFD_042.jpg`, présent dans l'archive, n'est référencé ni par `train.txt` ni par
 `val_vol.txt` et reste donc volontairement hors protocole.
+
+## Comparaison finale des jalons Frangi
+
+Le dossier [`results/frangi_milestone_report/`](results/frangi_milestone_report/)
+contient le rapport exhaustif baseline best vs Frangi aux époques 20, 25, 30,
+55 et 70. Il inclut les métriques par jeu et par image, les intervalles bootstrap,
+les valeurs publiées de CrackSAM (SAM 1), les cas de réussite et d'échec, ainsi
+que 12 pseudo-logits Frangi bruts avec leur manifeste SHA-256.
+
+- [rapport illustré](results/frangi_milestone_report/RAPPORT_FRANGI_MILESTONES.md) ;
+- [manifeste des prompts archivés](results/frangi_milestone_report/prompts_npy/manifest.json) ;
+- [manifeste des checkpoints et chemins de restauration](results/2026-07-14_checkpoint_manifest.json).
+
+Pour reproduire les évaluations et régénérer le rapport :
+
+```bash
+bash ISPRS/CrackSAM/run_milestone_comparison.sh evaluate
+python -m pip install -r ISPRS/CrackSAM/requirements-report.txt
+PYTHONPATH=ISPRS/CrackSAM python ISPRS/CrackSAM/generate_frangi_milestone_report.py \
+  --data-root "$CRACKSAM2_DATA_ROOT" \
+  --prompt-root "$CRACKSAM2_PROMPT_ROOT" \
+  --artifact-root "$CRACKSAM2_ARTIFACT_ROOT" \
+  --output ISPRS/CrackSAM/results/frangi_milestone_report \
+  --strict
+```

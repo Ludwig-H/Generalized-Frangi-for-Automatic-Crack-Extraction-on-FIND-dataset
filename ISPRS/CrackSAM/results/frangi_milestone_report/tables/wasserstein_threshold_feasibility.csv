@@ -1,0 +1,10 @@
+per_case_threshold_gib,cases_per_run,strict_common_cases,strict_common_fraction,union_excluded_cases,ideal_wall_time_hours_8_workers_low,ideal_wall_time_hours_8_workers_high,estimated_real_wall_time_hours_low,estimated_real_wall_time_hours_high,runnable_baseline_best,runnable_epoch25_best,runnable_epoch20,runnable_epoch30,runnable_epoch55,runnable_epoch70,strict_common_khanhha_original,strict_common_khanhha_noisy1,strict_common_khanhha_noisy2,strict_common_road420,strict_common_facade390,strict_common_concrete3k
+0.25,8895,1853,0.208319,7042,0.1,0.4,,,2022,2083,2130,2159,2209,2209,,,,,,
+0.5,8895,2531,0.284542,6364,0.5,1.4,,,2763,2796,2817,2900,2942,2943,,,,,,
+1.0,8895,3812,0.428555,5083,2.3,5.0,,,4018,4086,4100,4208,4235,4234,,,,,,
+2.0,8895,5191,0.583586,3704,7.0,13.0,,,5301,5389,5414,5440,5458,5458,,,,,,
+4.0,8895,6618,0.744013,2277,20.0,30.0,,,6688,6723,6755,6748,6757,6758,1311,1338,1341,410,389,1829
+8.0,8895,7697,0.865318,1198,45.0,57.0,,,7732,7765,7783,7770,7777,7777,1467,1492,1490,418,390,2440
+16.0,8895,8381,0.942215,514,80.0,90.0,,,8409,8411,8425,8418,8422,8422,1580,1586,1593,420,390,2812
+32.0,8895,8709,0.979089,186,117.0,122.0,,,8725,8714,8719,8723,8722,8722,1650,1644,1648,420,390,2957
+140.0,8895,8888,0.999213,7,163.0,172.0,200.0,300.0,8890,8889,8889,8889,8889,8890,1694,1694,1693,420,390,2997

@@ -1,0 +1,66 @@
+{
+  "count": 5,
+  "memory_budget_bytes": 150323855360,
+  "tasks": [
+    {
+      "case_name": "CRACK500_20160328_153813_1921_1081.jpg",
+      "cost_entries": 5432176750,
+      "dataset": "khanhha_noisy1",
+      "estimated_bytes": 260744484000,
+      "prediction_path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_comparison/epoch70/khanhha_noisy1/predictions/CRACK500_20160328_153813_1921_1081.png",
+      "prediction_points": 67375,
+      "prediction_sha256": "e55afdac71c7b9929ac29af85f4ad957a3b0440135113d52536cab505cf06d9f",
+      "target_path": "/home/codespace/cracksam2-data/khanhha/test/masks/CRACK500_20160328_153813_1921_1081.jpg",
+      "target_points": 80626,
+      "target_sha256": "54a6508d2aa5f53986e653c2ebba6f597f08d10eb588a8b82cc62e8023e765ea"
+    },
+    {
+      "case_name": "CRACK500_20160328_153813_1921_1081.jpg",
+      "cost_entries": 5328733592,
+      "dataset": "khanhha_original",
+      "estimated_bytes": 255779212416,
+      "prediction_path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_comparison/epoch70/khanhha_original/predictions/CRACK500_20160328_153813_1921_1081.png",
+      "prediction_points": 66092,
+      "prediction_sha256": "93c6230a71a3e8507f81a24a16a7b8b5f502c3a4005ff50794f975e484a02aa5",
+      "target_path": "/home/codespace/cracksam2-data/khanhha/test/masks/CRACK500_20160328_153813_1921_1081.jpg",
+      "target_points": 80626,
+      "target_sha256": "54a6508d2aa5f53986e653c2ebba6f597f08d10eb588a8b82cc62e8023e765ea"
+    },
+    {
+      "case_name": "CRACK500_20160328_153813_1921_1081.jpg",
+      "cost_entries": 5076777342,
+      "dataset": "khanhha_noisy2",
+      "estimated_bytes": 243685312416,
+      "prediction_path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_comparison/epoch70/khanhha_noisy2/predictions/CRACK500_20160328_153813_1921_1081.png",
+      "prediction_points": 62967,
+      "prediction_sha256": "c0971cb22cd3929ed89cad9acc738a2d6581d5a9c45d352a458b08e42e35f54d",
+      "target_path": "/home/codespace/cracksam2-data/khanhha/test/masks/CRACK500_20160328_153813_1921_1081.jpg",
+      "target_points": 80626,
+      "target_sha256": "54a6508d2aa5f53986e653c2ebba6f597f08d10eb588a8b82cc62e8023e765ea"
+    },
+    {
+      "case_name": "230_10.jpg",
+      "cost_entries": 4497703690,
+      "dataset": "concrete3k",
+      "estimated_bytes": 215889777120,
+      "prediction_path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_comparison/epoch70/concrete3k/predictions/230_10.png",
+      "prediction_points": 36326,
+      "prediction_sha256": "f063a3f83bbab60408f9b960524ac14737a924d1c30a037dd4e85d6268785dd8",
+      "target_path": "/home/codespace/cracksam2-data/concrete3k/masks/230_10.jpg",
+      "target_points": 123815,
+      "target_sha256": "98a5b6a53dd952fab59a62d8fea2fb72326bcb67073a8fbd6795d32bb57f0913"
+    },
+    {
+      "case_name": "070_21.jpg",
+      "cost_entries": 3339007126,
+      "dataset": "concrete3k",
+      "estimated_bytes": 160272342048,
+      "prediction_path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_comparison/epoch70/concrete3k/predictions/070_21.png",
+      "prediction_points": 38558,
+      "prediction_sha256": "7f0e97588ab8b5507f3cbb09b31c0bd496f2c69bc5da4b79451504fd9bf72f73",
+      "target_path": "/home/codespace/cracksam2-data/concrete3k/masks/070_21.jpg",
+      "target_points": 86597,
+      "target_sha256": "83e7768d9d1fbf2fe4545dbe7bcdf2a18fbf0a12121b7ce284dd27e9aa12d5b9"
+    }
+  ]
+}

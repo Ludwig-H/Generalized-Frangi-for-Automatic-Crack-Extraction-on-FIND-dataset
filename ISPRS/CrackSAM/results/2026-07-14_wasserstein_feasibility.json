@@ -1,0 +1,157 @@
+{
+  "format_version": 1,
+  "generated_at_utc": "2026-07-14T15:19:00Z",
+  "metric": "POT ot.emd2 exact dense Euclidean direct-mask",
+  "purpose": "Quantify the feasibility and common finite support before publishing any Wasserstein comparison.",
+  "run_order": [
+    "baseline_best",
+    "epoch25_best",
+    "epoch20",
+    "epoch30",
+    "epoch55",
+    "epoch70"
+  ],
+  "cases_per_run": 8895,
+  "matrix_bytes_per_transport_arc": 48,
+  "threshold_scan": [
+    {
+      "per_case_threshold_gib": 0.25,
+      "runnable_counts_by_run_order": [2022, 2083, 2130, 2159, 2209, 2209],
+      "strict_common_cases": 1853,
+      "strict_common_fraction": 0.208319,
+      "union_excluded_cases": 7042,
+      "ideal_wall_time_hours_8_workers_range": [0.1, 0.4]
+    },
+    {
+      "per_case_threshold_gib": 0.5,
+      "runnable_counts_by_run_order": [2763, 2796, 2817, 2900, 2942, 2943],
+      "strict_common_cases": 2531,
+      "strict_common_fraction": 0.284542,
+      "union_excluded_cases": 6364,
+      "ideal_wall_time_hours_8_workers_range": [0.5, 1.4]
+    },
+    {
+      "per_case_threshold_gib": 1.0,
+      "runnable_counts_by_run_order": [4018, 4086, 4100, 4208, 4235, 4234],
+      "strict_common_cases": 3812,
+      "strict_common_fraction": 0.428555,
+      "union_excluded_cases": 5083,
+      "ideal_wall_time_hours_8_workers_range": [2.3, 5.0]
+    },
+    {
+      "per_case_threshold_gib": 2.0,
+      "runnable_counts_by_run_order": [5301, 5389, 5414, 5440, 5458, 5458],
+      "strict_common_cases": 5191,
+      "strict_common_fraction": 0.583586,
+      "union_excluded_cases": 3704,
+      "ideal_wall_time_hours_8_workers_range": [7.0, 13.0]
+    },
+    {
+      "per_case_threshold_gib": 4.0,
+      "runnable_counts_by_run_order": [6688, 6723, 6755, 6748, 6757, 6758],
+      "strict_common_cases": 6618,
+      "strict_common_fraction": 0.744013,
+      "union_excluded_cases": 2277,
+      "strict_common_by_dataset": {
+        "khanhha_original": 1311,
+        "khanhha_noisy1": 1338,
+        "khanhha_noisy2": 1341,
+        "road420": 410,
+        "facade390": 389,
+        "concrete3k": 1829
+      },
+      "ideal_wall_time_hours_8_workers_range": [20.0, 30.0]
+    },
+    {
+      "per_case_threshold_gib": 8.0,
+      "runnable_counts_by_run_order": [7732, 7765, 7783, 7770, 7777, 7777],
+      "strict_common_cases": 7697,
+      "strict_common_fraction": 0.865318,
+      "union_excluded_cases": 1198,
+      "strict_common_by_dataset": {
+        "khanhha_original": 1467,
+        "khanhha_noisy1": 1492,
+        "khanhha_noisy2": 1490,
+        "road420": 418,
+        "facade390": 390,
+        "concrete3k": 2440
+      },
+      "ideal_wall_time_hours_8_workers_range": [45.0, 57.0]
+    },
+    {
+      "per_case_threshold_gib": 16.0,
+      "runnable_counts_by_run_order": [8409, 8411, 8425, 8418, 8422, 8422],
+      "strict_common_cases": 8381,
+      "strict_common_fraction": 0.942215,
+      "union_excluded_cases": 514,
+      "strict_common_by_dataset": {
+        "khanhha_original": 1580,
+        "khanhha_noisy1": 1586,
+        "khanhha_noisy2": 1593,
+        "road420": 420,
+        "facade390": 390,
+        "concrete3k": 2812
+      },
+      "ideal_wall_time_hours_8_workers_range": [80.0, 90.0]
+    },
+    {
+      "per_case_threshold_gib": 32.0,
+      "runnable_counts_by_run_order": [8725, 8714, 8719, 8723, 8722, 8722],
+      "strict_common_cases": 8709,
+      "strict_common_fraction": 0.979089,
+      "union_excluded_cases": 186,
+      "strict_common_by_dataset": {
+        "khanhha_original": 1650,
+        "khanhha_noisy1": 1644,
+        "khanhha_noisy2": 1648,
+        "road420": 420,
+        "facade390": 390,
+        "concrete3k": 2957
+      },
+      "ideal_wall_time_hours_8_workers_range": [117.0, 122.0]
+    },
+    {
+      "per_case_threshold_gib": 140.0,
+      "runnable_counts_by_run_order": [8890, 8889, 8889, 8889, 8889, 8890],
+      "strict_common_cases": 8888,
+      "strict_common_fraction": 0.999213,
+      "union_excluded_cases": 7,
+      "strict_common_by_dataset": {
+        "khanhha_original": 1694,
+        "khanhha_noisy1": 1694,
+        "khanhha_noisy2": 1693,
+        "road420": 420,
+        "facade390": 390,
+        "concrete3k": 2997
+      },
+      "ideal_wall_time_hours_8_workers_range": [163.0, 172.0],
+      "estimated_real_wall_time_hours_range": [200.0, 300.0]
+    }
+  ],
+  "live_attempt": {
+    "run": "baseline_best",
+    "memory_budget_gib": 140.0,
+    "runnable_cases": 8890,
+    "durably_completed_cases": 1182,
+    "failed_cases": 0,
+    "published_summary": false,
+    "journal_is_resumable": true,
+    "journal_vm_path": "/home/codespace/cracksam2-artifacts/baseline_r4/final_evaluation/wasserstein_exact/progress.jsonl",
+    "largest_active_case_estimated_gib": 136.56,
+    "largest_active_case_elapsed_seconds_lower_bound": 990,
+    "largest_active_case_completed_before_stop": false,
+    "observed_worker_rss_gib": 94.47,
+    "stop_reason": "The six-run exact calculation cannot complete inside the Spot window; partial means are scientifically non-comparable and are not published."
+  },
+  "publication_policy": {
+    "exact_value_requires": "A finite POT result produced with max_points=None.",
+    "paired_comparison_requires": "The strict common finite case intersection for baseline and the compared milestone.",
+    "partial_mean_is_final_result": false,
+    "capped_or_imputed_values_allowed": false
+  },
+  "notes": [
+    "The per-case threshold is a computational admissibility threshold, distinct from the scheduler's global concurrent-memory budget.",
+    "Wall-time ranges are planning estimates calibrated on the live baseline journal and assume ideal eight-worker packing; they are not measured runtimes.",
+    "The 140 GiB journal remains durable and can be resumed from case 1183 without recomputing the 1182 completed cases."
+  ]
+}

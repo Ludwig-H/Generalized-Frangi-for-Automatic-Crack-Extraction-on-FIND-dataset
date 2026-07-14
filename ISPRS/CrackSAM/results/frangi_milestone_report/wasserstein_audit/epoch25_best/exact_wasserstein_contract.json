@@ -1,0 +1,40 @@
+{
+  "algorithm": "POT ot.emd2 exact dense Euclidean direct-mask",
+  "blas_threads_per_worker": 1,
+  "code": {
+    "compute_exact_wasserstein.py": {
+      "name": "compute_exact_wasserstein.py",
+      "sha256": "ea6542fdb5c209ba457545f7b992d4fe176a9f50fb126e0c4e4b3babe3804412",
+      "size": 27360
+    },
+    "data.py": {
+      "name": "data.py",
+      "sha256": "119ecac5246da2b1a2fa1ca0a1f0d916c0dfb2c3182701ba09bb6b0fe4a2ba17",
+      "size": 24685
+    },
+    "metrics.py": {
+      "name": "metrics.py",
+      "sha256": "52aade82c4f0f88dca307d8cd24384ad037b93f7a2df1407156696256fce647a",
+      "size": 6589
+    }
+  },
+  "data_root": "/home/codespace/cracksam2-data",
+  "datasets": [
+    "khanhha_original",
+    "khanhha_noisy1",
+    "khanhha_noisy2",
+    "road420",
+    "facade390",
+    "concrete3k"
+  ],
+  "evaluation_contract_sha256": "36c7a4e6853b7679069efc8116d83861f393dc32bc788ea82bb2cd2133cee04c",
+  "evaluation_root": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_comparison/epoch25_best",
+  "format_version": 2,
+  "matrix_bytes_per_entry_estimate": 48,
+  "max_cases": null,
+  "memory_budget_gb": 140.0,
+  "oversized_policy": "skip",
+  "pot_version": "0.9.7",
+  "task_manifest_sha256": "995d9e6ca9e87e4d6209b66cc34e4a51be40871882227647c7795f0ff9f189c2",
+  "tasks": 8895
+}

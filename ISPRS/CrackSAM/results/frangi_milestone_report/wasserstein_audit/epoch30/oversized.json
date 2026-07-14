@@ -1,0 +1,78 @@
+{
+  "count": 6,
+  "memory_budget_bytes": 150323855360,
+  "tasks": [
+    {
+      "case_name": "CRACK500_20160328_153813_1921_1081.jpg",
+      "cost_entries": 5445318788,
+      "dataset": "khanhha_noisy1",
+      "estimated_bytes": 261375301824,
+      "prediction_path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_comparison/epoch30/khanhha_noisy1/predictions/CRACK500_20160328_153813_1921_1081.png",
+      "prediction_points": 67538,
+      "prediction_sha256": "99eca593ed9cd8f1198de212132276e14a915f1cdf1f086dc1ab89c409c7386e",
+      "target_path": "/home/codespace/cracksam2-data/khanhha/test/masks/CRACK500_20160328_153813_1921_1081.jpg",
+      "target_points": 80626,
+      "target_sha256": "54a6508d2aa5f53986e653c2ebba6f597f08d10eb588a8b82cc62e8023e765ea"
+    },
+    {
+      "case_name": "CRACK500_20160328_153813_1921_1081.jpg",
+      "cost_entries": 5356388310,
+      "dataset": "khanhha_original",
+      "estimated_bytes": 257106638880,
+      "prediction_path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_comparison/epoch30/khanhha_original/predictions/CRACK500_20160328_153813_1921_1081.png",
+      "prediction_points": 66435,
+      "prediction_sha256": "a80589e3c8e3c30cc81f6ebe7417acf17b3b95a16be884fdf215e4b2564c8f21",
+      "target_path": "/home/codespace/cracksam2-data/khanhha/test/masks/CRACK500_20160328_153813_1921_1081.jpg",
+      "target_points": 80626,
+      "target_sha256": "54a6508d2aa5f53986e653c2ebba6f597f08d10eb588a8b82cc62e8023e765ea"
+    },
+    {
+      "case_name": "CRACK500_20160328_153813_1921_1081.jpg",
+      "cost_entries": 5047671356,
+      "dataset": "khanhha_noisy2",
+      "estimated_bytes": 242288225088,
+      "prediction_path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_comparison/epoch30/khanhha_noisy2/predictions/CRACK500_20160328_153813_1921_1081.png",
+      "prediction_points": 62606,
+      "prediction_sha256": "2638bb6f72a68547c42be31662ce372e86b0e834b5b6a8775c5436706aa54a92",
+      "target_path": "/home/codespace/cracksam2-data/khanhha/test/masks/CRACK500_20160328_153813_1921_1081.jpg",
+      "target_points": 80626,
+      "target_sha256": "54a6508d2aa5f53986e653c2ebba6f597f08d10eb588a8b82cc62e8023e765ea"
+    },
+    {
+      "case_name": "230_10.jpg",
+      "cost_entries": 4490770050,
+      "dataset": "concrete3k",
+      "estimated_bytes": 215556962400,
+      "prediction_path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_comparison/epoch30/concrete3k/predictions/230_10.png",
+      "prediction_points": 36270,
+      "prediction_sha256": "6feb69a2d738e52302c9d078df2cf48e0683de8904a1e5a9cc52ee5bbb177032",
+      "target_path": "/home/codespace/cracksam2-data/concrete3k/masks/230_10.jpg",
+      "target_points": 123815,
+      "target_sha256": "98a5b6a53dd952fab59a62d8fea2fb72326bcb67073a8fbd6795d32bb57f0913"
+    },
+    {
+      "case_name": "070_21.jpg",
+      "cost_entries": 3326363964,
+      "dataset": "concrete3k",
+      "estimated_bytes": 159665470272,
+      "prediction_path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_comparison/epoch30/concrete3k/predictions/070_21.png",
+      "prediction_points": 38412,
+      "prediction_sha256": "40a0759a57ae269574bbf7bb40263f42ea54ba027815e03eb5148fb21852db1e",
+      "target_path": "/home/codespace/cracksam2-data/concrete3k/masks/070_21.jpg",
+      "target_points": 86597,
+      "target_sha256": "83e7768d9d1fbf2fe4545dbe7bcdf2a18fbf0a12121b7ce284dd27e9aa12d5b9"
+    },
+    {
+      "case_name": "558_33.jpg",
+      "cost_entries": 3172506095,
+      "dataset": "concrete3k",
+      "estimated_bytes": 152280292560,
+      "prediction_path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_comparison/epoch30/concrete3k/predictions/558_33.png",
+      "prediction_points": 36577,
+      "prediction_sha256": "72f4f8c98a00da048e5758c8329f48ec10ae96be0b1eb4352346ebb6e237ac32",
+      "target_path": "/home/codespace/cracksam2-data/concrete3k/masks/558_33.jpg",
+      "target_points": 86735,
+      "target_sha256": "d921341957abb03e0997a19527fbed2ad08d49e8bfcddd7913cc45fe5507adcb"
+    }
+  ]
+}

@@ -1,0 +1,1086 @@
+{
+  "checkpoint_manifest": {
+    "entries": [
+      {
+        "epoch": null,
+        "equivalent_alias": null,
+        "global_step": null,
+        "id": "sam2_hiera_large_base_dependency",
+        "local_backup_path": "ISPRS/CrackSAM/artifacts/vm_backup_20260714T1435Z_final_checkpoints/foundation/sam2_hiera_large.pt",
+        "local_present": false,
+        "local_verified": false,
+        "role": "base dependency (non versionnée)",
+        "run_contract_sha256": null,
+        "sha256": "7442e4e9b732a508f80e141e7c2913437a3610ee0c77381a66658c3a445df87b",
+        "size_bytes": 897952466,
+        "variant": "foundation",
+        "vm_path": "/home/codespace/Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset/ISPRS/CrackSAM/checkpoints/sam2_hiera_large.pt",
+        "vm_present": true,
+        "vm_verified": true
+      },
+      {
+        "epoch": 20,
+        "equivalent_alias": null,
+        "global_step": 22820,
+        "id": "frangi_epoch20",
+        "local_backup_path": "ISPRS/CrackSAM/artifacts/vm_backup_20260714T1435Z_final_checkpoints/frangi_r4/milestone_epoch20.pt",
+        "local_present": false,
+        "local_verified": false,
+        "role": "milestone",
+        "run_contract_sha256": "d40c4e92a8259c2926f3a8693e9f4eabaf2924ef429567abd6e67a9a4c4838ba",
+        "sha256": "c06db707bfdfeee7d8de8b877d2a58b33d0ca2ddfc7ab3b9d9fa9f70a0b415f8",
+        "size_bytes": 5708629,
+        "variant": "frangi",
+        "vm_path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_epoch20.pt",
+        "vm_present": true,
+        "vm_verified": true
+      },
+      {
+        "epoch": 25,
+        "equivalent_alias": "frangi_r4/best.pt",
+        "global_step": 28525,
+        "id": "frangi_epoch25_best",
+        "local_backup_path": "ISPRS/CrackSAM/artifacts/vm_backup_20260714T1435Z_final_checkpoints/frangi_r4/milestone_epoch25_best.pt",
+        "local_present": false,
+        "local_verified": false,
+        "role": "best",
+        "run_contract_sha256": "d40c4e92a8259c2926f3a8693e9f4eabaf2924ef429567abd6e67a9a4c4838ba",
+        "sha256": "2ff8938b3d08c0d569fdaedd6750efd1fa71b66bd93f8748b5a97748ff97027d",
+        "size_bytes": 5708629,
+        "variant": "frangi",
+        "vm_path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_epoch25_best.pt",
+        "vm_present": true,
+        "vm_verified": true
+      },
+      {
+        "epoch": 30,
+        "equivalent_alias": null,
+        "global_step": 34230,
+        "id": "frangi_epoch30",
+        "local_backup_path": "ISPRS/CrackSAM/artifacts/vm_backup_20260714T1435Z_final_checkpoints/frangi_r4/milestone_epoch30.pt",
+        "local_present": false,
+        "local_verified": false,
+        "role": "milestone",
+        "run_contract_sha256": "d40c4e92a8259c2926f3a8693e9f4eabaf2924ef429567abd6e67a9a4c4838ba",
+        "sha256": "e8d35bccc4458a88c7eb5070ecbb9b87fcb4817c83af1ce0d10e9da36bb8e2f0",
+        "size_bytes": 5710401,
+        "variant": "frangi",
+        "vm_path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_epoch30.pt",
+        "vm_present": true,
+        "vm_verified": true
+      },
+      {
+        "epoch": 55,
+        "equivalent_alias": null,
+        "global_step": 62755,
+        "id": "frangi_epoch55",
+        "local_backup_path": "ISPRS/CrackSAM/artifacts/vm_backup_20260714T1435Z_final_checkpoints/frangi_r4/milestone_epoch55.pt",
+        "local_present": false,
+        "local_verified": false,
+        "role": "milestone",
+        "run_contract_sha256": "d40c4e92a8259c2926f3a8693e9f4eabaf2924ef429567abd6e67a9a4c4838ba",
+        "sha256": "b703f84347323a4d6b3a1994191dca8d06cbc0404dbcc92f134689c3e59dc4da",
+        "size_bytes": 5710401,
+        "variant": "frangi",
+        "vm_path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_epoch55.pt",
+        "vm_present": true,
+        "vm_verified": true
+      },
+      {
+        "epoch": 70,
+        "equivalent_alias": "frangi_r4/latest.pt",
+        "global_step": 79870,
+        "id": "frangi_epoch70",
+        "local_backup_path": "ISPRS/CrackSAM/artifacts/vm_backup_20260714T1435Z_final_checkpoints/frangi_r4/milestone_epoch70.pt",
+        "local_present": false,
+        "local_verified": false,
+        "role": "final",
+        "run_contract_sha256": "d40c4e92a8259c2926f3a8693e9f4eabaf2924ef429567abd6e67a9a4c4838ba",
+        "sha256": "f5cbaf22ea80d29117a02fe8cfe20219216428221b44d9a305ed7811ca23b39d",
+        "size_bytes": 5710401,
+        "variant": "frangi",
+        "vm_path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_epoch70.pt",
+        "vm_present": true,
+        "vm_verified": true
+      },
+      {
+        "epoch": 20,
+        "equivalent_alias": null,
+        "global_step": 22820,
+        "id": "baseline_epoch20_best",
+        "local_backup_path": "ISPRS/CrackSAM/artifacts/vm_backup_20260714T1435Z_final_checkpoints/baseline_r4/best.pt",
+        "local_present": false,
+        "local_verified": false,
+        "role": "best",
+        "run_contract_sha256": "e91d544ea4d99eff5765db711cbfc7610146aae2cd726dfb512ed7065cafbbdb",
+        "sha256": "d154d60a82ec2a0af4540559785a483818612319350c04a1b06035053b6f6a04",
+        "size_bytes": 5708117,
+        "variant": "baseline",
+        "vm_path": "/home/codespace/cracksam2-artifacts/baseline_r4/best.pt",
+        "vm_present": true,
+        "vm_verified": true
+      }
+    ],
+    "format_version": 1,
+    "path": "/home/codespace/Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset/ISPRS/CrackSAM/results/2026-07-14_checkpoint_manifest.json",
+    "sha256": "edf550b7e573ad93674e380c7e43f4967ba9efd209d558ff4d5e7674e5a904af",
+    "size_bytes": 6332,
+    "verified_at_utc": "2026-07-14T15:09:44Z"
+  },
+  "command_arguments": {
+    "artifact_root": "/home/codespace/cracksam2-artifacts",
+    "bootstrap_repetitions": 5000,
+    "bootstrap_seed": 20260714,
+    "copy_prompts": 12,
+    "data_root": "/home/codespace/cracksam2-data",
+    "output": "/home/codespace/Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset/ISPRS/CrackSAM/results/frangi_milestone_report",
+    "panel_dpi": 120,
+    "primary_milestone": "epoch25_best",
+    "prompt_root": "/home/codespace/cracksam2-prompts",
+    "strict": true,
+    "tie_tolerance": 1e-06
+  },
+  "figures": {
+    "distribution": "figures/paired_delta_iou_distributions.png",
+    "heatmap": "figures/delta_iou_heatmap.png",
+    "macro": "figures/macro_metric_overview.png",
+    "milestones": "figures/milestone_iou_evolution.png",
+    "paper": "figures/paper_iou_comparison.png",
+    "paper_delta": "figures/paper_delta_iou_heatmap.png",
+    "prompts": "figures/prompt_gallery.jpg",
+    "scatter": "figures/paired_iou_scatter.png",
+    "training": "figures/training_validation_curves.png",
+    "wasserstein": null
+  },
+  "format_version": 1,
+  "generated_utc": "2026-07-14T15:44:11+00:00",
+  "generator": {
+    "path": "/home/codespace/Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset/ISPRS/CrackSAM/generate_frangi_milestone_report.py",
+    "sha256": "2da13930cd2be8d93466d31b325c1243f6810547952f2190c58b2151df775f98",
+    "size_bytes": 162110
+  },
+  "output_bytes_hashed": 23307775,
+  "output_files_hashed": 92,
+  "outputs": [
+    {
+      "path": "RAPPORT_FRANGI_MILESTONES.md",
+      "sha256": "2ac7849d83eb7926afd9b9d81d9f08adf0e44e32b68e210c565eb630d85dc631",
+      "size_bytes": 47009
+    },
+    {
+      "path": "figures/cases/concrete3k/both_good__184_23.jpg.jpg",
+      "sha256": "a410d55f0a3075bcbfd7db52f725112ddf7a36e8dda6c3640602d6a837e6bdc9",
+      "size_bytes": 55527
+    },
+    {
+      "path": "figures/cases/concrete3k/both_weak__026_8.jpg.jpg",
+      "sha256": "48e4dadabfe801c2ba019f2f38fe9b6eb5e7a3aa38a85ec6e6604a904fd92ad3",
+      "size_bytes": 48069
+    },
+    {
+      "path": "figures/cases/concrete3k/gain_baseline__128_23.jpg.jpg",
+      "sha256": "a8706e3c8fe8d71bd253dc17413a573bc69c61112d2c4efe8d73896ff30327ad",
+      "size_bytes": 54031
+    },
+    {
+      "path": "figures/cases/concrete3k/gain_frangi__224_37.jpg.jpg",
+      "sha256": "a24001b5dc8b1b969de57c6bf4386f2322e38c0787b3d0c3299bdd46ca6b3371",
+      "size_bytes": 50445
+    },
+    {
+      "path": "figures/cases/concrete3k/median__064_36.jpg.jpg",
+      "sha256": "43259cef05e219080ec4dda069f65b023e64d13eee7f8e071929876cbf2dc096",
+      "size_bytes": 63957
+    },
+    {
+      "path": "figures/cases/concrete3k/sparse_divergent__504_2.jpg.jpg",
+      "sha256": "3602c65bf20217d41915c957af986d34c6cd8ed2b16102c6245f2fbd80068c76",
+      "size_bytes": 50937
+    },
+    {
+      "path": "figures/cases/facade390/both_good__DJ_Wall_380.JPG.jpg",
+      "sha256": "3e90f0487e2b9ce1765c5b39025f6e40e07aa62261a600c051656b4d4890a65e",
+      "size_bytes": 62525
+    },
+    {
+      "path": "figures/cases/facade390/both_weak__DJ_Wall_343.JPG.jpg",
+      "sha256": "11597b16e48df70aa5af710f1cbbb8ab0e89cdfaa70fd365d05897f7bfa57116",
+      "size_bytes": 63834
+    },
+    {
+      "path": "figures/cases/facade390/gain_baseline__DJ_Wall_231.JPG.jpg",
+      "sha256": "4845bdedce6750316750bd8156bdb38c3c10ec8d4034030761d54fa30dc967fc",
+      "size_bytes": 76472
+    },
+    {
+      "path": "figures/cases/facade390/gain_frangi__DJ_Wall_66.JPG.jpg",
+      "sha256": "929958d311e024d228db32d1a8c878804016baac28f49730f9c0625d35f4d476",
+      "size_bytes": 53424
+    },
+    {
+      "path": "figures/cases/facade390/median__DJ_Wall_368.JPG.jpg",
+      "sha256": "fd522fc153531c0adb280e1eacdbbec2362bc61b176a2f5a3727eadfe0047a3d",
+      "size_bytes": 58163
+    },
+    {
+      "path": "figures/cases/khanhha_noisy1/both_good__DeepCrack_11231-3.jpg.jpg",
+      "sha256": "e1a086d5aa31d8a4d521174237dab51232b1d9c2e01a74b56070c7b43910e1ac",
+      "size_bytes": 77770
+    },
+    {
+      "path": "figures/cases/khanhha_noisy1/both_weak__CRACK500_20160222_115847_641_361.jpg.jpg",
+      "sha256": "fcd0510d21d1723a44d52a3956b1a8079cb96ff26a852019d6ce74b6a1f9e0ac",
+      "size_bytes": 72462
+    },
+    {
+      "path": "figures/cases/khanhha_noisy1/gain_baseline__CRACK500_20160222_115828_641_1.jpg.jpg",
+      "sha256": "4b3a7c1935c09d7c0e7af7cf4a0359190e4ab66cd184259db7dd8cf574b0b5b1",
+      "size_bytes": 73756
+    },
+    {
+      "path": "figures/cases/khanhha_noisy1/gain_frangi__CRACK500_20160329_093924_1921_721.jpg.jpg",
+      "sha256": "c324524918238a4b3c814af99b66c44c14ac388f11399fa3d2db5d80765408ca",
+      "size_bytes": 81775
+    },
+    {
+      "path": "figures/cases/khanhha_noisy1/median__CRACK500_20160316_143445_1281_361.jpg.jpg",
+      "sha256": "d8f321a6c4b884fa9835cc2af819847a0915a1830d893af1cd832f9a7ac2a456",
+      "size_bytes": 83591
+    },
+    {
+      "path": "figures/cases/khanhha_noisy1/sparse_divergent__noncrack_noncrack_concrete_wall_81_4.jpg.jpg.jpg",
+      "sha256": "2dce7e3a32a4ad901c55e26124896f7de3dcd06fe0e2a35473406134c7301e64",
+      "size_bytes": 58197
+    },
+    {
+      "path": "figures/cases/khanhha_noisy2/both_good__DeepCrack_11231-3.jpg.jpg",
+      "sha256": "a19245abca75d68b1d68f92ae7d9a7d5a1d977cefbf07ccbdd262b0f89ef20eb",
+      "size_bytes": 73354
+    },
+    {
+      "path": "figures/cases/khanhha_noisy2/both_weak__CRACK500_20160222_115843_1281_361.jpg.jpg",
+      "sha256": "3e1104f01f4e694055e1afded881fb057ff263793ce22a7f85b0d9106480ebc2",
+      "size_bytes": 65339
+    },
+    {
+      "path": "figures/cases/khanhha_noisy2/gain_baseline__CRACK500_20160308_073532_1_361.jpg.jpg",
+      "sha256": "0e9e9b395a6d75a31a96d40aee6fb9b3e397547cfd219612dba530b2376a166c",
+      "size_bytes": 72790
+    },
+    {
+      "path": "figures/cases/khanhha_noisy2/gain_frangi__Volker_DSC01646_226_19_1273_1645.jpg.jpg",
+      "sha256": "ba485a28979618d3dbead6a997bb4dc1c75e44f71f6e515d4996e91cd6020db1",
+      "size_bytes": 55054
+    },
+    {
+      "path": "figures/cases/khanhha_noisy2/median__CRACK500_20160328_154318_641_1.jpg.jpg",
+      "sha256": "19eef510a821e73322d20bdc1f476237d2336929e3ecf239ed50a2cc79406b90",
+      "size_bytes": 80691
+    },
+    {
+      "path": "figures/cases/khanhha_noisy2/sparse_divergent__noncrack_noncrack_concrete_wall_28_0.jpg.jpg.jpg",
+      "sha256": "9bc34e9b45dcb524b3b2b2ab3991f6d13b69763a768915d7399cbba26beb560d",
+      "size_bytes": 58557
+    },
+    {
+      "path": "figures/cases/khanhha_original/both_good__DeepCrack_11231-3.jpg.jpg",
+      "sha256": "25b793979a2f83f8f71469d205f9cb95d8a08bd8bdba5b70abba9afb97a28c11",
+      "size_bytes": 84950
+    },
+    {
+      "path": "figures/cases/khanhha_original/both_weak__CRACK500_20160326_142354_641_1081.jpg.jpg",
+      "sha256": "8aa0c60ecb8ea4d8805063b987cc6e89af04191b03044bbd6db2f4c03225e18c",
+      "size_bytes": 90126
+    },
+    {
+      "path": "figures/cases/khanhha_original/gain_baseline__cracktree200_6266.jpg.jpg",
+      "sha256": "208cbe6d10d11a764a9e5c3c357446e29d0f5114cd397fe2cf1da4cbdf5c521d",
+      "size_bytes": 71940
+    },
+    {
+      "path": "figures/cases/khanhha_original/gain_frangi__Sylvie_Chambon_319.jpg.jpg",
+      "sha256": "d2c245791fcf79c064574b4e5dd193425f4a2a2bc08864a1bc470b11217455dc",
+      "size_bytes": 67135
+    },
+    {
+      "path": "figures/cases/khanhha_original/median__CRACK500_20160329_094010_1281_361.jpg.jpg",
+      "sha256": "3bb7546ad6b711fb38c6fede9c2b32d9f7fcf3a7d9921977e13ef352660a67f1",
+      "size_bytes": 95257
+    },
+    {
+      "path": "figures/cases/khanhha_original/sparse_divergent__noncrack_noncrack_concrete_wall_43_50.jpg.jpg.jpg",
+      "sha256": "40ed6a9cbcb4c00c2943c0b722026fe424e0903570aadfa7e51e18bc0090d0e6",
+      "size_bytes": 50470
+    },
+    {
+      "path": "figures/cases/road420/both_good__2023_11_05_21_38_IMG_6516.jpg.jpg",
+      "sha256": "153f2380e424f9b80256a491662232d3ce03dda3ff4d4efd228473623f9c7745",
+      "size_bytes": 65095
+    },
+    {
+      "path": "figures/cases/road420/both_weak__2023_10_30_17_30_IMG_6167.jpg.jpg",
+      "sha256": "85bca426bfd65c1bb93bc4593f8f5060ff6bc843aba4b01e6d1e7b7ae4c8f76a",
+      "size_bytes": 82299
+    },
+    {
+      "path": "figures/cases/road420/gain_baseline__2023_10_30_16_44_IMG_6033.jpg.jpg",
+      "sha256": "8a4b4ccb6fbc9b998d6d4ad6b6d9c699660133154caf7f2479f007b735844f77",
+      "size_bytes": 79173
+    },
+    {
+      "path": "figures/cases/road420/gain_frangi__2023_11_01_20_33_IMG_6353.jpg.jpg",
+      "sha256": "3041b11ea565003d6b152223c9a2d41e08c2607a8976f7d381bbbd82d2ceb670",
+      "size_bytes": 74328
+    },
+    {
+      "path": "figures/cases/road420/median__2023_10_30_16_00_IMG_5928.jpg.jpg",
+      "sha256": "3c93f064b343bee80628c94513c6afd28ace387b1884f74e6f67f205bf3e132e",
+      "size_bytes": 83928
+    },
+    {
+      "path": "figures/delta_iou_heatmap.png",
+      "sha256": "065daa798b2a4fadd90bfaeb3cb1084a67887746340cbed2ee6ef66e1135365b",
+      "size_bytes": 107885
+    },
+    {
+      "path": "figures/macro_metric_overview.png",
+      "sha256": "921e3cbc94856da6d02fbbb168bd2c642251b4061e54643ef5012b7e86b5938c",
+      "size_bytes": 55801
+    },
+    {
+      "path": "figures/milestone_iou_evolution.png",
+      "sha256": "998c521bd846bc967b60df1d93042a0b37d3c93fd1d2a6d91e412e8df15cfc24",
+      "size_bytes": 115743
+    },
+    {
+      "path": "figures/paired_delta_iou_distributions.png",
+      "sha256": "5991341d0eb7583915e1751d6cc356b2c5acb5b83e6d9be4c45e20f038fc3bb5",
+      "size_bytes": 57428
+    },
+    {
+      "path": "figures/paired_iou_scatter.png",
+      "sha256": "27e5d07bf756c4de3c5b7b95c62c4eda0c308a07bca6b7ee2756434fcbe5b23a",
+      "size_bytes": 450921
+    },
+    {
+      "path": "figures/paper_delta_iou_heatmap.png",
+      "sha256": "8db305078637b94ee0f708ff243262764a0321cda3dbc8516f26be8206fed509",
+      "size_bytes": 212733
+    },
+    {
+      "path": "figures/paper_iou_comparison.png",
+      "sha256": "98fa6c3e9d71403d39fa3842200bacfcc2f882582ca5df5f3ddb936e68f021fb",
+      "size_bytes": 95769
+    },
+    {
+      "path": "figures/prompt_gallery.jpg",
+      "sha256": "1645cd48874a52227886533a7d5e00359f317c543f541e131748a6e89055aa76",
+      "size_bytes": 361511
+    },
+    {
+      "path": "figures/training_validation_curves.png",
+      "sha256": "b06cbcb7d3c9c504379762f8adc2af0d09639944599927a0f35fcef69e0c2742",
+      "size_bytes": 138842
+    },
+    {
+      "path": "prompts_npy/concrete3k/gain_baseline__128_23.jpg.npy",
+      "sha256": "39b1653cda7ad55fb4411b68a0b9cd94e7f00f4f1af6c7db97fc817a494c4d28",
+      "size_bytes": 262272
+    },
+    {
+      "path": "prompts_npy/concrete3k/gain_frangi__224_37.jpg.npy",
+      "sha256": "1904ed60143a497225c9cfda91c481c2d666d33cd19ebd32cd967251fd771200",
+      "size_bytes": 262272
+    },
+    {
+      "path": "prompts_npy/facade390/gain_baseline__DJ_Wall_231.JPG.npy",
+      "sha256": "a1d8af8a640371f3176be24924d5e783576a9cb90b354e1c2d120dbb41ceabf6",
+      "size_bytes": 262272
+    },
+    {
+      "path": "prompts_npy/facade390/gain_frangi__DJ_Wall_66.JPG.npy",
+      "sha256": "ae27fac4e261c360656a9c7554cb44e22fbee8c6b1ba1f538c2fe70ca0f2ab10",
+      "size_bytes": 262272
+    },
+    {
+      "path": "prompts_npy/khanhha_noisy1/gain_baseline__CRACK500_20160222_115828_641_1.jpg.npy",
+      "sha256": "ffc5ec6988a81568e87abaaf7e2060d66ede5228e75e4809cbb9f556bbccab36",
+      "size_bytes": 262272
+    },
+    {
+      "path": "prompts_npy/khanhha_noisy1/gain_frangi__CRACK500_20160329_093924_1921_721.jpg.npy",
+      "sha256": "6d122a516f284babeeae4cf02f6feaad0a5e58073f82d82eb79a2616e8097a6e",
+      "size_bytes": 262272
+    },
+    {
+      "path": "prompts_npy/khanhha_noisy2/gain_baseline__CRACK500_20160308_073532_1_361.jpg.npy",
+      "sha256": "a1a63caf8fe67c8b9a33296cce7d7fbe5858e47bc61a37e311a2c6f7e6c95f24",
+      "size_bytes": 262272
+    },
+    {
+      "path": "prompts_npy/khanhha_noisy2/gain_frangi__Volker_DSC01646_226_19_1273_1645.jpg.npy",
+      "sha256": "42cdb6b1ac6ed07685b3cf87ae8f970d0ff0a1dd6404b475711b113d2fa760ab",
+      "size_bytes": 262272
+    },
+    {
+      "path": "prompts_npy/khanhha_original/gain_baseline__cracktree200_6266.jpg.npy",
+      "sha256": "22042e10f05d1ab6c5e840d9a8e3968d52c0de22143585c516890ece6c86642f",
+      "size_bytes": 262272
+    },
+    {
+      "path": "prompts_npy/khanhha_original/gain_frangi__Sylvie_Chambon_319.jpg.npy",
+      "sha256": "da7524f4a0fff88db1e8aeca5060942901d7d23450897771f8bcfd1d07f4e880",
+      "size_bytes": 262272
+    },
+    {
+      "path": "prompts_npy/manifest.json",
+      "sha256": "f8d9681610401b5cccb8843d64f3c4e1a7def83a3b64c4eb8b6fc5907e88dc32",
+      "size_bytes": 10547
+    },
+    {
+      "path": "prompts_npy/road420/gain_baseline__2023_10_30_16_44_IMG_6033.jpg.npy",
+      "sha256": "0c6b1a292db75805d8c2f62080210399540ce8597144b05559ee15c46ba721fb",
+      "size_bytes": 262272
+    },
+    {
+      "path": "prompts_npy/road420/gain_frangi__2023_11_01_20_33_IMG_6353.jpg.npy",
+      "sha256": "22869e177e196028a89666eaec28c9d0adae090dd2ad39533c8b2b6fb9e118b4",
+      "size_bytes": 262272
+    },
+    {
+      "path": "tables/best_validation.csv",
+      "sha256": "217c1ce25228ae8baf7686ea23ff481f0b0f7ec042a30fe7469be15c5e49c5e6",
+      "size_bytes": 465
+    },
+    {
+      "path": "tables/checkpoint_manifest.csv",
+      "sha256": "3400a6c1aaf78142918d438096fe78f4f048a0c37805cd5f56dd47f3396efa2e",
+      "size_bytes": 2806
+    },
+    {
+      "path": "tables/delta_iou_quantiles.csv",
+      "sha256": "4f2bc64c73c9e71ef6c2b6e8b46e27fbcfecd48cf9425ae5657ec21c8acf71b4",
+      "size_bytes": 850
+    },
+    {
+      "path": "tables/metric_summary.csv",
+      "sha256": "c40293e07997625c9ec8afa405ae10791950101b876ba953d1a4b17466bae581",
+      "size_bytes": 17955
+    },
+    {
+      "path": "tables/milestone_deltas_vs_baseline.csv",
+      "sha256": "af0a0a0a7450c6c7da0e945c0bd138ac283b9737f955bfa151984c97b789df5d",
+      "size_bytes": 15747
+    },
+    {
+      "path": "tables/paired_statistics.csv",
+      "sha256": "7cd34d6c990d97d1b17f37297615286c2165016e4a5e889dac07a961d0e9ce9a",
+      "size_bytes": 3277
+    },
+    {
+      "path": "tables/paper_comparison_all_runs.csv",
+      "sha256": "ebb9efd6edbc509464686b4512539367c37e28cc7997698e3a39dbe2a0fd5719",
+      "size_bytes": 29869
+    },
+    {
+      "path": "tables/paper_reference_values.csv",
+      "sha256": "b316777658051c50887278c0dcc85602f14ead2cdeeeb8d77b57be607634a386",
+      "size_bytes": 1928
+    },
+    {
+      "path": "tables/per_image_all_milestones.csv",
+      "sha256": "2c8629e0f0cbe3dc5321fbc56c70a29e9a0e2d37615c9036b354556d56290faf",
+      "size_bytes": 15501502
+    },
+    {
+      "path": "tables/prompt_manifest.csv",
+      "sha256": "3a1edeb4244effc5b71f68872e4694368ccc236958f46b85f46d32ab7fbdd0b5",
+      "size_bytes": 5573
+    },
+    {
+      "path": "tables/robustness_generalization.csv",
+      "sha256": "d8766a35ff170079fda60746bf02120d2e982305dd5330959fb2415e183bfba7",
+      "size_bytes": 1070
+    },
+    {
+      "path": "tables/selected_cases.csv",
+      "sha256": "634071a599842a245b9b34b2dcc2b91f7a925a11e642f1e7c8d9222e457ff82b",
+      "size_bytes": 18638
+    },
+    {
+      "path": "tables/training_history.csv",
+      "sha256": "1b7312bef49d49bdafe7ae9b7b6f955c225660b0ac7ee6bca9c4bfd2d68d45c4",
+      "size_bytes": 18102
+    },
+    {
+      "path": "tables/wasserstein_audit_files.csv",
+      "sha256": "ea9b3b9a8dc78617f55a114e9562f18d35f647e5a09f6a179f3d3eaf2b39f57e",
+      "size_bytes": 6929
+    },
+    {
+      "path": "tables/wasserstein_feasibility.csv",
+      "sha256": "a835b561a1ac9cf109f8a0e1cbdf0078b5c7e834b6b9cd7361b89704fc2a3188",
+      "size_bytes": 4442
+    },
+    {
+      "path": "tables/wasserstein_threshold_feasibility.csv",
+      "sha256": "56d8c33243c51f756402577164dd3885def3ecbc2044d0cfa68fed90d7c3c09d",
+      "size_bytes": 1319
+    },
+    {
+      "path": "wasserstein_audit/baseline_best/exact_wasserstein_contract.json",
+      "sha256": "af3c1a9240560550b1b414ea0fa88a767fc633a5175cd1c963da3d5bbc78987b",
+      "size_bytes": 1278
+    },
+    {
+      "path": "wasserstein_audit/baseline_best/oversized.json",
+      "sha256": "dbce8ef15ac9658f0252903632caa6e14cc00aceaab00fdcd6a03c0b33f4c704",
+      "size_bytes": 3496
+    },
+    {
+      "path": "wasserstein_audit/baseline_best/progress.jsonl",
+      "sha256": "6d44e74e6542fa4d16e24c62621ee01538090269726d903403a959bbe0b1dfb6",
+      "size_bytes": 504387
+    },
+    {
+      "path": "wasserstein_audit/baseline_best/support_scan.json",
+      "sha256": "1a1efc56b3c9196a4b97db05c436e68a6e874bc141918f36471ccef28a4cf6f8",
+      "size_bytes": 842
+    },
+    {
+      "path": "wasserstein_audit/epoch20/exact_wasserstein_contract.json",
+      "sha256": "7fa6c4ce5e437eb8b036183880520af3c0bf51356bc7f52cc9519db87c30e14a",
+      "size_bytes": 1288
+    },
+    {
+      "path": "wasserstein_audit/epoch20/oversized.json",
+      "sha256": "13521a09ad2acb171c8782d502092121bf18f7d5e114b5fc580b74beb8c844ee",
+      "size_bytes": 4074
+    },
+    {
+      "path": "wasserstein_audit/epoch20/support_scan.json",
+      "sha256": "6301aa955bb9445d8a538742a75e627f6d966bae70866d630ba05cbc9edc334c",
+      "size_bytes": 847
+    },
+    {
+      "path": "wasserstein_audit/epoch25_best/exact_wasserstein_contract.json",
+      "sha256": "40846cf889cbb730d6356e1dde70cf2ad0d79b9cf6abd6a536cd6002530be1ed",
+      "size_bytes": 1293
+    },
+    {
+      "path": "wasserstein_audit/epoch25_best/oversized.json",
+      "sha256": "f2c8015ae59aaa5003341fd31092227743b3824f96118436c5f2889a68e4724a",
+      "size_bytes": 4104
+    },
+    {
+      "path": "wasserstein_audit/epoch25_best/support_scan.json",
+      "sha256": "4d93ff8f7e7a277c37a4950108d2d48399409db623b8aaa867777637b066fb69",
+      "size_bytes": 846
+    },
+    {
+      "path": "wasserstein_audit/epoch30/exact_wasserstein_contract.json",
+      "sha256": "f3912b2737656d2743a1e52ce575a9493eb958dd7757d91ed459664a33398abe",
+      "size_bytes": 1288
+    },
+    {
+      "path": "wasserstein_audit/epoch30/oversized.json",
+      "sha256": "781bcebb2b8e00f97e0c3a5e1683ddd314b0fc0819212f76fc4fc6717864ec55",
+      "size_bytes": 4074
+    },
+    {
+      "path": "wasserstein_audit/epoch30/support_scan.json",
+      "sha256": "130b54714001a48fa33df00deaf88fcdc72ee03a52a6ce25c16368127fa39c8f",
+      "size_bytes": 826
+    },
+    {
+      "path": "wasserstein_audit/epoch55/exact_wasserstein_contract.json",
+      "sha256": "36d3b9d93bc15fe79e082c1162d7b8d15d613ca4a6124aeb571b592e309344ce",
+      "size_bytes": 1288
+    },
+    {
+      "path": "wasserstein_audit/epoch55/oversized.json",
+      "sha256": "a5e4bc639d5a35394be4a874176bfe83953d9e2e24104b3acd98229683900eb3",
+      "size_bytes": 4074
+    },
+    {
+      "path": "wasserstein_audit/epoch55/support_scan.json",
+      "sha256": "d6a84362acee8dbd43c10ce32927473e593e03b867c3020c79e17d41805bb054",
+      "size_bytes": 836
+    },
+    {
+      "path": "wasserstein_audit/epoch70/exact_wasserstein_contract.json",
+      "sha256": "d2d56577a3533da49b2fd97dc0865d154932a8d151f8eb37683116db15fd04b7",
+      "size_bytes": 1288
+    },
+    {
+      "path": "wasserstein_audit/epoch70/oversized.json",
+      "sha256": "030d514107243a334d959c8a6fc92270c02b89028921e053225522d35b6c4ddc",
+      "size_bytes": 3455
+    },
+    {
+      "path": "wasserstein_audit/epoch70/support_scan.json",
+      "sha256": "ba1125786fdef3639700a4c4d9ac9bf4f57d19c68efcb6e8fcba5aa378df0a9f",
+      "size_bytes": 845
+    }
+  ],
+  "primary_milestone_requested": "epoch25_best",
+  "primary_milestone_used": "epoch25_best",
+  "prompts_copied": 12,
+  "qualitative_panels_generated": 34,
+  "runs": [
+    {
+      "datasets": [
+        "concrete3k",
+        "facade390",
+        "khanhha_noisy1",
+        "khanhha_noisy2",
+        "khanhha_original",
+        "road420"
+      ],
+      "epoch": null,
+      "exact_wasserstein_root": "/home/codespace/cracksam2-artifacts/baseline_r4/final_evaluation/wasserstein_exact",
+      "exact_wasserstein_status": "scan seulement / calcul non publié",
+      "key": "baseline_best",
+      "label": "Baseline SAM 2 + LoRA r=4 — meilleure époque validation",
+      "path": "/home/codespace/cracksam2-artifacts/baseline_r4/final_evaluation",
+      "per_image_cases": {
+        "concrete3k": 3000,
+        "facade390": 390,
+        "khanhha_noisy1": 1695,
+        "khanhha_noisy2": 1695,
+        "khanhha_original": 1695,
+        "road420": 420
+      }
+    },
+    {
+      "datasets": [
+        "concrete3k",
+        "facade390",
+        "khanhha_noisy1",
+        "khanhha_noisy2",
+        "khanhha_original",
+        "road420"
+      ],
+      "epoch": 20,
+      "exact_wasserstein_root": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_comparison/epoch20/wasserstein_exact",
+      "exact_wasserstein_status": "scan seulement / calcul non publié",
+      "key": "epoch20",
+      "label": "Frangi — époque 20",
+      "path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_comparison/epoch20",
+      "per_image_cases": {
+        "concrete3k": 3000,
+        "facade390": 390,
+        "khanhha_noisy1": 1695,
+        "khanhha_noisy2": 1695,
+        "khanhha_original": 1695,
+        "road420": 420
+      }
+    },
+    {
+      "datasets": [
+        "concrete3k",
+        "facade390",
+        "khanhha_noisy1",
+        "khanhha_noisy2",
+        "khanhha_original",
+        "road420"
+      ],
+      "epoch": 25,
+      "exact_wasserstein_root": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_comparison/epoch25_best/wasserstein_exact",
+      "exact_wasserstein_status": "scan seulement / calcul non publié",
+      "key": "epoch25_best",
+      "label": "Frangi — époque 25 (best validation)",
+      "path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_comparison/epoch25_best",
+      "per_image_cases": {
+        "concrete3k": 3000,
+        "facade390": 390,
+        "khanhha_noisy1": 1695,
+        "khanhha_noisy2": 1695,
+        "khanhha_original": 1695,
+        "road420": 420
+      }
+    },
+    {
+      "datasets": [
+        "concrete3k",
+        "facade390",
+        "khanhha_noisy1",
+        "khanhha_noisy2",
+        "khanhha_original",
+        "road420"
+      ],
+      "epoch": 30,
+      "exact_wasserstein_root": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_comparison/epoch30/wasserstein_exact",
+      "exact_wasserstein_status": "scan seulement / calcul non publié",
+      "key": "epoch30",
+      "label": "Frangi — époque 30",
+      "path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_comparison/epoch30",
+      "per_image_cases": {
+        "concrete3k": 3000,
+        "facade390": 390,
+        "khanhha_noisy1": 1695,
+        "khanhha_noisy2": 1695,
+        "khanhha_original": 1695,
+        "road420": 420
+      }
+    },
+    {
+      "datasets": [
+        "concrete3k",
+        "facade390",
+        "khanhha_noisy1",
+        "khanhha_noisy2",
+        "khanhha_original",
+        "road420"
+      ],
+      "epoch": 55,
+      "exact_wasserstein_root": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_comparison/epoch55/wasserstein_exact",
+      "exact_wasserstein_status": "scan seulement / calcul non publié",
+      "key": "epoch55",
+      "label": "Frangi — époque 55",
+      "path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_comparison/epoch55",
+      "per_image_cases": {
+        "concrete3k": 3000,
+        "facade390": 390,
+        "khanhha_noisy1": 1695,
+        "khanhha_noisy2": 1695,
+        "khanhha_original": 1695,
+        "road420": 420
+      }
+    },
+    {
+      "datasets": [
+        "concrete3k",
+        "facade390",
+        "khanhha_noisy1",
+        "khanhha_noisy2",
+        "khanhha_original",
+        "road420"
+      ],
+      "epoch": 70,
+      "exact_wasserstein_root": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_comparison/epoch70/wasserstein_exact",
+      "exact_wasserstein_status": "scan seulement / calcul non publié",
+      "key": "epoch70",
+      "label": "Frangi — époque 70",
+      "path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_comparison/epoch70",
+      "per_image_cases": {
+        "concrete3k": 3000,
+        "facade390": 390,
+        "khanhha_noisy1": 1695,
+        "khanhha_noisy2": 1695,
+        "khanhha_original": 1695,
+        "road420": 420
+      }
+    }
+  ],
+  "software": {
+    "matplotlib": "3.10.9",
+    "numpy": "2.2.6",
+    "python": "3.10.12 (main, Jun 22 2026, 18:55:27) [GCC 11.4.0]"
+  },
+  "warnings": [],
+  "wasserstein_audit": {
+    "copies_verified": 19,
+    "files": [
+      {
+        "artifact": "support_scan.json",
+        "available": true,
+        "contains_partial_metric_values": false,
+        "copied_path": "wasserstein_audit/baseline_best/support_scan.json",
+        "copied_sha256": "1a1efc56b3c9196a4b97db05c436e68a6e874bc141918f36471ccef28a4cf6f8",
+        "copied_size_bytes": 842,
+        "copy_verified": true,
+        "partial_mean_published": false,
+        "run": "baseline_best",
+        "source_path": "/home/codespace/cracksam2-artifacts/baseline_r4/final_evaluation/wasserstein_exact/support_scan.json",
+        "source_sha256": "1a1efc56b3c9196a4b97db05c436e68a6e874bc141918f36471ccef28a4cf6f8",
+        "source_size_bytes": 842
+      },
+      {
+        "artifact": "oversized.json",
+        "available": true,
+        "contains_partial_metric_values": false,
+        "copied_path": "wasserstein_audit/baseline_best/oversized.json",
+        "copied_sha256": "dbce8ef15ac9658f0252903632caa6e14cc00aceaab00fdcd6a03c0b33f4c704",
+        "copied_size_bytes": 3496,
+        "copy_verified": true,
+        "partial_mean_published": false,
+        "run": "baseline_best",
+        "source_path": "/home/codespace/cracksam2-artifacts/baseline_r4/final_evaluation/wasserstein_exact/oversized.json",
+        "source_sha256": "dbce8ef15ac9658f0252903632caa6e14cc00aceaab00fdcd6a03c0b33f4c704",
+        "source_size_bytes": 3496
+      },
+      {
+        "artifact": "exact_wasserstein_contract.json",
+        "available": true,
+        "contains_partial_metric_values": false,
+        "copied_path": "wasserstein_audit/baseline_best/exact_wasserstein_contract.json",
+        "copied_sha256": "af3c1a9240560550b1b414ea0fa88a767fc633a5175cd1c963da3d5bbc78987b",
+        "copied_size_bytes": 1278,
+        "copy_verified": true,
+        "partial_mean_published": false,
+        "run": "baseline_best",
+        "source_path": "/home/codespace/cracksam2-artifacts/baseline_r4/final_evaluation/wasserstein_exact/exact_wasserstein_contract.json",
+        "source_sha256": "af3c1a9240560550b1b414ea0fa88a767fc633a5175cd1c963da3d5bbc78987b",
+        "source_size_bytes": 1278
+      },
+      {
+        "artifact": "progress.jsonl",
+        "available": true,
+        "contains_partial_metric_values": true,
+        "copied_path": "wasserstein_audit/baseline_best/progress.jsonl",
+        "copied_sha256": "6d44e74e6542fa4d16e24c62621ee01538090269726d903403a959bbe0b1dfb6",
+        "copied_size_bytes": 504387,
+        "copy_verified": true,
+        "partial_mean_published": false,
+        "run": "baseline_best",
+        "source_path": "/home/codespace/cracksam2-artifacts/baseline_r4/final_evaluation/wasserstein_exact/progress.jsonl",
+        "source_sha256": "6d44e74e6542fa4d16e24c62621ee01538090269726d903403a959bbe0b1dfb6",
+        "source_size_bytes": 504387
+      },
+      {
+        "artifact": "support_scan.json",
+        "available": true,
+        "contains_partial_metric_values": false,
+        "copied_path": "wasserstein_audit/epoch20/support_scan.json",
+        "copied_sha256": "6301aa955bb9445d8a538742a75e627f6d966bae70866d630ba05cbc9edc334c",
+        "copied_size_bytes": 847,
+        "copy_verified": true,
+        "partial_mean_published": false,
+        "run": "epoch20",
+        "source_path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_comparison/epoch20/wasserstein_exact/support_scan.json",
+        "source_sha256": "6301aa955bb9445d8a538742a75e627f6d966bae70866d630ba05cbc9edc334c",
+        "source_size_bytes": 847
+      },
+      {
+        "artifact": "oversized.json",
+        "available": true,
+        "contains_partial_metric_values": false,
+        "copied_path": "wasserstein_audit/epoch20/oversized.json",
+        "copied_sha256": "13521a09ad2acb171c8782d502092121bf18f7d5e114b5fc580b74beb8c844ee",
+        "copied_size_bytes": 4074,
+        "copy_verified": true,
+        "partial_mean_published": false,
+        "run": "epoch20",
+        "source_path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_comparison/epoch20/wasserstein_exact/oversized.json",
+        "source_sha256": "13521a09ad2acb171c8782d502092121bf18f7d5e114b5fc580b74beb8c844ee",
+        "source_size_bytes": 4074
+      },
+      {
+        "artifact": "exact_wasserstein_contract.json",
+        "available": true,
+        "contains_partial_metric_values": false,
+        "copied_path": "wasserstein_audit/epoch20/exact_wasserstein_contract.json",
+        "copied_sha256": "7fa6c4ce5e437eb8b036183880520af3c0bf51356bc7f52cc9519db87c30e14a",
+        "copied_size_bytes": 1288,
+        "copy_verified": true,
+        "partial_mean_published": false,
+        "run": "epoch20",
+        "source_path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_comparison/epoch20/wasserstein_exact/exact_wasserstein_contract.json",
+        "source_sha256": "7fa6c4ce5e437eb8b036183880520af3c0bf51356bc7f52cc9519db87c30e14a",
+        "source_size_bytes": 1288
+      },
+      {
+        "artifact": "support_scan.json",
+        "available": true,
+        "contains_partial_metric_values": false,
+        "copied_path": "wasserstein_audit/epoch25_best/support_scan.json",
+        "copied_sha256": "4d93ff8f7e7a277c37a4950108d2d48399409db623b8aaa867777637b066fb69",
+        "copied_size_bytes": 846,
+        "copy_verified": true,
+        "partial_mean_published": false,
+        "run": "epoch25_best",
+        "source_path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_comparison/epoch25_best/wasserstein_exact/support_scan.json",
+        "source_sha256": "4d93ff8f7e7a277c37a4950108d2d48399409db623b8aaa867777637b066fb69",
+        "source_size_bytes": 846
+      },
+      {
+        "artifact": "oversized.json",
+        "available": true,
+        "contains_partial_metric_values": false,
+        "copied_path": "wasserstein_audit/epoch25_best/oversized.json",
+        "copied_sha256": "f2c8015ae59aaa5003341fd31092227743b3824f96118436c5f2889a68e4724a",
+        "copied_size_bytes": 4104,
+        "copy_verified": true,
+        "partial_mean_published": false,
+        "run": "epoch25_best",
+        "source_path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_comparison/epoch25_best/wasserstein_exact/oversized.json",
+        "source_sha256": "f2c8015ae59aaa5003341fd31092227743b3824f96118436c5f2889a68e4724a",
+        "source_size_bytes": 4104
+      },
+      {
+        "artifact": "exact_wasserstein_contract.json",
+        "available": true,
+        "contains_partial_metric_values": false,
+        "copied_path": "wasserstein_audit/epoch25_best/exact_wasserstein_contract.json",
+        "copied_sha256": "40846cf889cbb730d6356e1dde70cf2ad0d79b9cf6abd6a536cd6002530be1ed",
+        "copied_size_bytes": 1293,
+        "copy_verified": true,
+        "partial_mean_published": false,
+        "run": "epoch25_best",
+        "source_path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_comparison/epoch25_best/wasserstein_exact/exact_wasserstein_contract.json",
+        "source_sha256": "40846cf889cbb730d6356e1dde70cf2ad0d79b9cf6abd6a536cd6002530be1ed",
+        "source_size_bytes": 1293
+      },
+      {
+        "artifact": "support_scan.json",
+        "available": true,
+        "contains_partial_metric_values": false,
+        "copied_path": "wasserstein_audit/epoch30/support_scan.json",
+        "copied_sha256": "130b54714001a48fa33df00deaf88fcdc72ee03a52a6ce25c16368127fa39c8f",
+        "copied_size_bytes": 826,
+        "copy_verified": true,
+        "partial_mean_published": false,
+        "run": "epoch30",
+        "source_path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_comparison/epoch30/wasserstein_exact/support_scan.json",
+        "source_sha256": "130b54714001a48fa33df00deaf88fcdc72ee03a52a6ce25c16368127fa39c8f",
+        "source_size_bytes": 826
+      },
+      {
+        "artifact": "oversized.json",
+        "available": true,
+        "contains_partial_metric_values": false,
+        "copied_path": "wasserstein_audit/epoch30/oversized.json",
+        "copied_sha256": "781bcebb2b8e00f97e0c3a5e1683ddd314b0fc0819212f76fc4fc6717864ec55",
+        "copied_size_bytes": 4074,
+        "copy_verified": true,
+        "partial_mean_published": false,
+        "run": "epoch30",
+        "source_path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_comparison/epoch30/wasserstein_exact/oversized.json",
+        "source_sha256": "781bcebb2b8e00f97e0c3a5e1683ddd314b0fc0819212f76fc4fc6717864ec55",
+        "source_size_bytes": 4074
+      },
+      {
+        "artifact": "exact_wasserstein_contract.json",
+        "available": true,
+        "contains_partial_metric_values": false,
+        "copied_path": "wasserstein_audit/epoch30/exact_wasserstein_contract.json",
+        "copied_sha256": "f3912b2737656d2743a1e52ce575a9493eb958dd7757d91ed459664a33398abe",
+        "copied_size_bytes": 1288,
+        "copy_verified": true,
+        "partial_mean_published": false,
+        "run": "epoch30",
+        "source_path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_comparison/epoch30/wasserstein_exact/exact_wasserstein_contract.json",
+        "source_sha256": "f3912b2737656d2743a1e52ce575a9493eb958dd7757d91ed459664a33398abe",
+        "source_size_bytes": 1288
+      },
+      {
+        "artifact": "support_scan.json",
+        "available": true,
+        "contains_partial_metric_values": false,
+        "copied_path": "wasserstein_audit/epoch55/support_scan.json",
+        "copied_sha256": "d6a84362acee8dbd43c10ce32927473e593e03b867c3020c79e17d41805bb054",
+        "copied_size_bytes": 836,
+        "copy_verified": true,
+        "partial_mean_published": false,
+        "run": "epoch55",
+        "source_path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_comparison/epoch55/wasserstein_exact/support_scan.json",
+        "source_sha256": "d6a84362acee8dbd43c10ce32927473e593e03b867c3020c79e17d41805bb054",
+        "source_size_bytes": 836
+      },
+      {
+        "artifact": "oversized.json",
+        "available": true,
+        "contains_partial_metric_values": false,
+        "copied_path": "wasserstein_audit/epoch55/oversized.json",
+        "copied_sha256": "a5e4bc639d5a35394be4a874176bfe83953d9e2e24104b3acd98229683900eb3",
+        "copied_size_bytes": 4074,
+        "copy_verified": true,
+        "partial_mean_published": false,
+        "run": "epoch55",
+        "source_path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_comparison/epoch55/wasserstein_exact/oversized.json",
+        "source_sha256": "a5e4bc639d5a35394be4a874176bfe83953d9e2e24104b3acd98229683900eb3",
+        "source_size_bytes": 4074
+      },
+      {
+        "artifact": "exact_wasserstein_contract.json",
+        "available": true,
+        "contains_partial_metric_values": false,
+        "copied_path": "wasserstein_audit/epoch55/exact_wasserstein_contract.json",
+        "copied_sha256": "36d3b9d93bc15fe79e082c1162d7b8d15d613ca4a6124aeb571b592e309344ce",
+        "copied_size_bytes": 1288,
+        "copy_verified": true,
+        "partial_mean_published": false,
+        "run": "epoch55",
+        "source_path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_comparison/epoch55/wasserstein_exact/exact_wasserstein_contract.json",
+        "source_sha256": "36d3b9d93bc15fe79e082c1162d7b8d15d613ca4a6124aeb571b592e309344ce",
+        "source_size_bytes": 1288
+      },
+      {
+        "artifact": "support_scan.json",
+        "available": true,
+        "contains_partial_metric_values": false,
+        "copied_path": "wasserstein_audit/epoch70/support_scan.json",
+        "copied_sha256": "ba1125786fdef3639700a4c4d9ac9bf4f57d19c68efcb6e8fcba5aa378df0a9f",
+        "copied_size_bytes": 845,
+        "copy_verified": true,
+        "partial_mean_published": false,
+        "run": "epoch70",
+        "source_path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_comparison/epoch70/wasserstein_exact/support_scan.json",
+        "source_sha256": "ba1125786fdef3639700a4c4d9ac9bf4f57d19c68efcb6e8fcba5aa378df0a9f",
+        "source_size_bytes": 845
+      },
+      {
+        "artifact": "oversized.json",
+        "available": true,
+        "contains_partial_metric_values": false,
+        "copied_path": "wasserstein_audit/epoch70/oversized.json",
+        "copied_sha256": "030d514107243a334d959c8a6fc92270c02b89028921e053225522d35b6c4ddc",
+        "copied_size_bytes": 3455,
+        "copy_verified": true,
+        "partial_mean_published": false,
+        "run": "epoch70",
+        "source_path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_comparison/epoch70/wasserstein_exact/oversized.json",
+        "source_sha256": "030d514107243a334d959c8a6fc92270c02b89028921e053225522d35b6c4ddc",
+        "source_size_bytes": 3455
+      },
+      {
+        "artifact": "exact_wasserstein_contract.json",
+        "available": true,
+        "contains_partial_metric_values": false,
+        "copied_path": "wasserstein_audit/epoch70/exact_wasserstein_contract.json",
+        "copied_sha256": "d2d56577a3533da49b2fd97dc0865d154932a8d151f8eb37683116db15fd04b7",
+        "copied_size_bytes": 1288,
+        "copy_verified": true,
+        "partial_mean_published": false,
+        "run": "epoch70",
+        "source_path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_comparison/epoch70/wasserstein_exact/exact_wasserstein_contract.json",
+        "source_sha256": "d2d56577a3533da49b2fd97dc0865d154932a8d151f8eb37683116db15fd04b7",
+        "source_size_bytes": 1288
+      }
+    ],
+    "files_copied": 19,
+    "files_expected_or_copied": 19,
+    "partial_mean_published": false
+  },
+  "wasserstein_feasibility_manifest": {
+    "format_version": 1,
+    "generated_at_utc": "2026-07-14T15:19:00Z",
+    "live_attempt": {
+      "durably_completed_cases": 1182,
+      "failed_cases": 0,
+      "journal_is_resumable": true,
+      "journal_vm_path": "/home/codespace/cracksam2-artifacts/baseline_r4/final_evaluation/wasserstein_exact/progress.jsonl",
+      "largest_active_case_completed_before_stop": false,
+      "largest_active_case_elapsed_seconds_lower_bound": 990,
+      "largest_active_case_estimated_gib": 136.56,
+      "memory_budget_gib": 140.0,
+      "observed_worker_rss_gib": 94.47,
+      "published_summary": false,
+      "run": "baseline_best",
+      "runnable_cases": 8890,
+      "stop_reason": "The six-run exact calculation cannot complete inside the Spot window; partial means are scientifically non-comparable and are not published."
+    },
+    "metric": "POT ot.emd2 exact dense Euclidean direct-mask",
+    "path": "/home/codespace/Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset/ISPRS/CrackSAM/results/2026-07-14_wasserstein_feasibility.json",
+    "publication_policy": {
+      "capped_or_imputed_values_allowed": false,
+      "exact_value_requires": "A finite POT result produced with max_points=None.",
+      "paired_comparison_requires": "The strict common finite case intersection for baseline and the compared milestone.",
+      "partial_mean_is_final_result": false
+    },
+    "sha256": "968fd6cfedb144eb3090bb3bee801ea50742bef3c0a78d2d9ef4c596f8ade8bb",
+    "size_bytes": 5795,
+    "thresholds": 9
+  }
+}

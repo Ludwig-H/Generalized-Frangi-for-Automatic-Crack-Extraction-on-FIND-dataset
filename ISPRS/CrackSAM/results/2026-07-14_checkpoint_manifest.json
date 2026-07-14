@@ -1,0 +1,135 @@
+{
+  "format_version": 1,
+  "verified_at_utc": "2026-07-14T15:09:44Z",
+  "experiment": "cracksam2_frangi_similarity_r4",
+  "storage": {
+    "vm": {
+      "project": "devpod-gpu-exploration",
+      "zone": "europe-west4-a",
+      "instance": "frangi-blackwell-spot",
+      "artifact_root": "/home/codespace/cracksam2-artifacts"
+    },
+    "local_backup": {
+      "repository_relative_root": "ISPRS/CrackSAM/artifacts/vm_backup_20260714T1435Z_final_checkpoints",
+      "absolute_root_at_verification": "/workspaces/Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset/ISPRS/CrackSAM/artifacts/vm_backup_20260714T1435Z_final_checkpoints",
+      "git_ignored": true,
+      "gitignore_rule": ".gitignore:25:ISPRS/CrackSAM/artifacts/"
+    }
+  },
+  "base_checkpoint_dependency": {
+    "name": "sam2_hiera_large.pt",
+    "size_bytes": 897952466,
+    "sha256": "7442e4e9b732a508f80e141e7c2913437a3610ee0c77381a66658c3a445df87b",
+    "vm_path": "/home/codespace/Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset/ISPRS/CrackSAM/checkpoints/sam2_hiera_large.pt",
+    "local_backup_path": "ISPRS/CrackSAM/artifacts/vm_backup_20260714T1435Z_final_checkpoints/foundation/sam2_hiera_large.pt",
+    "gitignore_rule": ".gitignore:20:checkpoints/"
+  },
+  "run_artifacts": {
+    "baseline_r4": {
+      "config_json_sha256": "d90fa27677b03c6f102edc166ffef40b7f156918ba3bfa93e2bd3672850c24dc",
+      "train_csv_sha256": "3df0fdaa0d2f2c0262d3700637c75cc4588243ddcb31fbd19396a431bced7fd9",
+      "validation_csv_sha256": "3d2a90e56e89758f0343f7448afc2e4411483398bb1c426ebef2cdc1ab59aaa3",
+      "final_evaluation_contract_sha256": "a5fb44dc776ab22ad5e3978d6d885b412020bc260eebb9d8405f481a00ab09f8"
+    },
+    "frangi_r4": {
+      "config_json_sha256": "ca0dcd0e7c140d7507f8d899a780d4702b689a9587b9eae8abf198b82165dcf1",
+      "train_csv_sha256": "16fd61d9c57481c7054651c81f72f81cf256417f6447061b6b2db01a404ee900",
+      "validation_csv_sha256": "1880ee00789f9aa665dcbeccef02a67267375573f8407a19c002bfdf39242792",
+      "epoch25_evaluation_contract_sha256": "36c7a4e6853b7679069efc8116d83861f393dc32bc788ea82bb2cd2133cee04c"
+    }
+  },
+  "checkpoints": [
+    {
+      "id": "frangi_epoch20",
+      "variant": "frangi",
+      "role": "milestone",
+      "epoch": 20,
+      "global_step": 22820,
+      "next_batch": 0,
+      "validation_dice": 0.7427144930977481,
+      "validation_iou": 0.6237207050593487,
+      "size_bytes": 5708629,
+      "sha256": "c06db707bfdfeee7d8de8b877d2a58b33d0ca2ddfc7ab3b9d9fa9f70a0b415f8",
+      "run_contract_sha256": "d40c4e92a8259c2926f3a8693e9f4eabaf2924ef429567abd6e67a9a4c4838ba",
+      "vm_path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_epoch20.pt",
+      "local_backup_path": "ISPRS/CrackSAM/artifacts/vm_backup_20260714T1435Z_final_checkpoints/frangi_r4/milestone_epoch20.pt"
+    },
+    {
+      "id": "frangi_epoch25_best",
+      "variant": "frangi",
+      "role": "best",
+      "epoch": 25,
+      "global_step": 28525,
+      "next_batch": 0,
+      "validation_dice": 0.7448660777613837,
+      "validation_iou": 0.625429207627257,
+      "size_bytes": 5708629,
+      "sha256": "2ff8938b3d08c0d569fdaedd6750efd1fa71b66bd93f8748b5a97748ff97027d",
+      "run_contract_sha256": "d40c4e92a8259c2926f3a8693e9f4eabaf2924ef429567abd6e67a9a4c4838ba",
+      "vm_path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_epoch25_best.pt",
+      "local_backup_path": "ISPRS/CrackSAM/artifacts/vm_backup_20260714T1435Z_final_checkpoints/frangi_r4/milestone_epoch25_best.pt",
+      "equivalent_alias": "frangi_r4/best.pt"
+    },
+    {
+      "id": "frangi_epoch30",
+      "variant": "frangi",
+      "role": "milestone",
+      "epoch": 30,
+      "global_step": 34230,
+      "next_batch": 0,
+      "validation_dice": 0.7445380873586015,
+      "validation_iou": 0.6252995419578141,
+      "size_bytes": 5710401,
+      "sha256": "e8d35bccc4458a88c7eb5070ecbb9b87fcb4817c83af1ce0d10e9da36bb8e2f0",
+      "run_contract_sha256": "d40c4e92a8259c2926f3a8693e9f4eabaf2924ef429567abd6e67a9a4c4838ba",
+      "vm_path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_epoch30.pt",
+      "local_backup_path": "ISPRS/CrackSAM/artifacts/vm_backup_20260714T1435Z_final_checkpoints/frangi_r4/milestone_epoch30.pt"
+    },
+    {
+      "id": "frangi_epoch55",
+      "variant": "frangi",
+      "role": "milestone",
+      "epoch": 55,
+      "global_step": 62755,
+      "next_batch": 0,
+      "validation_dice": 0.7440748693290606,
+      "validation_iou": 0.6249855896332118,
+      "size_bytes": 5710401,
+      "sha256": "b703f84347323a4d6b3a1994191dca8d06cbc0404dbcc92f134689c3e59dc4da",
+      "run_contract_sha256": "d40c4e92a8259c2926f3a8693e9f4eabaf2924ef429567abd6e67a9a4c4838ba",
+      "vm_path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_epoch55.pt",
+      "local_backup_path": "ISPRS/CrackSAM/artifacts/vm_backup_20260714T1435Z_final_checkpoints/frangi_r4/milestone_epoch55.pt"
+    },
+    {
+      "id": "frangi_epoch70",
+      "variant": "frangi",
+      "role": "final",
+      "epoch": 70,
+      "global_step": 79870,
+      "next_batch": 0,
+      "validation_dice": 0.7439417506870248,
+      "validation_iou": 0.6248601838503941,
+      "size_bytes": 5710401,
+      "sha256": "f5cbaf22ea80d29117a02fe8cfe20219216428221b44d9a305ed7811ca23b39d",
+      "run_contract_sha256": "d40c4e92a8259c2926f3a8693e9f4eabaf2924ef429567abd6e67a9a4c4838ba",
+      "vm_path": "/home/codespace/cracksam2-artifacts/frangi_r4/milestone_epoch70.pt",
+      "local_backup_path": "ISPRS/CrackSAM/artifacts/vm_backup_20260714T1435Z_final_checkpoints/frangi_r4/milestone_epoch70.pt",
+      "equivalent_alias": "frangi_r4/latest.pt"
+    },
+    {
+      "id": "baseline_epoch20_best",
+      "variant": "baseline",
+      "role": "best",
+      "epoch": 20,
+      "global_step": 22820,
+      "next_batch": 0,
+      "validation_dice": 0.7438733528339898,
+      "validation_iou": 0.6244404983665929,
+      "size_bytes": 5708117,
+      "sha256": "d154d60a82ec2a0af4540559785a483818612319350c04a1b06035053b6f6a04",
+      "run_contract_sha256": "e91d544ea4d99eff5765db711cbfc7610146aae2cd726dfb512ed7065cafbbdb",
+      "vm_path": "/home/codespace/cracksam2-artifacts/baseline_r4/best.pt",
+      "local_backup_path": "ISPRS/CrackSAM/artifacts/vm_backup_20260714T1435Z_final_checkpoints/baseline_r4/best.pt"
+    }
+  ]
+}

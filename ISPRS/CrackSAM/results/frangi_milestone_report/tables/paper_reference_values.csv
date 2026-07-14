@@ -1,0 +1,13 @@
+model,label,dataset,precision,recall,dice,iou,iou_source,pr_re_f1_source
+paper_adapter_d32,"CrackSAM originel — Adapter d=32 (SAM 1, ViT-H)",khanhha_original,0.7676,0.7965,0.7704,0.6495,"CrackSAM.pdf, Table 6","CrackSAM.pdf, Table 1 (Adapter d=32)"
+paper_adapter_d32,"CrackSAM originel — Adapter d=32 (SAM 1, ViT-H)",khanhha_noisy1,,,,0.5466,"CrackSAM.pdf, Table 6","CrackSAM.pdf, Table 1 (Adapter d=32)"
+paper_adapter_d32,"CrackSAM originel — Adapter d=32 (SAM 1, ViT-H)",khanhha_noisy2,,,,0.4763,"CrackSAM.pdf, Table 6","CrackSAM.pdf, Table 1 (Adapter d=32)"
+paper_adapter_d32,"CrackSAM originel — Adapter d=32 (SAM 1, ViT-H)",road420,,,,0.6149,"CrackSAM.pdf, Table 6","CrackSAM.pdf, Table 1 (Adapter d=32)"
+paper_adapter_d32,"CrackSAM originel — Adapter d=32 (SAM 1, ViT-H)",facade390,,,,0.4718,"CrackSAM.pdf, Table 6","CrackSAM.pdf, Table 1 (Adapter d=32)"
+paper_adapter_d32,"CrackSAM originel — Adapter d=32 (SAM 1, ViT-H)",concrete3k,,,,0.6718,"CrackSAM.pdf, Table 6","CrackSAM.pdf, Table 1 (Adapter d=32)"
+paper_lora_qv_r4,"CrackSAM originel — LoRA qv r=4 (SAM 1, ViT-H)",khanhha_original,0.762,0.7918,0.7639,0.6416,"CrackSAM.pdf, Table 6","CrackSAM.pdf, Table 2 (rank=4)"
+paper_lora_qv_r4,"CrackSAM originel — LoRA qv r=4 (SAM 1, ViT-H)",khanhha_noisy1,,,,0.5782,"CrackSAM.pdf, Table 6","CrackSAM.pdf, Table 2 (rank=4)"
+paper_lora_qv_r4,"CrackSAM originel — LoRA qv r=4 (SAM 1, ViT-H)",khanhha_noisy2,,,,0.4915,"CrackSAM.pdf, Table 6","CrackSAM.pdf, Table 2 (rank=4)"
+paper_lora_qv_r4,"CrackSAM originel — LoRA qv r=4 (SAM 1, ViT-H)",road420,,,,0.6222,"CrackSAM.pdf, Table 6","CrackSAM.pdf, Table 2 (rank=4)"
+paper_lora_qv_r4,"CrackSAM originel — LoRA qv r=4 (SAM 1, ViT-H)",facade390,,,,0.4544,"CrackSAM.pdf, Table 6","CrackSAM.pdf, Table 2 (rank=4)"
+paper_lora_qv_r4,"CrackSAM originel — LoRA qv r=4 (SAM 1, ViT-H)",concrete3k,,,,0.6798,"CrackSAM.pdf, Table 6","CrackSAM.pdf, Table 2 (rank=4)"

@@ -1,0 +1,2 @@
+# Install after requirements-sam2.txt to generate the illustrated report.
+matplotlib>=3.8
