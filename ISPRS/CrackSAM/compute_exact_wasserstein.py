@@ -17,7 +17,7 @@ import multiprocessing
 import os
 import time
 from concurrent.futures import FIRST_COMPLETED, Future, ProcessPoolExecutor, wait
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -86,6 +86,15 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--workers", type=int, default=os.cpu_count() or 1)
     parser.add_argument("--memory-budget-gb", type=float, default=140.0)
+    parser.add_argument(
+        "--skip-oversized",
+        action="store_true",
+        help=(
+            "Compute every exact case that fits the memory budget and publish "
+            "explicitly incomplete summaries for larger cases. By default any "
+            "oversized case aborts before computation."
+        ),
+    )
     parser.add_argument("--scan-only", action="store_true")
     parser.add_argument("--max-cases", type=int)
     return parser.parse_args()
@@ -387,6 +396,8 @@ def publish_results(
     evaluation_root: Path,
     output_root: Path,
     completed: dict[tuple[str, str], dict[str, Any]],
+    *,
+    allow_incomplete: bool = False,
 ) -> None:
     summaries: list[dict[str, Any]] = []
     for spec in specs:
@@ -394,10 +405,12 @@ def publish_results(
         rows: list[dict[str, Any]] = []
         for source in source_rows:
             key = (spec.name, source["case_name"])
-            if key not in completed:
+            if key not in completed and not allow_incomplete:
                 raise RuntimeError(f"Exact result missing for {key}")
             row = dict(source)
-            row["wasserstein"] = completed[key]["wasserstein"]
+            row["wasserstein"] = (
+                completed[key]["wasserstein"] if key in completed else None
+            )
             rows.append(row)
         result_dir = output_root / spec.name
         _write_csv(result_dir / "per_image.csv", rows)
@@ -408,11 +421,27 @@ def publish_results(
             "wasserstein_max_points": None,
         }
         for metric in ("precision", "recall", "dice", "iou", "wasserstein"):
-            values = np.asarray([float(row[metric]) for row in rows], dtype=np.float64)
+            values = np.asarray(
+                [
+                    np.nan
+                    if row[metric] in (None, "")
+                    else float(row[metric])
+                    for row in rows
+                ],
+                dtype=np.float64,
+            )
             finite = values[np.isfinite(values)]
-            summary[metric] = float(np.mean(finite))
-            summary[f"{metric}_std"] = float(np.std(finite))
+            summary[metric] = float(np.mean(finite)) if finite.size else None
+            summary[f"{metric}_std"] = (
+                float(np.std(finite)) if finite.size else None
+            )
             summary[f"{metric}_finite_samples"] = int(finite.size)
+        summary["wasserstein_complete"] = (
+            summary["wasserstein_finite_samples"] == len(rows)
+        )
+        summary["wasserstein_missing_samples"] = (
+            len(rows) - summary["wasserstein_finite_samples"]
+        )
         summaries.append(summary)
         _write_json(result_dir / "summary.json", summary)
     _write_csv(output_root / "summary.csv", summaries)
@@ -450,6 +479,8 @@ def main() -> int:
         "max_cases": args.max_cases,
         "matrix_bytes_per_entry_estimate": MATRIX_BYTES_PER_ENTRY,
         "blas_threads_per_worker": 1,
+        "memory_budget_gb": args.memory_budget_gb,
+        "oversized_policy": "skip" if args.skip_oversized else "error",
     }
     output_root.mkdir(parents=True, exist_ok=True)
     contract_path = output_root / "exact_wasserstein_contract.json"
@@ -464,16 +495,47 @@ def main() -> int:
     summary = scan_summary(tasks)
     _write_json(output_root / "support_scan.json", summary)
     print(json.dumps(summary, indent=2, sort_keys=True), flush=True)
+    memory_budget = int(args.memory_budget_gb * 1024**3)
+    oversized = [task for task in tasks if task.estimated_bytes > memory_budget]
+    oversized.sort(key=lambda task: task.estimated_bytes, reverse=True)
+    _write_json(
+        output_root / "oversized.json",
+        {
+            "count": len(oversized),
+            "memory_budget_bytes": memory_budget,
+            "tasks": [asdict(task) for task in oversized],
+        },
+    )
     if args.scan_only:
         return 0
 
+    if oversized and not args.skip_oversized:
+        worst = oversized[0]
+        raise MemoryError(
+            f"{len(oversized)} exact dense transport problem(s) exceed the "
+            f"memory budget; worst is {worst.dataset}/{worst.case_name}, "
+            f"estimated {worst.estimated_bytes / 1024**3:.2f} GiB > "
+            f"{args.memory_budget_gb:.2f} GiB. Re-run with --skip-oversized "
+            "only if explicitly incomplete summaries are acceptable."
+        )
+    oversized_keys = {(task.dataset, task.case_name) for task in oversized}
+    runnable = [
+        task for task in tasks if (task.dataset, task.case_name) not in oversized_keys
+    ]
+
     completed = run_tasks(
-        tasks,
+        runnable,
         workers=min(args.workers, os.cpu_count() or args.workers),
-        memory_budget=int(args.memory_budget_gb * 1024**3),
+        memory_budget=memory_budget,
         journal=output_root / "progress.jsonl",
     )
-    publish_results(specs, args.evaluation_root, output_root, completed)
+    publish_results(
+        specs,
+        args.evaluation_root,
+        output_root,
+        completed,
+        allow_incomplete=bool(oversized),
+    )
     return 0
 
 

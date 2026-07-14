@@ -136,3 +136,39 @@ def test_publish_results_preserves_segmentation_metrics_and_adds_exact_distance(
     ) as source:
         row = next(csv.DictReader(source))
     assert float(row["wasserstein"]) == pytest.approx(5.0)
+
+
+def test_publish_results_marks_an_allowed_missing_exact_case(
+    tmp_path: Path,
+) -> None:
+    evaluation_root = tmp_path / "evaluation"
+    dataset_root = evaluation_root / "mini"
+    dataset_root.mkdir(parents=True)
+    source_row = {
+        "case_name": "oversized.png",
+        "precision": 0.8,
+        "recall": 0.6,
+        "dice": 0.7,
+        "iou": 0.5,
+        "wasserstein": "",
+        "inference_seconds": 0.01,
+    }
+    with (dataset_root / "per_image.csv").open(
+        "w", newline="", encoding="utf-8"
+    ) as output:
+        writer = csv.DictWriter(output, fieldnames=list(source_row))
+        writer.writeheader()
+        writer.writerow(source_row)
+
+    spec = exact.DatasetSpec("mini", tmp_path / "data", tmp_path / "list.txt")
+    output_root = tmp_path / "exact"
+    exact.publish_results(
+        [spec], evaluation_root, output_root, {}, allow_incomplete=True
+    )
+
+    summary = json.loads(
+        (output_root / "mini" / "summary.json").read_text(encoding="utf-8")
+    )
+    assert summary["wasserstein_complete"] is False
+    assert summary["wasserstein_missing_samples"] == 1
+    assert summary["wasserstein_finite_samples"] == 0
