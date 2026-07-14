@@ -13,8 +13,10 @@ CRACKSAM_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(CRACKSAM_ROOT))
 
 from cracksam2.data import (  # noqa: E402
+    FRANGI_BACKGROUND_LOGIT,
     PROMPT_CACHE_MANIFEST,
     CrackSegmentationDataset,
+    SynchronizedRandomTransform,
     apply_geometric_transform,
     apply_noise_perturbation,
     resolve_sample_paths,
@@ -56,6 +58,33 @@ def test_resolves_existing_list_and_returns_rgb_float_binary_mask(tmp_path):
     assert sample["case_name"] == "sample.JPG"
 
 
+def test_mask_fallback_scans_nested_files_once_and_ignores_case(tmp_path, monkeypatch):
+    root = tmp_path / "dataset"
+    (root / "images").mkdir(parents=True)
+    nested_masks = root / "masks" / "nested"
+    nested_masks.mkdir(parents=True)
+    Image.fromarray(np.zeros((4, 6, 3), dtype=np.uint8)).save(
+        root / "images" / "sample.JPG"
+    )
+    Image.fromarray(np.zeros((4, 6), dtype=np.uint8)).save(
+        nested_masks / "SAMPLE_MASK.PNG"
+    )
+
+    original_rglob = Path.rglob
+    calls = 0
+
+    def counting_rglob(path, pattern):
+        nonlocal calls
+        calls += 1
+        return original_rglob(path, pattern)
+
+    monkeypatch.setattr(Path, "rglob", counting_rglob)
+    _, mask_path = resolve_sample_paths(root, "sample.JPG")
+
+    assert mask_path == nested_masks / "SAMPLE_MASK.PNG"
+    assert calls == 1
+
+
 def test_geometric_transform_keeps_mask_and_prompt_registered():
     image = np.zeros((3, 3, 3), dtype=np.uint8)
     mask = np.zeros((3, 3), dtype=np.uint8)
@@ -78,6 +107,35 @@ def test_geometric_transform_keeps_mask_and_prompt_registered():
     np.testing.assert_array_equal(image_position, mask_position)
     np.testing.assert_array_equal(mask_position, prompt_position)
     assert transformed_prompt[tuple(prompt_position[0])] == 0.75
+
+
+def test_arbitrary_rotation_fills_prompt_with_weakest_frangi_logit():
+    class ArbitraryRotationRng:
+        def __init__(self):
+            self.random_values = iter((0.0, 1.0))
+
+        def random(self):
+            return next(self.random_values)
+
+        def randrange(self, *args):
+            assert args == (-20, 20)
+            return 10
+
+    image = np.full((32, 32, 3), 255, dtype=np.uint8)
+    mask = np.ones((32, 32), dtype=np.uint8)
+    prompt = np.full((32, 32), 2.0, dtype=np.float32)
+
+    _, rotated_mask, rotated_prompt = SynchronizedRandomTransform()(
+        image,
+        mask,
+        prompt,
+        rng=ArbitraryRotationRng(),
+    )
+
+    assert np.count_nonzero(rotated_mask == 0) > 0
+    assert rotated_prompt is not None
+    assert np.count_nonzero(rotated_prompt == FRANGI_BACKGROUND_LOGIT) > 0
+    assert not np.any(rotated_prompt == 0.0)
 
 
 def test_paper_noise_perturbations():

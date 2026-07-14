@@ -14,6 +14,7 @@ from PIL import Image
 from tqdm import tqdm
 
 from cracksam2.data import (
+    FRANGI_PROMPT_EPS,
     PROMPT_CACHE_MANIFEST,
     PROMPT_CACHE_VERSION,
     apply_noise_perturbation,
@@ -78,7 +79,7 @@ def _manifest(names: list[str], noise: str, status: str) -> dict[str, object]:
             "scales": [float(value) for value in DEFAULT_FRANGI_SCALES],
             "R": 3,
             "K": 1,
-            "eps": 1e-5,
+            "eps": FRANGI_PROMPT_EPS,
         },
     }
 
@@ -171,7 +172,7 @@ def main() -> int:
                 scales=DEFAULT_FRANGI_SCALES,
                 R=3,
                 K=1,
-                eps=1e-5,
+                eps=FRANGI_PROMPT_EPS,
                 device=args.device,
             )
         except Exception as exc:  # keep an exact per-sample recovery log

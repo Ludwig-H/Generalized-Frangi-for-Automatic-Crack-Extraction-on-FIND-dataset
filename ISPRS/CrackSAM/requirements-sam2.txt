@@ -7,4 +7,3 @@ POT>=0.9,<1
 scipy>=1.10
 Pillow>=9.4
 tqdm>=4.66
-

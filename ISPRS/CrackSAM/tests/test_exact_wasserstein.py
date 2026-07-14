@@ -52,6 +52,19 @@ def test_exact_worker_uses_complete_support_and_euclidean_ground_cost(
     assert row["target_points"] == 1
 
 
+def test_target_loader_uses_nonconstant_rgba_alpha_as_mask(tmp_path: Path) -> None:
+    rgba = np.full((448, 448, 4), 255, dtype=np.uint8)
+    rgba[..., 3] = 0
+    rgba[17, 23, 3] = 255
+    path = tmp_path / "target.png"
+    Image.fromarray(rgba).save(path)
+
+    target = exact._load_target(path)
+
+    assert target.sum() == 1
+    assert target[17, 23]
+
+
 def test_run_tasks_is_resumable_and_repairs_truncated_journal(
     tmp_path: Path,
 ) -> None:
@@ -172,3 +185,55 @@ def test_publish_results_marks_an_allowed_missing_exact_case(
     assert summary["wasserstein_complete"] is False
     assert summary["wasserstein_missing_samples"] == 1
     assert summary["wasserstein_finite_samples"] == 0
+
+
+def test_publish_results_limits_rows_for_max_cases(tmp_path: Path) -> None:
+    evaluation_root = tmp_path / "evaluation"
+    dataset_root = evaluation_root / "mini"
+    dataset_root.mkdir(parents=True)
+    source_rows = [
+        {
+            "case_name": f"case-{index}.png",
+            "precision": 0.8,
+            "recall": 0.6,
+            "dice": 0.7,
+            "iou": 0.5,
+            "wasserstein": "",
+            "inference_seconds": 0.01,
+        }
+        for index in range(2)
+    ]
+    with (dataset_root / "per_image.csv").open(
+        "w", newline="", encoding="utf-8"
+    ) as output:
+        writer = csv.DictWriter(output, fieldnames=list(source_rows[0]))
+        writer.writeheader()
+        writer.writerows(source_rows)
+
+    spec = exact.DatasetSpec("mini", tmp_path / "data", tmp_path / "list.txt")
+    completed = {
+        ("mini", "case-0.png"): {
+            "status": "complete",
+            "dataset": "mini",
+            "case_name": "case-0.png",
+            "wasserstein": 5.0,
+        }
+    }
+    output_root = tmp_path / "exact"
+    exact.publish_results(
+        [spec],
+        evaluation_root,
+        output_root,
+        completed,
+        max_cases=1,
+    )
+
+    summary = json.loads(
+        (output_root / "mini" / "summary.json").read_text(encoding="utf-8")
+    )
+    assert summary["samples"] == 1
+    assert summary["wasserstein_complete"] is True
+    with (output_root / "mini" / "per_image.csv").open(
+        newline="", encoding="utf-8"
+    ) as source:
+        assert len(list(csv.DictReader(source))) == 1

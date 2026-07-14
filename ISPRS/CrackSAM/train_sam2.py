@@ -372,7 +372,7 @@ def main() -> int:
             "dice_definition": "mean_background_foreground_global_v1",
             "threshold": args.threshold,
             "val_every": args.val_every,
-            "augmentation": "cracksam_original_stateless_v1",
+            "augmentation": "cracksam_original_stateless_prompt_padding_v2",
         },
         "data": {
             "train": _dataset_contract(train_dataset),
@@ -388,6 +388,7 @@ def main() -> int:
                 Path(__file__),
                 Path(__file__).parent / "cracksam2" / "data.py",
                 Path(__file__).parent / "cracksam2" / "losses.py",
+                Path(__file__).parent / "cracksam2" / "metrics.py",
                 Path(__file__).parent / "cracksam2" / "model.py",
                 Path(__file__).parent / "requirements-sam2.txt",
             )

@@ -34,6 +34,10 @@ _MASK_DIR_NAMES = (
 _IMAGE_SUFFIXES = (".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff")
 PROMPT_CACHE_MANIFEST = ".cracksam2-frangi.json"
 PROMPT_CACHE_VERSION = 1
+FRANGI_PROMPT_EPS = 1e-5
+FRANGI_BACKGROUND_LOGIT = float(
+    np.log(FRANGI_PROMPT_EPS) - np.log1p(-FRANGI_PROMPT_EPS)
+)
 
 
 def normalize_noise_mode(mode: NoiseMode | str | None) -> NoiseMode:
@@ -102,7 +106,7 @@ def validate_prompt_cache(
         "scales": [1.0, 3.0, 5.0, 9.0, 15.0],
         "R": 3,
         "K": 1,
-        "eps": 1e-5,
+        "eps": FRANGI_PROMPT_EPS,
     }
     if frangi != required_frangi:
         mismatches["frangi"] = {"observed": frangi, "expected": required_frangi}
@@ -269,8 +273,12 @@ def _find_mask(mask_dir: Path, sample: Path) -> Path | None:
         candidate = _case_insensitive_file(mask_dir / relative_parent / name)
         if candidate is not None:
             return candidate
+    files_by_name: dict[str, Path] = {}
+    for path in mask_dir.rglob("*"):
+        if path.is_file():
+            files_by_name.setdefault(path.name.casefold(), path)
     for name in names:
-        candidate = next((path for path in mask_dir.rglob(name) if path.is_file()), None)
+        candidate = files_by_name.get(name.casefold())
         if candidate is not None:
             return candidate
     return None
@@ -399,12 +407,24 @@ class SynchronizedRandomTransform:
         if active_rng.random() > 0.5:
             angle = active_rng.randrange(-20, 20)
 
-            def rotate(array: np.ndarray) -> np.ndarray:
+            def rotate(array: np.ndarray, *, cval: float = 0.0) -> np.ndarray:
                 return np.ascontiguousarray(
-                    ndimage.rotate(array, angle, order=0, reshape=False)
+                    ndimage.rotate(
+                        array,
+                        angle,
+                        order=0,
+                        reshape=False,
+                        mode="constant",
+                        cval=cval,
+                    )
                 )
 
-            return rotate(image), rotate(mask), None if prompt is None else rotate(prompt)
+            rotated_prompt = (
+                None
+                if prompt is None
+                else rotate(prompt, cval=FRANGI_BACKGROUND_LOGIT)
+            )
+            return rotate(image), rotate(mask), rotated_prompt
         return image, mask, prompt
 
 
@@ -416,7 +436,11 @@ def _load_rgb(path: Path) -> np.ndarray:
 def _load_binary_mask(path: Path, threshold: float, invert: bool) -> np.ndarray:
     with Image.open(path) as image:
         array = np.asarray(image)
-        if array.ndim == 3 and array.shape[2] == 4 and np.unique(array[..., 3]).size > 1:
+        if (
+            array.ndim == 3
+            and array.shape[2] == 4
+            and array[..., 3].min() != array[..., 3].max()
+        ):
             gray = array[..., 3]
         else:
             gray = np.asarray(image.convert("L"))
@@ -636,6 +660,8 @@ __all__ = [
     "CrackDataset",
     "CrackSAM2Dataset",
     "CrackSegmentationDataset",
+    "FRANGI_BACKGROUND_LOGIT",
+    "FRANGI_PROMPT_EPS",
     "PROMPT_CACHE_MANIFEST",
     "PROMPT_CACHE_VERSION",
     "SynchronizedRandomTransform",

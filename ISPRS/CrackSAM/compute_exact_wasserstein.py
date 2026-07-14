@@ -142,7 +142,11 @@ def _load_prediction(path: str | Path) -> np.ndarray:
 def _load_target(path: str | Path) -> np.ndarray:
     with Image.open(path) as image:
         array = np.asarray(image)
-        if array.ndim == 3 and array.shape[2] == 4 and np.unique(array[..., 3]).size > 1:
+        if (
+            array.ndim == 3
+            and array.shape[2] == 4
+            and array[..., 3].min() != array[..., 3].max()
+        ):
             gray = array[..., 3]
         else:
             gray = np.asarray(image.convert("L"))
@@ -403,10 +407,13 @@ def publish_results(
     completed: dict[tuple[str, str], dict[str, Any]],
     *,
     allow_incomplete: bool = False,
+    max_cases: int | None = None,
 ) -> None:
     summaries: list[dict[str, Any]] = []
     for spec in specs:
         source_rows = _read_csv(evaluation_root / spec.name / "per_image.csv")
+        if max_cases is not None:
+            source_rows = source_rows[:max_cases]
         rows: list[dict[str, Any]] = []
         for source in source_rows:
             key = (spec.name, source["case_name"])
@@ -548,6 +555,7 @@ def main() -> int:
         output_root,
         completed,
         allow_incomplete=bool(oversized),
+        max_cases=args.max_cases,
     )
     return 0
 
