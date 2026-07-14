@@ -234,13 +234,19 @@ inspect_gpu() {
 
 inspect_cuda_toolkit() {
     local nvcc_output=""
+    local nvcc_binary=""
 
-    if ! command -v nvcc >/dev/null 2>&1; then
+    if nvcc_binary="$(command -v nvcc 2>/dev/null)"; then
+        :
+    elif [[ -x /usr/local/cuda/bin/nvcc ]]; then
+        nvcc_binary="/usr/local/cuda/bin/nvcc"
+        warn "nvcc absent du PATH ; utilisation de ${nvcc_binary}."
+    else
         failure "nvcc est introuvable ; l'image CUDA 12.9 n'est pas complètement disponible dans le PATH."
         return
     fi
 
-    nvcc_output="$(nvcc --version 2>&1 || true)"
+    nvcc_output="$("${nvcc_binary}" --version 2>&1 || true)"
     printf '%s\n' "${nvcc_output}"
     if grep -Eq 'release 12\.9([,[:space:]]|$)' <<<"${nvcc_output}"; then
         success "Toolkit CUDA 12.9 détecté."
