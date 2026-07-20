@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 import subprocess
 from pathlib import Path
@@ -24,6 +25,9 @@ def test_workflow_has_safe_shell_and_user_facing_modes() -> None:
     assert "PIPESTATUS" in text
     assert 'CACHE_ROOT="${FRANGIGRAPH_GRAPH_CACHE:-${RUN_ROOT}/graph_cache}"' in text
     assert '"graph_cache_root", "train_list"' in text
+    assert 'RASTER_CONDITION="${FRANGIGRAPH_RASTER_CONDITION:-correct}"' in text
+    assert '"frangi_graph_order", "raster_condition", "hidden_channels"' in text
+    assert '"schema_version": 2' in text
     assert (
         'FRANGI_SCALES_TEXT="${FRANGIGRAPH_SCALES:-1.0 3.0 5.0 9.0 15.0}"'
         in text
@@ -43,6 +47,50 @@ def test_workflow_has_safe_shell_and_user_facing_modes() -> None:
     )
     assert result.returncode == 0
     assert "SMOKE|FULL" in result.stdout
+    assert "FRANGIGRAPH_RASTER_CONDITION" in result.stdout
+
+
+def test_workflow_binds_equal_capacity_raster_condition_everywhere() -> None:
+    text = workflow_text()
+    assert re.search(
+        r'case "\$\{RASTER_CONDITION\}" in\s+correct\|no_evidence\) ;;',
+        text,
+    )
+    assert (
+        "FRANGIGRAPH_RASTER_CONDITION must be exactly correct or no_evidence"
+        in text
+    )
+    assert text.count('--raster-condition "${RASTER_CONDITION}"') == 2
+    assert "--raster-condition correct" not in text
+
+    # The resolved value is passed once to the immutable contract generator;
+    # `${VAR:-correct}` makes unset, empty, and explicit `correct` byte-equivalent.
+    contract_prefix, _ = text.split("<<'PY'", maxsplit=1)
+    assert contract_prefix.count('"${RASTER_CONDITION}"') == 2
+
+
+def test_workflow_rejects_unknown_raster_condition_before_io(tmp_path: Path) -> None:
+    env = {
+        **os.environ,
+        "CRACKSAM2_DATA_ROOT": str(tmp_path / "missing-data"),
+        "SAM2_CHECKPOINT": str(tmp_path / "missing-sam2.pt"),
+        "BASELINE_CHECKPOINT": str(tmp_path / "missing-baseline.pt"),
+        "FRANGIGRAPH_RUN_ROOT": str(tmp_path / "unused-run"),
+        "FRANGIGRAPH_RASTER_CONDITION": "permuted",
+    }
+    result = subprocess.run(
+        ["bash", str(WORKFLOW), "--mode", "SMOKE"],
+        check=False,
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+    assert result.returncode == 2
+    assert (
+        "FRANGIGRAPH_RASTER_CONDITION must be exactly correct or no_evidence"
+        in result.stderr
+    )
+    assert "Required file is missing" not in result.stderr
 
 
 def test_workflow_runs_exactly_five_strict_oof_folds() -> None:

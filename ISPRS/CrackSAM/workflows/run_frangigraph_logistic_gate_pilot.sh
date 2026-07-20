@@ -27,6 +27,7 @@ usage() {
         'Important optional variables (all have explicit defaults below):' \
         '  FRANGIGRAPH_PYTHON_BIN, FRANGIGRAPH_DEVICE, FRANGIGRAPH_NUM_WORKERS' \
         '  FRANGIGRAPH_GRAPH_CACHE (absolute reusable/resumable cache directory)' \
+        '  FRANGIGRAPH_RASTER_CONDITION (correct [default] or no_evidence control)' \
         '  FRANGIGRAPH_EPOCHS, FRANGIGRAPH_BATCH_SIZE, FRANGIGRAPH_EVAL_BATCH_SIZE' \
         '  FRANGIGRAPH_LABEL_MINIMUM_GAIN, FRANGIGRAPH_SEGMENTATION_THRESHOLD' \
         '  FRANGIGRAPH_SMOKE_SAMPLES_PER_FOLD, FRANGIGRAPH_GIT_COMMIT' \
@@ -112,6 +113,20 @@ FRANGI_SA="${FRANGIGRAPH_SA:-0.3}"
 FRANGI_TAU="${FRANGIGRAPH_TAU:-0.18}"
 FRANGI_MIN_REL_SIZE="${FRANGIGRAPH_MIN_REL_SIZE:-120.0}"
 FRANGI_GRAPH_ORDER="${FRANGIGRAPH_GRAPH_ORDER:-1}"
+
+# ``correct`` is the scientific candidate. ``no_evidence`` keeps the same
+# trainable residual capacity and replaces all Frangi rasters with their
+# canonical absent-evidence encoding. An unset, empty, or explicitly correct
+# variable therefore has exactly the same downstream value and contract bytes.
+RASTER_CONDITION="${FRANGIGRAPH_RASTER_CONDITION:-correct}"
+case "${RASTER_CONDITION}" in
+    correct|no_evidence) ;;
+    *)
+        printf '%s\n' \
+            'FRANGIGRAPH_RASTER_CONDITION must be exactly correct or no_evidence' >&2
+        exit 2
+        ;;
+esac
 
 # Residual parameters. Validation is descriptive only; latest.pt at the fixed
 # final epoch is always used for OOF prediction.
@@ -261,6 +276,7 @@ CONTRACT_TMP="$(mktemp "${RUN_ROOT}/.workflow_contract.XXXXXX")"
     "${FRANGI_SCALES_TEXT}" "${FRANGI_RADIUS}" "${FRANGI_SS}" \
     "${FRANGI_SI}" "${FRANGI_SA}" "${FRANGI_TAU}" \
     "${FRANGI_MIN_REL_SIZE}" "${FRANGI_GRAPH_ORDER}" \
+    "${RASTER_CONDITION}" \
     "${HIDDEN_CHANNELS}" "${BASE_LR}" "${POLY_POWER}" \
     "${WEIGHT_DECAY}" "${CE_WEIGHT}" "${TOPOLOGY_WEIGHT}" \
     "${SAFETY_WEIGHT}" "${SAFETY_MARGIN}" "${SKELETON_ITERATIONS}" \
@@ -280,7 +296,7 @@ keys = (
     "eval_batch_size", "warmup_steps", "checkpoint_every_steps",
     "smoke_samples_per_fold", "frangi_scales", "frangi_radius", "frangi_ss",
     "frangi_si", "frangi_sa", "frangi_tau", "frangi_min_rel_size",
-    "frangi_graph_order", "hidden_channels", "base_lr", "poly_power",
+    "frangi_graph_order", "raster_condition", "hidden_channels", "base_lr", "poly_power",
     "weight_decay", "ce_weight", "topology_weight", "safety_weight",
     "safety_margin", "skeleton_iterations", "gradient_clip",
     "segmentation_threshold", "label_minimum_gain", "gate_l2",
@@ -293,7 +309,7 @@ if len(values) != len(keys):
     raise SystemExit("internal workflow contract arity mismatch")
 payload = {
     "schema": "cracksam2.frangigraph-logistic-gate-workflow",
-    "schema_version": 1,
+    "schema_version": 2,
     "parameters": dict(zip(keys, values, strict=True)),
     "historical_test_inputs_used": False,
     "gate_fit_folds": [0, 1, 2, 3],
@@ -460,7 +476,7 @@ for fold in 0 1 2 3 4; do
         --baseline-checkpoint "${BASELINE_CHECKPOINT}"
         --output "${fold_output}"
         --hidden-channels "${HIDDEN_CHANNELS}"
-        --raster-condition correct
+        --raster-condition "${RASTER_CONDITION}"
         --epochs "${EPOCHS}"
         --batch-size "${BATCH_SIZE}"
         --num-workers "${NUM_WORKERS}"
@@ -513,7 +529,7 @@ for fold in 0 1 2 3 4; do
         --sam2-checkpoint "${SAM2_CHECKPOINT}"
         --baseline-checkpoint "${BASELINE_CHECKPOINT}"
         --residual-checkpoint "${TRAIN_ROOT}/fold_${fold}/latest.pt"
-        --raster-condition correct
+        --raster-condition "${RASTER_CONDITION}"
         --output "${OOF_ROOT}/fold_${fold}"
         --role "${role}"
         --fold "${fold}"

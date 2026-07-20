@@ -38,6 +38,22 @@ Le label primaire du mode `FULL` exige un gain strict `ΔIoU > 0,005`. Le mode
 `SMOKE` utilise zéro uniquement pour exercer la chaîne technique. Aucun jeu
 historique n'entre dans l'apprentissage des coefficients ou du seuil.
 
+La condition par défaut est `correct` : les sept cartes Frangi correspondantes
+alimentent le correcteur pendant l'entraînement et l'évaluation OOF. Pour le
+contrôle causal à capacité égale, utilisez un nouveau répertoire de run et :
+
+```bash
+export FRANGIGRAPH_RASTER_CONDITION=no_evidence
+bash ISPRS/CrackSAM/workflows/run_frangigraph_logistic_gate_pilot.sh --mode FULL
+```
+
+Ce contrôle conserve exactement la même architecture et remplace les cartes
+par l'encodage canonique d'absence de preuve. Seules les valeurs littérales
+`correct` et `no_evidence` sont acceptées. La variable absente, vide ou définie
+à `correct` produit la même valeur aval et les mêmes octets dans le contrat
+immuable ; la condition est enregistrée dans `workflow_contract.json`, ce qui
+interdit de la changer lors d'une reprise.
+
 ## Matrice causale du prompt historique
 
 La première phase de la nouvelle feuille de route isole l'effet du prompt sans
