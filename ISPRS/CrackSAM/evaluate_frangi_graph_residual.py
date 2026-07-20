@@ -192,12 +192,27 @@ def _build_model(
     return model, residual_spec
 
 
+def _evaluation_usage_policy(
+    *, role: str, causal_raster_override: bool
+) -> dict[str, bool]:
+    """Describe whether evaluation rows may enter either gate stage."""
+    analytical_only = bool(causal_raster_override)
+    return {
+        "analytical_only": analytical_only,
+        "eligible_for_later_gate_fit": role == "gate_fit" and not analytical_only,
+        "eligible_for_later_gate_threshold_calibration": (
+            role == "gate_calibration" and not analytical_only
+        ),
+    }
+
+
 def _ordered_finalize(
     *,
     output: Path,
     dataset_name: str,
     selected_names: list[str],
     role: str,
+    causal_raster_override: bool,
 ) -> dict[str, object]:
     rows_by_case = read_progress_rows(
         output / "progress.jsonl", expected_dataset=dataset_name
@@ -211,6 +226,9 @@ def _ordered_finalize(
     rows = [rows_by_case[name] for name in selected_names]
     write_rows_csv_atomic(output / "per_image.csv", rows)
     summary = summarize_rows(rows)
+    usage_policy = _evaluation_usage_policy(
+        role=role, causal_raster_override=causal_raster_override
+    )
     summary.update(
         {
             "schema": EVALUATION_SCHEMA,
@@ -218,7 +236,7 @@ def _ordered_finalize(
             "dataset": dataset_name,
             "role": role,
             "gate_threshold_selected": False,
-            "eligible_for_later_gate_threshold_calibration": role == "gate_calibration",
+            **usage_policy,
             "historical_test_threshold_calibration_forbidden": role
             == "historical_test",
         }
@@ -307,9 +325,13 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         args.raster_condition,
         allow_causal_override=args.allow_causal_raster_override,
     )
+    usage_policy = _evaluation_usage_policy(
+        role=args.role, causal_raster_override=causal_raster_override
+    )
     contract = {
         "schema": EVALUATION_SCHEMA,
         "schema_version": EVALUATION_SCHEMA_VERSION,
+        "analytical_only": usage_policy["analytical_only"],
         "dataset": {
             "name": args.dataset_name,
             "role": args.role,
@@ -356,8 +378,12 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         "gate_policy": {
             "feature_rows_only": True,
             "threshold_selected_by_this_command": False,
-            "threshold_may_later_be_calibrated_from_this_role": args.role
-            == "gate_calibration",
+            "eligible_for_later_gate_fit": usage_policy[
+                "eligible_for_later_gate_fit"
+            ],
+            "threshold_may_later_be_calibrated_from_this_role": usage_policy[
+                "eligible_for_later_gate_threshold_calibration"
+            ],
             "historical_tests_forbidden_for_threshold_selection": True,
         },
     }
@@ -411,6 +437,7 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         dataset_name=args.dataset_name,
         selected_names=selected_names,
         role=args.role,
+        causal_raster_override=causal_raster_override,
     )
 
 

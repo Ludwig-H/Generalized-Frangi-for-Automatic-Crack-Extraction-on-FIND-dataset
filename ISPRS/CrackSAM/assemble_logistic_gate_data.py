@@ -371,6 +371,24 @@ def _validate_contract(
         raise ValueError(f"Fold {fold} did not verify graph-cache source hashes")
 
     residual = _require_mapping(contract.get("residual"), f"fold {fold} residual")
+    causal_raster_override = residual.get("causal_raster_override")
+    if not isinstance(causal_raster_override, bool):
+        raise ValueError(
+            f"Fold {fold} has an invalid causal_raster_override flag"
+        )
+    if causal_raster_override:
+        raise ValueError(
+            f"Fold {fold} is a causal raster override evaluation; these rows are "
+            "analytical-only and cannot be assembled for gate fit or calibration"
+        )
+    analytical_only = contract.get("analytical_only", False)
+    if not isinstance(analytical_only, bool):
+        raise ValueError(f"Fold {fold} has an invalid analytical_only flag")
+    if analytical_only:
+        raise ValueError(
+            f"Fold {fold} is analytical-only and cannot be assembled for gate fit "
+            "or calibration"
+        )
     held_out_fold = residual.get("checkpoint_held_out_fold")
     if isinstance(held_out_fold, bool) or not isinstance(held_out_fold, int):
         raise ValueError(f"Fold {fold} has an invalid checkpoint held-out fold")

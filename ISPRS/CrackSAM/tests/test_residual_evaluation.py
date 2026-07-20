@@ -48,6 +48,10 @@ from cracksam2.residual_evaluation import (
     write_rows_csv_atomic,
 )
 from cracksam2.residual_data import FrangiRasterNormalization
+from evaluate_frangi_graph_residual import (  # noqa: E402
+    _evaluation_usage_policy,
+    _ordered_finalize,
+)
 
 
 def _identity_preprocessing() -> RasterPreprocessing:
@@ -143,6 +147,49 @@ def test_contract_and_final_csv_are_atomic_and_strict(tmp_path: Path) -> None:
         assert next(reader)["source_group"] == "wall_001"
     summary = summarize_rows([_row()])
     assert summary["gate_threshold_selected"] is False
+
+
+def test_causal_override_summary_is_analytical_and_gate_ineligible(
+    tmp_path: Path,
+) -> None:
+    row = dict(_row())
+    row["role"] = "gate_calibration"
+    row["fold"] = "4"
+    append_progress_batch(
+        tmp_path / "progress.jsonl", dataset="synthetic", rows=[row]
+    )
+
+    usage = _evaluation_usage_policy(
+        role="gate_calibration", causal_raster_override=True
+    )
+    assert usage == {
+        "analytical_only": True,
+        "eligible_for_later_gate_fit": False,
+        "eligible_for_later_gate_threshold_calibration": False,
+    }
+    assert _evaluation_usage_policy(
+        role="gate_fit", causal_raster_override=False
+    ) == {
+        "analytical_only": False,
+        "eligible_for_later_gate_fit": True,
+        "eligible_for_later_gate_threshold_calibration": False,
+    }
+
+    summary = _ordered_finalize(
+        output=tmp_path,
+        dataset_name="synthetic",
+        selected_names=["case.png"],
+        role="gate_calibration",
+        causal_raster_override=True,
+    )
+
+    assert summary["analytical_only"] is True
+    assert summary["eligible_for_later_gate_fit"] is False
+    assert summary["eligible_for_later_gate_threshold_calibration"] is False
+    stored_summary = json.loads(
+        (tmp_path / "summary.json").read_text(encoding="utf-8")
+    )
+    assert stored_summary == summary
 
 
 def test_raster_preprocessing_is_explicit_and_reproducible() -> None:

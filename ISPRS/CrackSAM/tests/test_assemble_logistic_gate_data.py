@@ -250,6 +250,31 @@ def test_assembler_rejects_cross_fold_group_leakage_before_publishing(
     assert not (output / "oof_manifest.json").exists()
 
 
+@pytest.mark.parametrize("fold", ["0", "4"])
+def test_assembler_rejects_causal_override_rows_for_both_gate_stages(
+    tmp_path: Path, fold: str
+) -> None:
+    directories = _write_oof_source_tree(tmp_path)
+    contract_path = directories[fold] / "evaluation_contract.json"
+    contract = json.loads(contract_path.read_text(encoding="utf-8"))
+    contract["analytical_only"] = True
+    contract["residual"]["evaluation_raster_condition"] = "no_evidence"
+    contract["residual"]["causal_raster_override"] = True
+    contract["gate_policy"]["eligible_for_later_gate_fit"] = False
+    contract["gate_policy"][
+        "threshold_may_later_be_calibrated_from_this_role"
+    ] = False
+    contract_path.write_text(json.dumps(contract), encoding="utf-8")
+    output = tmp_path / "causal-must-not-be-assembled"
+
+    with pytest.raises(ValueError, match="causal raster override evaluation"):
+        assemble_oof_gate_data(directories, output)
+
+    assert not (output / "gate_fit.csv").exists()
+    assert not (output / "gate_calibration.csv").exists()
+    assert not (output / "oof_manifest.json").exists()
+
+
 def test_assembler_rejects_checkpoint_fold_or_shared_artifact_drift(
     tmp_path: Path,
 ) -> None:
