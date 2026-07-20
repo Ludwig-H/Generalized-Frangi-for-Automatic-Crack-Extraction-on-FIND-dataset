@@ -15,7 +15,7 @@ readonly HDB_THROUGHPUT_QUOTA_ID="HDB-TOTAL-THROUGHPUT-per-project-zone"
 readonly INSTANCES_QUOTA_ID="INSTANCES-per-project-region"
 readonly ADDRESSES_QUOTA_ID="IN-USE-ADDRESSES-per-project-region"
 readonly PREEMPTIBLE_CPUS_QUOTA_ID="PREEMPTIBLE-CPUS-per-project-region"
-readonly REQUIRED_HDB_GB=100
+readonly REQUIRED_HDB_GB="${GCP_BOOT_DISK_SIZE_GB:-100}"
 readonly REQUIRED_HDB_IOPS=600
 readonly REQUIRED_HDB_THROUGHPUT=150
 readonly HDB_BASELINE_IOPS=3000
@@ -25,6 +25,9 @@ die() {
     printf '[ÉCHEC] %s\n' "$*" >&2
     exit 1
 }
+
+[[ "${REQUIRED_HDB_GB}" =~ ^[1-9][0-9]*$ ]] || \
+    die "GCP_BOOT_DISK_SIZE_GB doit être un entier strictement positif."
 
 AI_PARENT_ZONE=""
 AI_PARENT_SUFFIX=""

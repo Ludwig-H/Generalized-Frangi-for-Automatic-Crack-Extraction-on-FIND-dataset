@@ -9,6 +9,7 @@ import hashlib
 import json
 import math
 import os
+import tempfile
 import time
 from contextlib import nullcontext
 from dataclasses import dataclass
@@ -21,9 +22,23 @@ from PIL import Image
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from cracksam2.data import PROMPT_CACHE_MANIFEST, CrackSegmentationDataset
+from cracksam2.data import (
+    PROMPT_CACHE_MANIFEST,
+    CrackSegmentationDataset,
+    read_sample_list,
+)
 from cracksam2.metrics import evaluate_masks, segmentation_metrics
 from cracksam2.model import build_cracksam2, load_adapter_state_dict
+from cracksam2.prompt_controls import (
+    PROMPT_CONDITIONS,
+    PROMPT_PERMUTATION_ALGORITHM,
+    PromptCondition,
+    condition_needs_cache,
+    default_prompt_condition,
+    deterministic_prompt_name_map,
+    prepare_mask_input,
+    prompt_name_map_sha256,
+)
 
 
 LIST_ROOT = Path(__file__).parent / "protocol" / "cracksam_paper" / "lists"
@@ -45,6 +60,24 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--adapter-checkpoint", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--prompt-cache-root", type=Path)
+    parser.add_argument(
+        "--prompt-conditions",
+        nargs="+",
+        choices=PROMPT_CONDITIONS,
+        help=(
+            "Inference-only prompt controls. By default, baseline checkpoints use "
+            "'none' and historical Frangi checkpoints use 'frangi'."
+        ),
+    )
+    parser.add_argument("--prompt-permutation-seed", type=int, default=3407)
+    parser.add_argument(
+        "--prompt-shift",
+        type=int,
+        nargs=2,
+        metavar=("DY", "DX"),
+        default=(32, 32),
+        help="Non-circular displacement in 256x256 prompt pixels (default: 32 32).",
+    )
     parser.add_argument(
         "--datasets",
         nargs="+",
@@ -75,6 +108,13 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--skip-wasserstein", action="store_true")
     parser.add_argument("--save-predictions", action="store_true")
+    parser.add_argument("--save-logits", action="store_true")
+    parser.add_argument(
+        "--logit-dtype",
+        choices=("float16", "float32"),
+        default="float16",
+        help="On-disk dtype for --save-logits (default: float16).",
+    )
     parser.add_argument("--max-samples", type=int)
     parser.add_argument("--device", default="cuda")
     parser.add_argument(
@@ -370,13 +410,16 @@ def _summarize_rows(
     rows: list[dict[str, Any]],
     *,
     spec: EvaluationSpec,
-    variant: str,
+    checkpoint_variant: str,
+    prompt_condition: PromptCondition,
     wasserstein_max_points: int | None,
     skip_wasserstein: bool,
 ) -> dict[str, Any]:
     summary: dict[str, Any] = {
         "dataset": spec.name,
-        "variant": variant,
+        "variant": checkpoint_variant,
+        "checkpoint_variant": checkpoint_variant,
+        "prompt_condition": prompt_condition,
         "noise": spec.noise,
         "samples": len(rows),
         "wasserstein_exact": wasserstein_max_points is None and not skip_wasserstein,
@@ -405,11 +448,51 @@ def _save_prediction(root: Path, case_name: str, prediction: np.ndarray) -> None
     Image.fromarray((prediction.astype(np.uint8) * 255)).save(destination)
 
 
+def _save_logit(
+    root: Path, case_name: str, logit: np.ndarray, *, dtype: str
+) -> None:
+    relative = Path(case_name.replace("\\", "/"))
+    destination = root / relative.with_suffix(".npy")
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    array = np.asarray(logit, dtype=np.float16 if dtype == "float16" else np.float32)
+    temporary_path: str | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="wb",
+            suffix=".npy",
+            prefix=f".{destination.name}.",
+            dir=destination.parent,
+            delete=False,
+        ) as temporary:
+            temporary_path = temporary.name
+            np.save(temporary, array, allow_pickle=False)
+            temporary.flush()
+            os.fsync(temporary.fileno())
+        os.replace(temporary_path, destination)
+    finally:
+        if temporary_path is not None and os.path.exists(temporary_path):
+            os.unlink(temporary_path)
+
+
+def _write_prompt_name_map(
+    path: Path,
+    *,
+    selected_names: list[str],
+    mapping: dict[str, str],
+) -> None:
+    rows = [
+        {"case_name": name, "prompt_source_name": mapping[name]}
+        for name in selected_names
+    ]
+    _write_csv(path, rows)
+
+
 def evaluate_spec(
     model: torch.nn.Module,
     spec: EvaluationSpec,
     *,
-    variant: str,
+    checkpoint_variant: str,
+    prompt_condition: PromptCondition,
     output_root: Path,
     device: torch.device,
     amp_dtype: str,
@@ -419,11 +502,22 @@ def evaluate_spec(
     wasserstein_max_points: int | None,
     skip_wasserstein: bool,
     save_predictions: bool,
-    max_samples: int | None,
+    save_logits: bool = False,
+    logit_dtype: str = "float16",
+    max_samples: int | None = None,
+    prompt_permutation_seed: int = 3407,
+    prompt_shift: tuple[int, int] = (32, 32),
 ) -> dict[str, Any]:
-    use_frangi = variant == "frangi"
-    if use_frangi and spec.prompt_cache is None:
+    use_cached_prompt = condition_needs_cache(prompt_condition)
+    if use_cached_prompt and spec.prompt_cache is None:
         raise ValueError(f"No Frangi prompt cache configured for {spec.name}")
+    prompt_name_map = (
+        deterministic_prompt_name_map(
+            read_sample_list(spec.list_file), seed=prompt_permutation_seed
+        )
+        if prompt_condition == "permuted"
+        else None
+    )
     dataset = CrackSegmentationDataset(
         spec.root,
         list_file=spec.list_file,
@@ -432,7 +526,8 @@ def evaluate_spec(
         prompt_size=256,
         noise_mode=spec.noise,
         augment=False,
-        prompt_cache_dir=spec.prompt_cache if use_frangi else None,
+        prompt_cache_dir=spec.prompt_cache if use_cached_prompt else None,
+        prompt_name_map=prompt_name_map,
     )
     if max_samples is not None:
         if max_samples <= 0:
@@ -443,6 +538,12 @@ def evaluate_spec(
         raise ValueError(f"Dataset {spec.name} contains duplicate sample names")
 
     result_dir = output_root / spec.name
+    if prompt_name_map is not None:
+        _write_prompt_name_map(
+            result_dir / "prompt_name_map.csv",
+            selected_names=selected_names,
+            mapping=prompt_name_map,
+        )
     progress_path = result_dir / "progress.jsonl"
     rows_by_case = _read_progress_rows(
         progress_path, expected_dataset=spec.name
@@ -454,6 +555,7 @@ def evaluate_spec(
             f"{unexpected[:5]}"
         )
     prediction_root = result_dir / "predictions"
+    logit_root = result_dir / "logits"
     completed_names = set(rows_by_case)
     if save_predictions:
         completed_names = {
@@ -462,6 +564,14 @@ def evaluate_spec(
             if (
                 prediction_root
                 / Path(name.replace("\\", "/")).with_suffix(".png")
+            ).is_file()
+        }
+    if save_logits:
+        completed_names = {
+            name
+            for name in completed_names
+            if (
+                logit_root / Path(name.replace("\\", "/")).with_suffix(".npy")
             ).is_file()
         }
     dataset.sample_names = [
@@ -479,8 +589,14 @@ def evaluate_spec(
     with torch.inference_mode():
         for batch in tqdm(loader, desc=spec.name, unit="batch"):
             images = batch["image"].to(device, non_blocking=True)
-            prompts = (
-                batch["prompt"].to(device, non_blocking=True) if use_frangi else None
+            prompts = prepare_mask_input(
+                prompt_condition,
+                batch_size=int(images.shape[0]),
+                device=device,
+                cached_prompt=(
+                    batch["prompt"] if use_cached_prompt else None
+                ),
+                shift=prompt_shift,
             )
             if device.type == "cuda":
                 torch.cuda.synchronize(device)
@@ -490,12 +606,14 @@ def evaluate_spec(
             if device.type == "cuda":
                 torch.cuda.synchronize(device)
             elapsed = time.perf_counter() - started
-            predictions = (torch.sigmoid(output["logits"].float()) > threshold).cpu().numpy()
+            output_logits = output["logits"].float()
+            predictions = (torch.sigmoid(output_logits) > threshold).cpu().numpy()
+            logits = output_logits.cpu().numpy()
             targets = batch["mask"].numpy()
             per_sample_time = elapsed / images.shape[0]
             batch_rows: list[dict[str, Any]] = []
-            for case_name, prediction, target in zip(
-                batch["case_name"], predictions, targets
+            for case_name, prediction, target, logit in zip(
+                batch["case_name"], predictions, targets, logits
             ):
                 prediction_2d = prediction[0].astype(np.float32)
                 target_2d = target[0].astype(np.float32)
@@ -521,6 +639,8 @@ def evaluate_spec(
                 batch_rows.append(row)
                 if save_predictions:
                     _save_prediction(prediction_root, case_name, prediction_2d)
+                if save_logits:
+                    _save_logit(logit_root, case_name, logit[0], dtype=logit_dtype)
             _append_progress_batch(progress_path, spec.name, batch_rows)
             rows_by_case.update(
                 (row["case_name"], _normalize_progress_row(row)) for row in batch_rows
@@ -535,7 +655,8 @@ def evaluate_spec(
     summary = _summarize_rows(
         rows,
         spec=spec,
-        variant=variant,
+        checkpoint_variant=checkpoint_variant,
+        prompt_condition=prompt_condition,
         wasserstein_max_points=wasserstein_max_points,
         skip_wasserstein=skip_wasserstein,
     )
@@ -580,8 +701,24 @@ def main() -> int:
     config = checkpoint.get("model_config")
     if not config or rank not in (4, 8):
         raise ValueError("adapter checkpoint is missing its SAM 2/LoRA metadata")
-    if variant == "frangi" and args.prompt_cache_root is None:
-        raise ValueError("Frangi evaluation requires --prompt-cache-root")
+    prompt_conditions: list[PromptCondition] = list(
+        args.prompt_conditions or (default_prompt_condition(variant),)
+    )
+    if len(prompt_conditions) != len(set(prompt_conditions)):
+        raise ValueError("prompt-conditions cannot contain duplicates")
+    needs_prompt_cache = any(
+        condition_needs_cache(condition) for condition in prompt_conditions
+    )
+    if needs_prompt_cache and args.prompt_cache_root is None:
+        raise ValueError(
+            "The selected prompt conditions require --prompt-cache-root"
+        )
+    prompt_shift = (int(args.prompt_shift[0]), int(args.prompt_shift[1]))
+    if "shifted" in prompt_conditions:
+        if prompt_shift == (0, 0):
+            raise ValueError("prompt-shift cannot be 0 0")
+        if abs(prompt_shift[0]) >= 256 or abs(prompt_shift[1]) >= 256:
+            raise ValueError("prompt-shift components must have magnitude below 256")
     expected_base = checkpoint.get("base_checkpoint")
     observed_base = _file_identity(args.sam2_checkpoint)
     if expected_base:
@@ -592,7 +729,9 @@ def main() -> int:
     if "adapter" not in checkpoint:
         raise ValueError("adapter checkpoint has no adapter state")
 
-    specs = default_specs(args.data_root, args.prompt_cache_root)
+    specs = default_specs(
+        args.data_root, args.prompt_cache_root if needs_prompt_cache else None
+    )
     selected = set(args.datasets or (spec.name for spec in specs))
     specs = [spec for spec in specs if spec.name in selected]
     wasserstein_max_points = (
@@ -609,13 +748,23 @@ def main() -> int:
             "noise": spec.noise,
             "prompt_cache": (
                 None
-                if spec.prompt_cache is None
+                if not needs_prompt_cache or spec.prompt_cache is None
                 else {
                     "path": str(spec.prompt_cache.expanduser().resolve()),
                     "manifest": _file_identity(
                         spec.prompt_cache / PROMPT_CACHE_MANIFEST
                     ),
                 }
+            ),
+            "permuted_prompt_map_sha256": (
+                prompt_name_map_sha256(
+                    deterministic_prompt_name_map(
+                        read_sample_list(spec.list_file),
+                        seed=args.prompt_permutation_seed,
+                    )
+                )
+                if "permuted" in prompt_conditions
+                else None
             ),
         }
         for spec in specs
@@ -625,6 +774,13 @@ def main() -> int:
         "adapter_checkpoint": _file_identity(args.adapter_checkpoint),
         "base_checkpoint": observed_base,
         "variant": variant,
+        "checkpoint_variant": variant,
+        "prompt_controls": {
+            "conditions": prompt_conditions,
+            "permutation_seed": args.prompt_permutation_seed,
+            "permutation_algorithm": PROMPT_PERMUTATION_ALGORITHM,
+            "shift_dy_dx": list(prompt_shift),
+        },
         "datasets": dataset_contracts,
         "threshold": args.threshold,
         "wasserstein": {
@@ -640,6 +796,8 @@ def main() -> int:
         "device_type": device.type,
         "batch_size": args.batch_size,
         "save_predictions": args.save_predictions,
+        "save_logits": args.save_logits,
+        "logit_dtype": args.logit_dtype if args.save_logits else None,
         "software": {"torch": torch.__version__, "numpy": np.__version__},
         "code": {
             path.name: _file_identity(path)
@@ -648,6 +806,7 @@ def main() -> int:
                 Path(__file__).parent / "cracksam2" / "data.py",
                 Path(__file__).parent / "cracksam2" / "metrics.py",
                 Path(__file__).parent / "cracksam2" / "model.py",
+                Path(__file__).parent / "cracksam2" / "prompt_controls.py",
             )
         },
     }
@@ -661,28 +820,53 @@ def main() -> int:
         device=device,
     )
     load_adapter_state_dict(model, checkpoint["adapter"], strict=True)
+    model.requires_grad_(False)
+    model.eval()
     print(
         f"Loaded {variant} checkpoint with {report.trainable_parameters:,} LoRA parameters"
     )
 
-    summaries = [
-        evaluate_spec(
-            model,
-            spec,
-            variant=variant,
-            output_root=args.output,
-            device=device,
-            amp_dtype=args.amp_dtype,
-            batch_size=args.batch_size,
-            num_workers=args.num_workers,
-            threshold=args.threshold,
-            wasserstein_max_points=wasserstein_max_points,
-            skip_wasserstein=args.skip_wasserstein,
-            save_predictions=args.save_predictions,
-            max_samples=args.max_samples,
+    summaries: list[dict[str, Any]] = []
+    multiple_conditions = len(prompt_conditions) > 1
+    for prompt_condition in prompt_conditions:
+        condition_root = (
+            args.output / prompt_condition if multiple_conditions else args.output
         )
-        for spec in specs
-    ]
+        if multiple_conditions:
+            condition_contract = {
+                **contract,
+                "prompt_controls": {
+                    **contract["prompt_controls"],
+                    "conditions": [prompt_condition],
+                },
+            }
+            _ensure_evaluation_contract(condition_root, condition_contract)
+        condition_summaries = [
+            evaluate_spec(
+                model,
+                spec,
+                checkpoint_variant=variant,
+                prompt_condition=prompt_condition,
+                output_root=condition_root,
+                device=device,
+                amp_dtype=args.amp_dtype,
+                batch_size=args.batch_size,
+                num_workers=args.num_workers,
+                threshold=args.threshold,
+                wasserstein_max_points=wasserstein_max_points,
+                skip_wasserstein=args.skip_wasserstein,
+                save_predictions=args.save_predictions,
+                save_logits=args.save_logits,
+                logit_dtype=args.logit_dtype,
+                max_samples=args.max_samples,
+                prompt_permutation_seed=args.prompt_permutation_seed,
+                prompt_shift=prompt_shift,
+            )
+            for spec in specs
+        ]
+        _write_csv(condition_root / "summary.csv", condition_summaries)
+        _write_json(condition_root / "summary.json", condition_summaries)
+        summaries.extend(condition_summaries)
     _write_csv(args.output / "summary.csv", summaries)
     _write_json(args.output / "summary.json", summaries)
     print(json.dumps(_json_safe(summaries), indent=2, sort_keys=True, allow_nan=False))

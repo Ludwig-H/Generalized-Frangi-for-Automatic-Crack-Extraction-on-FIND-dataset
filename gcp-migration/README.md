@@ -131,6 +131,15 @@ Une identité de runtime n'est ajoutée que si
 `GCP_RUNTIME_SERVICE_ACCOUNT` est explicitement défini. Après création, la VM
 est immédiatement arrêtée et doit être certifiée `TERMINATED`.
 
+La taille du disque vaut 100 Go par défaut et peut être augmentée explicitement
+avec `GCP_BOOT_DISK_SIZE_GB`. Pour la matrice causale CrackSAM qui conserve les
+logits, utiliser 200 Go ; le contrôle de quota reprend automatiquement cette
+valeur :
+
+```bash
+GCP_BOOT_DISK_SIZE_GB=200
+```
+
 Créer dans une autre zone signifie créer un nouveau disque facturé et organiser
 explicitement la copie des données. Ne réutilisez pas le nom de la cible
 historique.
@@ -143,11 +152,12 @@ historique.
 
 Le script :
 
-1. vérifie le type, Spot, `STOP`, la maintenance, le redémarrage et la durée ;
-2. demande confirmation ;
-3. démarre la cible et enregistre son `lastStartTimestamp` ;
-4. arme un shutdown invité, puis relit sa preuve ;
-5. tente un arrêt borné à cette génération si la certification échoue.
+1. vérifie qu'aucune autre G4 — notamment E-HGP — n'est active ou transitoire ;
+2. vérifie le type, Spot, `STOP`, la maintenance, le redémarrage et la durée ;
+3. demande confirmation ;
+4. démarre la cible et enregistre son `lastStartTimestamp` ;
+5. arme un shutdown invité, puis relit sa preuve ;
+6. tente un arrêt borné à cette génération si la certification échoue.
 
 Une fois connecté à la VM, depuis le dépôt :
 

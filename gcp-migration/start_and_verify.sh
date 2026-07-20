@@ -128,6 +128,14 @@ status="$(instance_field status)" || die "État de la cible illisible."
     die "La cible doit être TERMINATED avant ce point d'entrée; état actuel ${status}."
 PRE_START_GENERATION="$(instance_field lastStartTimestamp 2>/dev/null || true)"
 
+active_other_g4="$(gcloud_read compute instances list \
+    --project="${PROJECT_ID}" \
+    --filter='machineType:g4-standard-48 AND status!=TERMINATED' \
+    --format='value(name,zone.basename(),status)')" || \
+    die "Impossible de vérifier les autres G4 actives."
+[[ -z "${active_other_g4}" ]] || \
+    die "Une autre G4 est active ou transitoire; démarrage refusé : ${active_other_g4}"
+
 provisioning="$(instance_field 'scheduling.provisioningModel')"
 termination_action="$(instance_field 'scheduling.instanceTerminationAction')"
 maintenance="$(instance_field 'scheduling.onHostMaintenance')"

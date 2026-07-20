@@ -507,6 +507,7 @@ class CrackSegmentationDataset(Dataset):
         invert_mask: bool = False,
         prompt_cache_dir: str | os.PathLike[str] | None = None,
         prompt_generator: PromptGenerator | None = None,
+        prompt_name_map: dict[str, str] | None = None,
         augmentation_seed: int | None = None,
     ) -> None:
         if not 0.0 <= mask_threshold <= 1.0:
@@ -529,6 +530,22 @@ class CrackSegmentationDataset(Dataset):
             None if prompt_cache_dir is None else Path(prompt_cache_dir).expanduser()
         )
         self.prompt_generator = prompt_generator
+        self.prompt_name_map = dict(prompt_name_map or {})
+        if self.prompt_name_map:
+            if self.prompt_cache_dir is None or self.prompt_generator is not None:
+                raise ValueError(
+                    "prompt_name_map requires a static prompt cache and no generator"
+                )
+            expected_names = set(self.sample_names)
+            missing = sorted(expected_names - set(self.prompt_name_map))
+            invalid_sources = sorted(
+                set(self.prompt_name_map.values()) - expected_names
+            )
+            if missing or invalid_sources:
+                raise ValueError(
+                    "prompt_name_map is incompatible with the split; "
+                    f"missing_targets={missing[:5]}, invalid_sources={invalid_sources[:5]}"
+                )
         self.augmentation_seed = 0 if augmentation_seed is None else int(augmentation_seed)
         self.epoch = 0
         self.prompt_cache_manifest: dict[str, object] | None = None
@@ -613,7 +630,8 @@ class CrackSegmentationDataset(Dataset):
         image = apply_noise_perturbation(
             image, self.noise_mode, output_size=self.image_size
         )
-        prompt = self._load_prompt(sample_name, image)
+        prompt_source_name = self.prompt_name_map.get(sample_name, sample_name)
+        prompt = self._load_prompt(prompt_source_name, image)
 
         out_h, out_w = self.image_size
         if image.shape[:2] != self.image_size:
@@ -648,6 +666,7 @@ class CrackSegmentationDataset(Dataset):
             sample["prompt"] = torch.from_numpy(
                 np.ascontiguousarray(prompt[None, ...], dtype=np.float32)
             )
+            sample["prompt_source_name"] = prompt_source_name
         return sample
 
 

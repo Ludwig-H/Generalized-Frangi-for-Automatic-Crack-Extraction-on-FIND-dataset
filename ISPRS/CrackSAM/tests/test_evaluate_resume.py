@@ -133,7 +133,8 @@ def test_evaluate_spec_resumes_remaining_cases_and_rebuilds_final_tables(
         result_dir / "progress.jsonl", "mini", [_row("a.png")]
     )
     arguments = {
-        "variant": "baseline",
+        "checkpoint_variant": "baseline",
+        "prompt_condition": "none",
         "output_root": tmp_path / "results",
         "device": torch.device("cpu"),
         "amp_dtype": "none",
