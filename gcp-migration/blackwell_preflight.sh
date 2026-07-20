@@ -4,6 +4,7 @@ set -euo pipefail
 readonly OPEN_MODULE_MESSAGE="requires use of the NVIDIA open kernel modules"
 readonly OPEN_MODULE_PACKAGE="linux-modules-nvidia-580-server-open-gcp"
 readonly OPEN_DRIVER_PACKAGE="nvidia-driver-580-server-open"
+readonly MAX_GUEST_SHUTDOWN_MINUTES=480
 
 CUDA_IMAGE="${CUDA_IMAGE:-nvidia/cuda:12.9.1-base-ubuntu22.04}"
 ARM_SHUTDOWN_MINUTES=""
@@ -108,12 +109,17 @@ arm_shutdown_guard() {
     SHUTDOWN_GUARD_ARMED=true
     success "Arrêt de sécurité programmé dans ${ARM_SHUTDOWN_MINUTES} minutes."
 
-    if shutdown --show >/dev/null 2>&1; then
-        shutdown --show
+    local shutdown_proof=""
+    if shutdown_proof="$(run_as_root shutdown --show 2>/dev/null)" && \
+        [[ -n "${shutdown_proof}" ]]; then
+        printf '%s\n' "${shutdown_proof}"
     elif [[ -r /run/systemd/shutdown/scheduled ]]; then
-        cat /run/systemd/shutdown/scheduled
+        shutdown_proof="$(</run/systemd/shutdown/scheduled)"
+        [[ -n "${shutdown_proof}" ]] || \
+            die "Le fichier systemd du shutdown est vide ; garde non certifiée."
+        printf '%s\n' "${shutdown_proof}"
     else
-        warn "Impossible d'afficher l'échéance ; vérifiez-la avec : shutdown --show"
+        die "Impossible de relire l'échéance du shutdown ; garde non certifiée."
     fi
 }
 
@@ -235,11 +241,18 @@ inspect_gpu() {
 inspect_cuda_toolkit() {
     local nvcc_output=""
     local nvcc_binary=""
+    local cuda_home_candidate="${CUDA_HOME:-}"
 
     if nvcc_binary="$(command -v nvcc 2>/dev/null)"; then
         :
+    elif [[ -n "${cuda_home_candidate}" && -x "${cuda_home_candidate}/bin/nvcc" ]]; then
+        nvcc_binary="${cuda_home_candidate}/bin/nvcc"
+        warn "nvcc absent du PATH ; utilisation de ${nvcc_binary}."
     elif [[ -x /usr/local/cuda/bin/nvcc ]]; then
         nvcc_binary="/usr/local/cuda/bin/nvcc"
+        warn "nvcc absent du PATH ; utilisation de ${nvcc_binary}."
+    elif [[ -x /usr/local/cuda-12.9/bin/nvcc ]]; then
+        nvcc_binary="/usr/local/cuda-12.9/bin/nvcc"
         warn "nvcc absent du PATH ; utilisation de ${nvcc_binary}."
     else
         failure "nvcc est introuvable ; l'image CUDA 12.9 n'est pas complètement disponible dans le PATH."
@@ -256,19 +269,20 @@ inspect_cuda_toolkit() {
 }
 
 docker_gpu_smoke() {
-    local -a docker_command=(docker)
+    local -a docker_command=(/usr/bin/docker)
     local smoke_output=""
 
     [[ "${RUN_DOCKER_SMOKE}" == true ]] || return 0
 
-    if ! command -v docker >/dev/null 2>&1; then
+    if [[ ! -x /usr/bin/docker ]]; then
         failure "Docker est introuvable ; smoke test GPU non exécuté."
         return
     fi
 
-    if ! docker info >/dev/null 2>&1; then
-        if command -v sudo >/dev/null 2>&1 && sudo -n docker info >/dev/null 2>&1; then
-            docker_command=(sudo docker)
+    if ! /usr/bin/docker info >/dev/null 2>&1; then
+        if command -v sudo >/dev/null 2>&1 && \
+            sudo -n -- /usr/bin/docker info >/dev/null 2>&1; then
+            docker_command=(sudo -n -- /usr/bin/docker)
         else
             failure "Le daemon Docker est inaccessible pour cet utilisateur."
             return
@@ -340,8 +354,9 @@ done
 
 if [[ -n "${ARM_SHUTDOWN_MINUTES}" ]]; then
     if [[ ! "${ARM_SHUTDOWN_MINUTES}" =~ ^[1-9][0-9]*$ ]] || \
-        ((${#ARM_SHUTDOWN_MINUTES} > 4)) || ((ARM_SHUTDOWN_MINUTES > 1440)); then
-        die "--arm-shutdown attend un entier entre 1 et 1440 minutes."
+        ((${#ARM_SHUTDOWN_MINUTES} > 3)) || \
+        ((ARM_SHUTDOWN_MINUTES > MAX_GUEST_SHUTDOWN_MINUTES)); then
+        die "--arm-shutdown attend un entier entre 1 et ${MAX_GUEST_SHUTDOWN_MINUTES} minutes."
     fi
 fi
 

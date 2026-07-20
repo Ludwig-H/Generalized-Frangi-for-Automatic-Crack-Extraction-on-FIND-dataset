@@ -26,7 +26,7 @@ from cracksam2.metrics import evaluate_masks, segmentation_metrics
 from cracksam2.model import build_cracksam2, load_adapter_state_dict
 
 
-LIST_ROOT = Path(__file__).parent / "CrackSAM" / "CrackSAM" / "lists"
+LIST_ROOT = Path(__file__).parent / "protocol" / "cracksam_paper" / "lists"
 
 
 @dataclass(frozen=True)

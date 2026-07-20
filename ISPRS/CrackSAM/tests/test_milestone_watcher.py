@@ -10,7 +10,7 @@ import torch
 CRACKSAM_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(CRACKSAM_ROOT))
 
-import watch_training_milestone as watcher  # noqa: E402
+from workflows import watch_training_milestone as watcher  # noqa: E402
 
 
 def test_validation_completed_requires_the_exact_epoch(tmp_path: Path) -> None:

@@ -35,7 +35,7 @@ from cracksam2.model import (
 )
 
 
-DEFAULT_LIST_ROOT = Path(__file__).parent / "CrackSAM" / "CrackSAM" / "lists"
+DEFAULT_LIST_ROOT = Path(__file__).parent / "protocol" / "cracksam_paper" / "lists"
 
 
 def parse_args() -> argparse.Namespace:

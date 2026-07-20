@@ -179,7 +179,7 @@ seule correction.
 Le [rapport de la sonde
 CPU](../frangi_chrominance_cpu_probe/RAPPORT_TEST_CHROMINANCE_CPU.md) est
 reproductible par
-[`analyze_frangi_chrominance_cpu.py`](../../analyze_frangi_chrominance_cpu.py).
+[`analyze_frangi_chrominance_cpu.py`](../../reporting/analyze_frangi_chrominance_cpu.py).
 Il compare les cartes recalculées à partir des mêmes crops RGB.
 
 Sur les six reculs Frangi sélectionnés :

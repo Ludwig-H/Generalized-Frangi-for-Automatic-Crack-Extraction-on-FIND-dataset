@@ -15,6 +15,7 @@ scratch/
 # GCP & CLI temporary files
 .gcloud/
 gcp-migration/*.log
+.env.gcp
 
 # Pretrained weights and training checkpoints
 checkpoints/
@@ -23,3 +24,9 @@ checkpoints/
 ISPRS/CrackSAM/data/
 ISPRS/CrackSAM/prompt_cache/
 ISPRS/CrackSAM/artifacts/
+ISPRS/CrackSAM/runs/
+ISPRS/CrackSAM/predictions/
+ISPRS/CrackSAM/prompt_cache_v2/
+ISPRS/CrackSAM/**/*.pid
+ISPRS/CrackSAM/**/*.start
+.pytest_cache/

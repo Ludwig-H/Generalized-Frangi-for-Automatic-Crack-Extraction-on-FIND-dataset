@@ -41,7 +41,7 @@ from cracksam2.data import read_sample_list, resolve_sample_paths
 from cracksam2.metrics import wasserstein_mask_distance
 
 
-LIST_ROOT = Path(__file__).parent / "CrackSAM" / "CrackSAM" / "lists"
+LIST_ROOT = Path(__file__).parent / "protocol" / "cracksam_paper" / "lists"
 # Measured with POT 0.9.7 on the target VM: cost construction plus the network
 # simplex peaks near 46 bytes per dense transport arc.  Round upward so the
 # scheduler leaves enough room for worker imports and image buffers.

@@ -36,7 +36,7 @@ Commande reproductible :
 ```bash
 CUDA_VISIBLE_DEVICES='' OMP_NUM_THREADS=8 MKL_NUM_THREADS=8 \
   OPENBLAS_NUM_THREADS=8 \
-  python ISPRS/CrackSAM/analyze_frangi_chrominance_cpu.py --threads 8
+  python ISPRS/CrackSAM/reporting/analyze_frangi_chrominance_cpu.py --threads 8
 ```
 
 Le contrat complet se trouve dans [`run_manifest.json`](run_manifest.json),
