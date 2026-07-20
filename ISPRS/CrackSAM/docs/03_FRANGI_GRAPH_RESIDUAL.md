@@ -6,20 +6,20 @@ La similarité Frangi ne sera plus injectée comme un masque de segmentation.
 Elle devient une source de candidats structuraux que les features de SAM peuvent
 accepter, corriger ou ignorer.
 
-La méthode cible s'écrit :
+La méthode cible s'écrit d'abord :
 
 \[
 z_0 = B(I), \qquad
-\Delta z = H_\theta(F_{SAM}, z_0, R_G), \qquad
-z = z_0 + g\,\Delta z.
+z_1 = z_0 + H_\theta(F_{SAM}, z_0, R_G),
 \]
 
 - `B` est la baseline sans prompt ;
 - `F_SAM` désigne les features Hiera multi-échelles ;
 - `R_G` est une représentation raster et, plus tard, structurée du graphe ;
-- `Hθ` est un petit adaptateur résiduel ;
-- `g` est une confiance calibrée ; sous le seuil d'abstention, `z = z0`
-  exactement.
+- `Hθ` est un petit réseau qui prédit seulement une correction ;
+- la porte choisit ensuite **soit** `z1`, **soit** `z0`. Elle ne mélange pas
+  les deux sorties : lorsqu'elle refuse la correction, le résultat est
+  exactement celui de la baseline.
 
 ```text
                            ┌──────────────────────┐
@@ -43,10 +43,10 @@ Frangi-graphe ──► cache v2 ──► adaptateur/vérificateur ──► Δ
    importantes pour les structures minces.
 4. **Progressivité** : on mesure d'abord la valeur de la similarité raster, puis
    l'apport propre du graphe.
-5. **Coût maîtrisé** : une seule passe Hiera ; l'adaptateur et la gate restent
-   petits devant le backbone.
+5. **Coût maîtrisé** : une seule passe Hiera ; le correcteur et la porte restent
+   petits devant le modèle SAM.
 
-## MVP : résidu raster
+## Première version testable : correction par cartes Frangi
 
 Le premier modèle reçoit une pyramide de cartes, sans logit :
 
@@ -56,24 +56,46 @@ Le premier modèle reçoit une pyramide de cartes, sans logit :
   spatiale par maximum ;
 - échelle gagnante ;
 - orientation `sin(2θ)` et `cos(2θ)` ;
-- distance au squelette rasterisé ;
-- incertitude et gradient du logit baseline.
+- distance au squelette rasterisé.
 
-Un encodeur convolutionnel léger projette ces cartes vers les dimensions des
-features Hiera. Une tête de fusion produit uniquement `Δz`. Dans cette phase :
+Le correcteur reçoit aussi le logit de la baseline et les cartes internes haute
+résolution de SAM. Un petit réseau convolutionnel fusionne le tout et produit
+uniquement `Δz`. Dans cette phase :
 
 - backbone, prompt encoder, decoder et LoRA baseline sont gelés ;
 - aucun Graph Transformer ;
-- aucune gate spatiale ;
+- aucune porte spatiale ;
 - prompt dropout et corruptions Frangi sont utilisés pour empêcher la
   dépendance systématique au prior.
 
-Une gate globale n'est ajoutée que si le candidat montre un oracle de validation
-significatif **et** si les gains sont prédictibles out-of-fold.
+Cette première version utilise le support et la distance au squelette issu du
+MST, mais pas la centralité ni une liste explicite de nœuds et d'arêtes. Un gain
+validerait donc l'utilité de ces cartes rasterisées, pas encore celle du graphe
+complet. À capacité identique, il faut aussi entraîner une tête avec Frangi
+neutralisé : sinon le petit réseau pourrait progresser grâce aux seules cartes
+internes de SAM et au logit de la baseline.
+
+La première porte de confiance est volontairement simple : une régression
+logistique. Elle reçoit sept nombres calculables sans masque vrai :
+
+1. incertitude moyenne de la baseline près du signal utile ;
+2. surface de fissure prédite par la baseline ;
+3. désaccord baseline/candidat près du signal utile ;
+4. taille moyenne de la correction sur le support Frangi ;
+5. augmentation ou diminution globale de la probabilité de fissure ;
+6. similarité moyenne `node_sim_max` sur le support Frangi retenu ;
+7. densité du support Frangi.
+
+Elle produit la probabilité que le candidat améliore la baseline. Ses
+coefficients sont appris sur quatre parts du jeu d'entraînement et le seuil
+d'ouverture sur une cinquième part séparée. Si aucun seuil n'est suffisamment
+fiable, la porte reste fermée. **Cette porte n'est pas un Transformer.** Le
+Transformer de graphe décrit plus bas serait, un jour peut-être, un vérificateur
+des arêtes ; c'est un autre composant.
 
 ## Extension : vérificateur de graphe
 
-Le graphe complet est introduit après le MVP. Pour chaque nœud :
+Le graphe complet n'est introduit qu'après cette première preuve. Pour chaque nœud :
 
 - position, échelle, valeurs propres, magnitude absolue ;
 - orientation, similarité, degré, endpoint/jonction ;
@@ -120,5 +142,10 @@ celles qui la traversent.
 - la baseline reste évaluée par la même fonction et le même seuil ;
 - le cache lie chaque graphe au SHA de l'image, aux paramètres Frangi, au split
   et au commit de l'implémentation ;
-- toute gate est entraînée sur des prédictions out-of-fold ;
+- toute porte est entraînée sur des prédictions résiduelles produites par un
+  modèle qui n'a pas vu les images concernées pendant son propre entraînement ;
+- le fold de calibration de la porte ne participe à aucun modèle producteur
+  des lignes utilisées pour apprendre ses coefficients ;
+- tant que la baseline historique n'est pas elle-même OOF, ce pilote est
+  exploratoire et ne démontre pas à lui seul la fiabilité confirmatoire ;
 - le test final n'est ouvert qu'après gel de l'architecture et des seuils.

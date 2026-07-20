@@ -9,7 +9,7 @@ qui doivent rester des ablations.
 | [CrackSAM](https://arxiv.org/abs/2312.04233) | SAM 1 peut être adapté aux fissures par PEFT et évalué hors domaine | reproduire fidèlement son périmètre entraînable avant d'attribuer un écart à SAM 2 |
 | [ViT-Adapter](https://arxiv.org/abs/2205.08534) | une branche légère peut apporter des biais spatiaux à un Transformer pour la prédiction dense | encoder les cartes Frangi comme features, pas comme pseudo-masque |
 | [HQ-SAM](https://arxiv.org/abs/2306.01567) | la fusion de features précoces et finales améliore les détails de masques complexes | exploiter les features haute résolution pour les fissures minces |
-| [SAM-Road](https://arxiv.org/abs/2403.16051) | des embeddings SAM et un Graph Transformer léger peuvent vérifier les arêtes d'un réseau | vérifier les nœuds/arêtes Frangi avec les features SAM, après le MVP raster |
+| [SAM-Road](https://arxiv.org/abs/2403.16051) | des embeddings SAM et un Graph Transformer léger peuvent vérifier les arêtes d'un réseau | vérifier les nœuds/arêtes Frangi avec les features SAM, seulement après la première preuve raster |
 | [clDice](https://arxiv.org/abs/2003.07311) | une loss différentiable cible la connectivité des structures tubulaires | ajouter une supervision topologique sans remplacer IoU/Dice |
 | [Skeleton Recall Loss](https://arxiv.org/abs/2404.03010) | perte efficace pour structures minces, incluant les fissures de béton | ablation topologique moins coûteuse sur G4 |
 | [Segment Any Crack](https://arxiv.org/abs/2504.14138) | l'ajustement sélectif des normalisations peut dépasser plusieurs PEFT sur ses jeux | inclure « normalisations + decoder » dans les baselines, sans en faire un résultat acquis pour Hiera |
@@ -41,7 +41,7 @@ cœur des ablations :
   les fissures des frontières d'ombre ;
 - la qualité d'une composante peut être prédite sans consulter le GT ;
 - le graphe explicite apporte davantage que sa rasterisation multicanal ;
-- une gate out-of-fold réduit réellement la queue des pertes.
+- une porte apprise sur des prédictions hors entraînement réduit réellement la queue des pertes.
 
 La [feuille de route](04_IMPLEMENTATION_ROADMAP.md) est ordonnée pour pouvoir
 invalider chacune de ces hypothèses avant l'étape GPU suivante.

@@ -29,7 +29,7 @@ risque de pertes catastrophiques, sans dépendre d'un test déjà consulté.
 - publier les SHA-256 des listes de splits ;
 - grouper les crops issus d'une même image physique ;
 - définir quatre familles : Khanhha, Road420, Facade390, Concrete3k ;
-- réserver un split interne pour les gates ;
+- réserver une part interne pour choisir la porte de confiance ;
 - choisir un holdout final dédupliqué ;
 - pré-enregistrer métriques, marges et seuils.
 
@@ -40,7 +40,7 @@ risque de pertes catastrophiques, sans dépendre d'un test déjà consulté.
 - table `sample_id → source_group → split` ;
 - fiche de décision signée par le commit.
 
-### Gate de sortie
+### Condition pour passer à la suite
 
 Aucune image physique ne traverse deux splits et le test final n'a pas servi à
 choisir l'architecture.
@@ -102,7 +102,7 @@ Rejouer B1 avec `sam2.1_hiera_large.pt` et
 - normalisations + decoder ;
 - LoRA Hiera + prompt encoder + decoder.
 
-### Gate de sortie
+### Condition pour passer à la suite
 
 Choisir la baseline de développement uniquement sur validation. Conserver B0
 dans toutes les tables, même si B1 ou B2 devient la nouvelle référence.
@@ -169,12 +169,12 @@ FrangiGraphSample
 - lecture refusée sur divergence de SHA ou paramètres ;
 - reprise idempotente après interruption Spot.
 
-### Gate de sortie
+### Condition pour passer à la suite
 
 Le cache d'un mini-split est relu intégralement et ses cartes sont visualisables
 sans charger SAM.
 
-## Phase 4 — MVP résiduel raster
+## Phase 4 — Première correction résiduelle par cartes Frangi
 
 ### Modules proposés
 
@@ -202,7 +202,7 @@ evaluate_frangi_graph_residual.py
 - projection convolutionnelle des cartes vers les features haute résolution ;
 - tête `Δz` dont la dernière couche est initialisée à zéro ;
 - candidat `z1 = z0 + Δz` ;
-- aucune gate apprise pendant ce premier entraînement.
+- aucune porte apprise pendant ce premier entraînement.
 
 ### Loss initiale
 
@@ -224,12 +224,12 @@ L = L_{seg,image}(z_1,y)
 - similarité seule versus canaux absolus ;
 - features finales seules versus pyramide haute résolution.
 
-### Gate de sortie
+### Condition pour passer à la suite
 
 Poursuivre seulement si le candidat présente sur validation :
 
 - un oracle baseline/candidat d'au moins `+0,01` macro ;
-- une amélioration moyenne non négative sans gate ;
+- une amélioration moyenne non négative sans porte ;
 - une relation prédictible entre qualité Frangi et gain ;
 - aucune violation du test de neutralité à l'initialisation.
 
@@ -260,7 +260,7 @@ Poursuivre seulement si le candidat présente sur validation :
 - magnitude absolue ;
 - chroma comme ablation séparée seulement.
 
-### Gate de sortie
+### Condition pour passer à la suite
 
 Une feature anti-ombre doit réduire les faux positifs de frontière sans réduire
 le rappel des fissures traversant une ombre au-delà de la marge pré-enregistrée.
@@ -294,19 +294,19 @@ décalages, perturbations d'orientation et frontières d'ombre synthétiques.
 | G4 | G3 + classification composante |
 | G5 | G4 + features anti-ombre |
 
-### Gate de sortie
+### Condition pour passer à la suite
 
 Le graphe doit améliorer G1 sur validation et sur au moins deux familles
 indépendantes. Sinon, conserver le modèle raster plus simple.
 
-## Phase 7 — Gate d'abstention
+## Phase 7 — Porte de confiance
 
 ### Ordre
 
-1. gate globale ;
+1. régression logistique globale ;
 2. calibration out-of-fold ;
-3. gate par composante ;
-4. gate spatiale seulement si nécessaire.
+3. porte par composante seulement si la version simple échoue ;
+4. porte spatiale seulement si elle devient réellement nécessaire.
 
 Entrées possibles : statistiques du graphe, entropie baseline, stabilité sous
 augmentation, confiance du vérificateur et désaccord `z0/z1`.
@@ -314,8 +314,8 @@ augmentation, confiance du vérificateur et désaccord `z0/z1`.
 À l'inférence :
 
 ```text
-si q < seuil_abstention : sortie = z0 exactement
-sinon                    : sortie = z0 + g * Δz
+si q < seuil : sortie = z0 exactement
+sinon        : sortie = z1 = z0 + Δz
 ```
 
 ### Métriques
@@ -326,9 +326,9 @@ sinon                    : sortie = z0 + g * Δz
 - gains conditionnels et faux accords ;
 - taux de pertes `< −0,05` et `< −0,10`.
 
-### Gate de sortie
+### Condition pour passer à la suite
 
-La gate ne doit être ni toujours ouverte ni toujours fermée. Elle doit améliorer
+La porte ne doit être ni toujours ouverte ni toujours fermée. Elle doit améliorer
 le P05 des deltas sans masquer une dégradation systématique d'un dataset.
 
 ## Phase 8 — Entraînement final
@@ -336,10 +336,10 @@ le P05 des deltas sans masquer une dégradation systématique d'un dataset.
 ### Curriculum
 
 1. baseline choisie gelée ;
-2. adaptateur raster sans gate ;
+2. adaptateur raster sans porte ;
 3. features de fiabilité ;
 4. vérificateur de graphe si G3/G4 passent ;
-5. gate sur prédictions out-of-fold ;
+5. porte logistique sur prédictions hors entraînement ;
 6. fine-tuning conjoint court à faible LR seulement si nécessaire.
 
 ### Graines
@@ -371,7 +371,7 @@ Chaque checkpoint lie :
   sécurité ;
 - P05 amélioré ;
 - clDice/clIoU non dégradé ;
-- gate calibrée et non dégénérée ;
+- porte calibrée et non dégénérée ;
 - mémoire et temps documentés.
 
 ### Ordre d'ouverture
@@ -404,7 +404,7 @@ tâche statique.
 | G4-1 | baseline fidèle et profil mémoire | 2 h | contrat validé |
 | G4-2 | cache v2 mini-split | 1 h | manifeste test |
 | G4-3 | cache v2 complet | 4–8 h reprenables | cache complet |
-| G4-4 | MVP raster seed dev | 4–8 h reprenables | checkpoints |
+| G4-4 | première correction raster | 4–8 h reprenables | checkpoints |
 | G4-5 | ablations raster/ombres | sessions bornées | table validation |
 | G4-6 | vérificateur graphe | sessions bornées | G0–G5 |
 | G4-7 | trois seeds finalistes | une session par seed | modèles finaux |

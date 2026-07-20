@@ -1,0 +1,223 @@
+{
+  "fold_algorithm": "source-stratified-largest-group-first-v1",
+  "fold_seed": 3407,
+  "folds": 5,
+  "format_version": 1,
+  "grouping_algorithm": "known-source-name-parser-v1",
+  "historical_khanhha_group_overlap": {
+    "train__test": {
+      "examples": [
+        "CRACK500_20160222_080933",
+        "CRACK500_20160222_081031",
+        "CRACK500_20160222_081102",
+        "CRACK500_20160222_081111",
+        "CRACK500_20160222_081113",
+        "CRACK500_20160222_081839",
+        "CRACK500_20160222_081908",
+        "CRACK500_20160222_114759",
+        "CRACK500_20160222_115219",
+        "CRACK500_20160222_115224",
+        "CRACK500_20160222_115305",
+        "CRACK500_20160222_115324",
+        "CRACK500_20160222_115519",
+        "CRACK500_20160222_115828",
+        "CRACK500_20160222_115833",
+        "CRACK500_20160222_115843",
+        "CRACK500_20160222_115847",
+        "CRACK500_20160222_163940",
+        "CRACK500_20160222_164141",
+        "CRACK500_20160222_164822"
+      ],
+      "physical_groups": 730
+    },
+    "train__validation": {
+      "examples": [
+        "CRACK500_20160222_080933",
+        "CRACK500_20160222_081908",
+        "CRACK500_20160222_114759",
+        "CRACK500_20160222_115224",
+        "CRACK500_20160222_164000",
+        "CRACK500_20160222_164021",
+        "CRACK500_20160222_164141",
+        "CRACK500_20160222_164851",
+        "CRACK500_20160222_164936",
+        "CRACK500_20160222_165225",
+        "CRACK500_20160225_114503",
+        "CRACK500_20160225_114531",
+        "CRACK500_20160302_155857",
+        "CRACK500_20160302_155914",
+        "CRACK500_20160303_091825",
+        "CRACK500_20160303_091837",
+        "CRACK500_20160303_092839",
+        "CRACK500_20160306_103657",
+        "CRACK500_20160306_104522",
+        "CRACK500_20160307_144115"
+      ],
+      "physical_groups": 325
+    },
+    "validation__test": {
+      "examples": [
+        "CRACK500_20160222_080933",
+        "CRACK500_20160222_081908",
+        "CRACK500_20160222_114759",
+        "CRACK500_20160222_115224",
+        "CRACK500_20160222_164141",
+        "CRACK500_20160222_164851",
+        "CRACK500_20160222_164936",
+        "CRACK500_20160222_165225",
+        "CRACK500_20160225_114503",
+        "CRACK500_20160302_155857",
+        "CRACK500_20160302_155914",
+        "CRACK500_20160303_092839",
+        "CRACK500_20160306_103657",
+        "CRACK500_20160306_104522",
+        "CRACK500_20160307_144115",
+        "CRACK500_20160307_145107",
+        "CRACK500_20160307_164226",
+        "CRACK500_20160308_073406",
+        "CRACK500_20160308_074321",
+        "CRACK500_20160308_155731"
+      ],
+      "physical_groups": 248
+    }
+  },
+  "lists": {
+    "concrete3k": {
+      "path": "lists/lists_concrete3k/test_vol.txt",
+      "physical_groups": 458,
+      "samples": 3000,
+      "sha256": "0869210c77d8e7e144db470cb43095e216381f6259311b3d5142b2bc91658517"
+    },
+    "facade390": {
+      "path": "lists/lists_facade390/test_vol.txt",
+      "physical_groups": 390,
+      "samples": 390,
+      "sha256": "63c4161905c24d9e963844a41e34ddfd4e507bf0bef9d20b39d5a507e4cd4bbe"
+    },
+    "road420": {
+      "path": "lists/lists_road420/test_vol.txt",
+      "physical_groups": 420,
+      "samples": 420,
+      "sha256": "c095c0eee77add2e8a1d2c24b21a44f9fe8925859898cff091128c8a2e6feb2c"
+    },
+    "test": {
+      "path": "lists/lists_khanhha/test_vol.txt",
+      "physical_groups": 854,
+      "samples": 1695,
+      "sha256": "9d7020c84d520073c4fdd7fc9eefc8e73c36f069b438835db53e253ab175a56e"
+    },
+    "train": {
+      "path": "lists/lists_khanhha/train.txt",
+      "physical_groups": 1727,
+      "samples": 9121,
+      "sha256": "dd656e58f192a69837184c5044e36dc5c4121fe4414272b8e223cb34e7da11be"
+    },
+    "validation": {
+      "path": "lists/lists_khanhha/val_vol.txt",
+      "physical_groups": 363,
+      "samples": 481,
+      "sha256": "9843faccdb754bf66c53e6c1150ab2e65ec81a481c95a8c6b84e33957b013d8e"
+    }
+  },
+  "purpose": "FrangiGraph-Residual development protocol",
+  "rules": {
+    "baseline_scope": "historical baseline saw all train folds; this cycle is exploratory until baseline OOF or an independent holdout exists",
+    "confirmatory_holdout": "not yet collected",
+    "final_residual": "train on all Khanhha train groups after choices are frozen",
+    "gate_fit": "OOF predictions from folds 0-3; fold 4 excluded upstream",
+    "gate_threshold": "OOF predictions from fold 4 only",
+    "historical_tests": "exploratory only; never fit residual or gate",
+    "residual_training": "for held-out folds 0-3 train only on the other folds among 0-3; for held-out fold 4 train on folds 0-3"
+  },
+  "train_group_folds": {
+    "fold_stats": {
+      "0": {
+        "physical_groups": 347,
+        "samples": 1822,
+        "source_samples": {
+          "CFD": 19,
+          "CRACK500": 546,
+          "DeepCrack": 84,
+          "Eugen": 8,
+          "GAPS384": 83,
+          "Rissbilder": 613,
+          "Sylvie": 30,
+          "Volker": 160,
+          "cracktree200": 33,
+          "forest": 19,
+          "noncrack": 227
+        }
+      },
+      "1": {
+        "physical_groups": 345,
+        "samples": 1830,
+        "source_samples": {
+          "CFD": 19,
+          "CRACK500": 545,
+          "DeepCrack": 84,
+          "Eugen": 9,
+          "GAPS384": 83,
+          "Rissbilder": 624,
+          "Sylvie": 29,
+          "Volker": 159,
+          "cracktree200": 32,
+          "forest": 19,
+          "noncrack": 227
+        }
+      },
+      "2": {
+        "physical_groups": 345,
+        "samples": 1821,
+        "source_samples": {
+          "CFD": 19,
+          "CRACK500": 544,
+          "DeepCrack": 85,
+          "Eugen": 10,
+          "GAPS384": 82,
+          "Rissbilder": 613,
+          "Sylvie": 30,
+          "Volker": 160,
+          "cracktree200": 32,
+          "forest": 19,
+          "noncrack": 227
+        }
+      },
+      "3": {
+        "physical_groups": 346,
+        "samples": 1829,
+        "source_samples": {
+          "CFD": 19,
+          "CRACK500": 544,
+          "DeepCrack": 85,
+          "Eugen": 9,
+          "GAPS384": 83,
+          "Rissbilder": 623,
+          "Sylvie": 29,
+          "Volker": 159,
+          "cracktree200": 32,
+          "forest": 19,
+          "noncrack": 227
+        }
+      },
+      "4": {
+        "physical_groups": 344,
+        "samples": 1819,
+        "source_samples": {
+          "CFD": 19,
+          "CRACK500": 545,
+          "DeepCrack": 84,
+          "Eugen": 10,
+          "GAPS384": 82,
+          "Rissbilder": 612,
+          "Sylvie": 30,
+          "Volker": 159,
+          "cracktree200": 33,
+          "forest": 19,
+          "noncrack": 226
+        }
+      }
+    },
+    "path": "train_group_folds.csv",
+    "sha256": "7c7a1bfb848d1f8bfef4806dfbdcc89c3ee440ab1f28ffbf99c018f24859ed39"
+  }
+}

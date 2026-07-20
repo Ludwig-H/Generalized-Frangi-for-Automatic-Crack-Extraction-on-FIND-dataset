@@ -9,18 +9,24 @@ from .frangi_hessian import FrangiHessianGPU
 
 def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
                              ss=1.0, si=0.25, sa=0.3, τ=0.18, min_rel_size=120.0,
-                             K=1, device='cuda', compute_centrality=True):
+                             K=1, device='cuda', compute_centrality=True,
+                             return_raster_features=False):
     t0 = time.time()
     
     fh = FrangiHessianGPU(Σ, device=device)
     
     scale_data = []
     max_S_global = None
+    winning_hessian_magnitude = None
+    winning_scale = None
+    winning_sin2theta = None
+    winning_cos2theta = None
     H, W = None, None
     
     # 1. Multi-modal Fusion per scale
     for σ in Σ:
         fused_ixx = None
+        absolute_fused_ixx = None
         
         for mod, w in weights.items():
             if w > 0:
@@ -41,6 +47,21 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
                     fused_ixx += w * (ixx / max_norm)
                     fused_ixy += w * (ixy / max_norm)
                     fused_iyy += w * (iyy / max_norm)
+
+                if return_raster_features:
+                    # Preserve an absolute, scale-normalized Hessian before the
+                    # per-image spatial maximum above removes its dynamic range.
+                    # The sigma^2 factor is the standard scale normalization for
+                    # second Gaussian derivatives.
+                    scale_factor = float(σ) ** 2
+                    if absolute_fused_ixx is None:
+                        absolute_fused_ixx = w * scale_factor * ixx
+                        absolute_fused_ixy = w * scale_factor * ixy
+                        absolute_fused_iyy = w * scale_factor * iyy
+                    else:
+                        absolute_fused_ixx += w * scale_factor * ixx
+                        absolute_fused_ixy += w * scale_factor * ixy
+                        absolute_fused_iyy += w * scale_factor * iyy
                     
         λ1, λ2, θ = fh.compute_eigenvalues_and_vectors(fused_ixx, fused_ixy, fused_iyy)
         
@@ -51,12 +72,75 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
         S_norm = torch.zeros_like(λ2)
         S_norm[mask_pos] = λ2[mask_pos]
         
-        if max_S_global is None: 
+        if max_S_global is None:
+            better_scale = mask_pos
             max_S_global = S_norm.clone()
-        else: 
+        else:
+            better_scale = S_norm > max_S_global
             max_S_global = torch.max(max_S_global, S_norm)
+
+        if return_raster_features:
+            absolute_trace = absolute_fused_ixx + absolute_fused_iyy
+            absolute_disc = torch.sqrt(
+                (absolute_fused_ixx - absolute_fused_iyy) ** 2
+                + 4 * absolute_fused_ixy ** 2
+            )
+            absolute_magnitude = (torch.abs(absolute_trace) + absolute_disc) / 2.0
+            scale_image = torch.full_like(S_norm, float(σ))
+            sin2theta = torch.sin(2.0 * θ)
+            cos2theta = torch.cos(2.0 * θ)
+            if winning_hessian_magnitude is None:
+                winning_hessian_magnitude = torch.where(
+                    better_scale, absolute_magnitude, torch.zeros_like(S_norm)
+                )
+                winning_scale = torch.where(
+                    better_scale, scale_image, torch.zeros_like(S_norm)
+                )
+                winning_sin2theta = torch.where(
+                    better_scale, sin2theta, torch.zeros_like(S_norm)
+                )
+                winning_cos2theta = torch.where(
+                    better_scale, cos2theta, torch.zeros_like(S_norm)
+                )
+            else:
+                winning_hessian_magnitude = torch.where(
+                    better_scale, absolute_magnitude, winning_hessian_magnitude
+                )
+                winning_scale = torch.where(better_scale, scale_image, winning_scale)
+                winning_sin2theta = torch.where(
+                    better_scale, sin2theta, winning_sin2theta
+                )
+                winning_cos2theta = torch.where(
+                    better_scale, cos2theta, winning_cos2theta
+                )
             
         scale_data.append((R_B, S_norm, θ, mask_pos))
+
+    raster_diagnostics = {}
+    if return_raster_features:
+        positive_response = max_S_global > 0
+        raster_diagnostics = {
+            'hessian_magnitude': torch.where(
+                positive_response,
+                winning_hessian_magnitude,
+                torch.zeros_like(max_S_global),
+            ).cpu().numpy(),
+            'winning_scale': torch.where(
+                positive_response,
+                winning_scale,
+                torch.zeros_like(max_S_global),
+            ).cpu().numpy(),
+            'orientation_sin2': torch.where(
+                positive_response,
+                winning_sin2theta,
+                torch.zeros_like(max_S_global),
+            ).cpu().numpy(),
+            'orientation_cos2': torch.where(
+                positive_response,
+                winning_cos2theta,
+                torch.zeros_like(max_S_global),
+            ).cpu().numpy(),
+        }
         
     if device == 'cuda': 
         torch.cuda.synchronize()
@@ -70,7 +154,12 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
     N = coords.shape[0]
     
     if N == 0:
-        return np.zeros((H, W)), np.zeros((H, W)), np.zeros((H, W)), {}, {'tau_mask': np.zeros((H, W)), 'comp_mask': np.zeros((H, W))}
+        diagnostics = {
+            'tau_mask': np.zeros((H, W)),
+            'comp_mask': np.zeros((H, W)),
+            **raster_diagnostics,
+        }
+        return np.zeros((H, W)), np.zeros((H, W)), np.zeros((H, W)), {}, diagnostics
     
     index_map = torch.full((H, W), -1, dtype=torch.long, device=device)
     index_map[candidates_mask] = torch.arange(N, device=device)
@@ -98,7 +187,12 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
     j_idx_t = valid_neighbors[valid_pairs_mask]
     
     if len(i_idx_t) == 0:
-        return max_S_global.cpu().numpy(), np.zeros((H, W)), np.zeros((H, W)), {}, {'tau_mask': np.zeros((H, W)), 'comp_mask': np.zeros((H, W))}
+        diagnostics = {
+            'tau_mask': np.zeros((H, W)),
+            'comp_mask': np.zeros((H, W)),
+            **raster_diagnostics,
+        }
+        return max_S_global.cpu().numpy(), np.zeros((H, W)), np.zeros((H, W)), {}, diagnostics
     
     if device == 'cuda': 
         torch.cuda.synchronize()
@@ -189,7 +283,11 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
             sim_img,
             empty.copy(),
             timings,
-            {'tau_mask': empty.copy(), 'comp_mask': empty},
+            {
+                'tau_mask': empty.copy(),
+                'comp_mask': empty,
+                **raster_diagnostics,
+            },
         )
         
     N_total = H * W
@@ -568,4 +666,8 @@ def extract_frangi_graph_gpu(imgs_dict, weights, Σ=[5.0], R=3,
         "Total": t_end - t0
     }
     
-    return max_S_global.cpu().numpy(), sim_img, cent_img, timings, {'tau_mask': tau_mask, 'comp_mask': comp_mask}
+    return max_S_global.cpu().numpy(), sim_img, cent_img, timings, {
+        'tau_mask': tau_mask,
+        'comp_mask': comp_mask,
+        **raster_diagnostics,
+    }

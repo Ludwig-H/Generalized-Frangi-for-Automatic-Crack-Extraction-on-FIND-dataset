@@ -28,9 +28,18 @@ un IC95 `[-0,01198 ; -0,00779]`. Ce résultat invalide le pipeline complet
 Il n'invalide pas la similarité Frangi comme feature auxiliaire, ni le graphe
 topologique complet, qui n'a pas été utilisé dans cette expérience.
 
+La matrice causale rejouée le 20 juillet 2026 précise le diagnostic : injecter
+le prompt Frangi dans les poids baseline retire `0,0979` d'IoU macro, tandis
+qu'un tenseur de logits nuls retire `0,1641`. Le prompt correctement aligné est
+nettement moins mauvais qu'un prompt permuté ou décalé, donc SAM lit bien une
+partie de la géométrie ; c'est son encodage comme hypothèse de masque dense qui
+est inadapté. Même après entraînement Frangi, le prompt ne récupère que
+`+0,0029`, et le meilleur système complet reste `−0,0122` sous la baseline.
+
 - [Comparaison et limites causales](docs/02_BASELINE_COMPARISON.md)
 - [Rapport chiffré exhaustif](results/frangi_milestone_report/RAPPORT_FRANGI_MILESTONES.md)
 - [Diagnostic SafeFrangi historique](results/frangi_safe_recommendation/RAPPORT_RECOMMANDATION_SAFE_FRANGI.md)
+- [Matrice causale complète](results/causal_prompt_matrix_2026-07-20/RAPPORT_MATRICE_CAUSALE.md)
 
 ## Piste principale
 
@@ -44,12 +53,15 @@ La piste retenue est **FrangiGraph-Residual** :
 - une porte d'abstention permet de rendre exactement `z0` lorsque le candidat
   géométrique est incertain.
 
-Le premier MVP est raster et résiduel. Le vérificateur nœuds/arêtes/composantes
-n'est ajouté qu'après preuve que le signal Frangi est utile à poids fixes et que
-ses gains sont prédictibles sur validation.
+La première version testable utilise sept cartes Frangi et prédit seulement une
+correction de la baseline. Sa porte de confiance est une simple régression
+logistique à sept nombres d'entrée, pas un Transformer. Un vérificateur plus
+complexe des nœuds et arêtes ne sera envisagé qu'après preuve que le signal
+Frangi est utile et que ses gains sont prévisibles sur validation.
 
 - [Architecture FrangiGraph-Residual](docs/03_FRANGI_GRAPH_RESIDUAL.md)
 - [Feuille de route complète](docs/04_IMPLEMENTATION_ROADMAP.md)
+- [Workflow reprenable du pilote](workflows/README.md#pilote-frangigraph--porte-logistique)
 
 ## Parcours de lecture
 

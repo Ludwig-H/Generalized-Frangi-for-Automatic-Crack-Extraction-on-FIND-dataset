@@ -1,8 +1,8 @@
 # Workflows reproductibles
 
-Ces scripts orchestrent l'expérience historique SAM 2 : pré-calcul des prompts,
-entraînement, évaluation et génération des jalons. Ils résolvent leurs chemins
-depuis la racine `ISPRS/CrackSAM`, indépendamment du répertoire courant.
+Ces scripts orchestrent l'expérience historique SAM 2 et le pilote
+FrangiGraph-Residual. Ils résolvent leurs chemins depuis la racine
+`ISPRS/CrackSAM`, indépendamment du répertoire courant.
 
 Le point d'entrée principal est :
 
@@ -10,8 +10,35 @@ Le point d'entrée principal est :
 bash ISPRS/CrackSAM/workflows/run_full_cracksam2_experiment.sh
 ```
 
-Ils ne mettent pas encore en œuvre FrangiGraph-Residual. Les nouveaux workflows
-seront ajoutés par phase, avec un nom distinct et un manifeste de protocole.
+## Pilote FrangiGraph + porte logistique
+
+`run_frangigraph_logistic_gate_pilot.sh` enchaîne le cache à sept cartes, cinq
+correcteurs résiduels hors-fold, les prédictions OOF, l'ajustement de la
+régression logistique sur les folds 0–3 et le choix du seuil sur le seul fold 4.
+Le mode `FULL` refuse un worktree sale ; le mode `SMOKE` est explicitement non
+scientifique. Les deux modes sont reprenables après une préemption Spot.
+
+```bash
+export CRACKSAM2_DATA_ROOT=/home/codespace/cracksam2-data
+export SAM2_CHECKPOINT=/chemin/absolu/sam2_hiera_large.pt
+export BASELINE_CHECKPOINT=/chemin/absolu/baseline_r4_best.pt
+export FRANGIGRAPH_RUN_ROOT=/chemin/durable/frangigraph_run
+
+bash ISPRS/CrackSAM/workflows/run_frangigraph_logistic_gate_pilot.sh --mode SMOKE
+```
+
+Pour reprendre un cache complet déjà construit et vérifié :
+
+```bash
+export FRANGIGRAPH_GRAPH_CACHE=/chemin/durable/cache_khanhha_train_original
+bash ISPRS/CrackSAM/workflows/run_frangigraph_logistic_gate_pilot.sh --mode FULL
+```
+
+Le label primaire du mode `FULL` exige un gain strict `ΔIoU > 0,005`. Le mode
+`SMOKE` utilise zéro uniquement pour exercer la chaîne technique. Aucun jeu
+historique n'entre dans l'apprentissage des coefficients ou du seuil.
+
+## Matrice causale du prompt historique
 
 La première phase de la nouvelle feuille de route isole l'effet du prompt sans
 réentraînement :

@@ -29,8 +29,11 @@ from pathlib import Path
 from typing import Mapping, Sequence
 
 import numpy as np
+from scipy.ndimage import distance_transform_edt
 import torch
 import torch.nn.functional as F
+
+from .graph_types import FRANGI_RASTER_CHANNELS, validate_frangi_raster
 
 
 # Support both ``ISPRS.CrackSAM.cracksam2`` (repository root on sys.path) and
@@ -137,6 +140,7 @@ def extract_frangi_graph_gpu(
     K: int = 1,
     device: str | torch.device | None = None,
     compute_centrality: bool = True,
+    return_raster_features: bool = False,
 ):
     """Compute the generalized Frangi graph for one image.
 
@@ -161,6 +165,10 @@ def extract_frangi_graph_gpu(
         device: Torch device. Defaults to CUDA when available, otherwise CPU.
         compute_centrality: Whether to compute the MST and betweenness output.
             The similarity map is identical when this is false.
+        return_raster_features: Add the absolute scale-normalized Hessian
+            magnitude, winning scale and double-angle orientation maps to the
+            diagnostics dictionary. The default is false so the historical
+            five-value contract and diagnostic keys remain unchanged.
 
     Returns:
         ``(frangi_response, similarity_img, centrality, timings, diagnostics)``.
@@ -208,6 +216,7 @@ def extract_frangi_graph_gpu(
             K=int(K),
             device=str(resolved_device),
             compute_centrality=bool(compute_centrality),
+            return_raster_features=bool(return_raster_features),
         )
 
     # The source implementation already returns float32 in normal cases. Cast
@@ -224,6 +233,71 @@ def extract_frangi_graph_gpu(
         timings,
         diagnostics,
     )
+
+
+def generate_frangi_raster(
+    image: np.ndarray | torch.Tensor,
+    *,
+    scales: Sequence[float] = DEFAULT_FRANGI_SCALES,
+    R: int = 3,
+    ss: float = 1.0,
+    si: float = 0.25,
+    sa: float = 0.3,
+    tau: float = 0.18,
+    min_rel_size: float = 120.0,
+    K: int = 1,
+    device: str | torch.device | None = None,
+) -> np.ndarray:
+    """Build the seven-channel Frangi raster used by the residual model.
+
+    This is deliberately separate from :func:`generate_frangi_prompt`: no
+    probability-to-logit conversion and no resize to SAM's mask-prompt size
+    occur here. The output stays registered to the input image and has channel
+    order :data:`FRANGI_RASTER_CHANNELS`.
+    """
+    grayscale = rgb_to_grayscale(image)
+    _, similarity, _, _, diagnostics = extract_frangi_graph_gpu(
+        {"visible": grayscale},
+        {"visible": 1.0},
+        scales=scales,
+        R=R,
+        ss=ss,
+        si=si,
+        sa=sa,
+        tau=tau,
+        min_rel_size=min_rel_size,
+        K=K,
+        device=device,
+        compute_centrality=True,
+        return_raster_features=True,
+    )
+
+    support = (diagnostics["tau_mask"] > 0.0).astype(np.float32)
+    skeleton = diagnostics["comp_mask"] > 0.0
+    height, width = similarity.shape
+    if skeleton.any():
+        diagonal = max(1.0, float(np.hypot(height - 1, width - 1)))
+        distance = distance_transform_edt(~skeleton) / diagonal
+        distance = np.clip(distance, 0.0, 1.0).astype(np.float32, copy=False)
+    else:
+        distance = np.ones((height, width), dtype=np.float32)
+
+    raster = np.stack(
+        (
+            similarity,
+            support,
+            diagnostics["hessian_magnitude"],
+            diagnostics["winning_scale"],
+            diagnostics["orientation_sin2"],
+            diagnostics["orientation_cos2"],
+            distance,
+        ),
+        axis=0,
+    ).astype(np.float32, copy=False)
+    if raster.shape[0] != len(FRANGI_RASTER_CHANNELS):
+        raise AssertionError("Frangi raster channel contract is inconsistent")
+    validate_frangi_raster(raster)
+    return raster
 
 
 def save_prompt_atomic(path: str | os.PathLike[str], prompt: np.ndarray | torch.Tensor) -> Path:

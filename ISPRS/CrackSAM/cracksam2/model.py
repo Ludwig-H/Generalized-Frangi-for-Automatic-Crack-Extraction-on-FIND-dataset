@@ -101,6 +101,24 @@ class LoRAInjectionReport:
     total_parameters: int
 
 
+@dataclass(frozen=True)
+class SAM2ImageFeatures:
+    """Features produced by one SAM 2 image-encoder pass.
+
+    ``input_size`` records the spatial size of the images before SAM's internal
+    resize.  It lets :meth:`CrackSAM2.decode_features` reproduce the historical
+    ``forward`` output size without seeing the original images again.
+    """
+
+    image_embeddings: torch.Tensor
+    high_resolution_features: tuple[torch.Tensor, ...]
+    input_size: tuple[int, int]
+
+    @property
+    def batch_size(self) -> int:
+        return int(self.image_embeddings.shape[0])
+
+
 def _is_linear(module: Any) -> bool:
     return isinstance(module, nn.Linear)
 
@@ -243,21 +261,43 @@ class CrackSAM2(nn.Module):
         ]
         return features[-1], features[:-1]
 
-    def forward(
-        self,
-        images: torch.Tensor,
-        mask_input: torch.Tensor | None = None,
-        output_size: tuple[int, int] | None = None,
-    ) -> dict[str, torch.Tensor]:
+    def encode_images(self, images: torch.Tensor) -> SAM2ImageFeatures:
+        """Encode a batch once so several heads can reuse the same features."""
+
         if images.ndim != 4 or images.shape[1] != 3:
             raise ValueError(f"images must have shape (B,3,H,W), got {images.shape}")
         if not images.is_floating_point():
             raise TypeError("images must be floating-point tensors in [0, 1]")
-        if output_size is None:
-            output_size = (int(images.shape[-2]), int(images.shape[-1]))
-        batch_size = images.shape[0]
-
         image_embeddings, high_resolution_features = self._encode_images(images)
+        return SAM2ImageFeatures(
+            image_embeddings=image_embeddings,
+            high_resolution_features=tuple(high_resolution_features),
+            input_size=(int(images.shape[-2]), int(images.shape[-1])),
+        )
+
+    def decode_features(
+        self,
+        features: SAM2ImageFeatures,
+        mask_input: torch.Tensor | None = None,
+        output_size: tuple[int, int] | None = None,
+    ) -> dict[str, torch.Tensor]:
+        """Decode previously encoded images with an optional SAM mask prompt.
+
+        This is the decode half of :meth:`forward`.  It intentionally follows
+        the same prompt-encoder and mask-decoder path as the historical method.
+        """
+
+        if not isinstance(features, SAM2ImageFeatures):
+            raise TypeError("features must be a SAM2ImageFeatures instance")
+        if output_size is None:
+            output_size = features.input_size
+        if len(output_size) != 2 or any(int(value) <= 0 for value in output_size):
+            raise ValueError(
+                f"output_size must contain two positive values, got {output_size}"
+            )
+        output_size = (int(output_size[0]), int(output_size[1]))
+        batch_size = features.batch_size
+
         if mask_input is not None:
             if mask_input.ndim != 4 or mask_input.shape[:2] != (batch_size, 1):
                 raise ValueError(
@@ -266,7 +306,7 @@ class CrackSAM2(nn.Module):
                 )
             prompt_dtype = next(self.sam2.sam_prompt_encoder.parameters()).dtype
             mask_input = mask_input.detach().to(
-                device=images.device, dtype=prompt_dtype
+                device=features.image_embeddings.device, dtype=prompt_dtype
             )
             required_size = tuple(self.sam2.sam_prompt_encoder.mask_input_size)
             if tuple(mask_input.shape[-2:]) != required_size:
@@ -295,13 +335,13 @@ class CrackSAM2(nn.Module):
             _,
             object_score_logits,
         ) = self.sam2.sam_mask_decoder(
-            image_embeddings=image_embeddings,
+            image_embeddings=features.image_embeddings,
             image_pe=self.sam2.sam_prompt_encoder.get_dense_pe(),
             sparse_prompt_embeddings=sparse_embeddings,
             dense_prompt_embeddings=dense_embeddings,
             multimask_output=False,
             repeat_image=False,
-            high_res_features=high_resolution_features,
+            high_res_features=list(features.high_resolution_features),
         )
         logits = F.interpolate(
             low_resolution_logits.float(),
@@ -315,6 +355,19 @@ class CrackSAM2(nn.Module):
             "iou_predictions": iou_predictions,
             "object_score_logits": object_score_logits,
         }
+
+    def forward(
+        self,
+        images: torch.Tensor,
+        mask_input: torch.Tensor | None = None,
+        output_size: tuple[int, int] | None = None,
+    ) -> dict[str, torch.Tensor]:
+        features = self.encode_images(images)
+        return self.decode_features(
+            features,
+            mask_input=mask_input,
+            output_size=output_size,
+        )
 
 
 def build_cracksam2(

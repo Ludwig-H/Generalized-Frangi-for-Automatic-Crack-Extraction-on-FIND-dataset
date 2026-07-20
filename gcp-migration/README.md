@@ -6,9 +6,10 @@ les gardes opérationnelles ajoutées dans
 [`Ludwig-H/E-HGP`](https://github.com/Ludwig-H/E-HGP/tree/main/gcp-migration),
 adaptées à CrackSAM et au projet `devpod-gpu-exploration`.
 
-La mise à jour du 20 juillet 2026 n'a créé, démarré, modifié ni supprimé aucune
-ressource GCP. Les contrôles de capacité et de quota sont en lecture seule ; les
-créations et démarrages exigent une confirmation explicite.
+Les contrôles de capacité et de quota sont en lecture seule. La cible dédiée
+décrite plus bas a ensuite été créée et démarrée explicitement le 20 juillet
+2026 pour la matrice causale ; elle a été arrêtée après vérification des
+artefacts. Toute création ou tout nouveau démarrage reste une action explicite.
 
 ## État et choix de zone
 
@@ -47,6 +48,50 @@ Un score Capacity Advisor est ponctuel : il ne réserve rien et ne garantit pas
 une création. L'ordre recommandé est : cible historique `europe-west4-a`, puis
 nouvelle cible explicite `europe-west4-ai1a`, puis repli interrégional explicite
 `europe-west8-c`. Aucun script ne change de zone automatiquement.
+
+## Cible dédiée FrangiGraph créée le 20 juillet 2026
+
+La feuille de route FrangiGraph utilise une cible distincte d'E-HGP :
+
+```text
+devpod-gpu-exploration / europe-west8-c / cracksam-frangigraph-g4-spot-ew8c
+```
+
+Elle possède un disque de travail Hyperdisk Balanced de 200 Go. Les données,
+prompts et poids historiques ont été récupérés sans démarrer l'ancienne VM :
+
+1. instantané immuable `cracksam-historical-frangi-20260720` du disque arrêté
+   `frangi-blackwell-spot` ;
+2. copie restaurée `cracksam-historical-frangi-copy-ew8c`, attachée à la
+   nouvelle VM sous le nom `historical-frangi-copy` ;
+3. montage invité avec `mount -o ro,noload`, qui interdit les écritures et la
+   reprise du journal du système de fichiers historique.
+
+Hyperdisk Balanced ne prend pas en charge l'attachement GCE en mode matériel
+lecture seule. L'instantané reste donc la source immuable ; seule sa copie est
+attachée, puis montée en lecture seule dans Linux. Ne jamais supprimer
+`frangi-blackwell-spot` : son disque de démarrage a toujours `autoDelete=true`.
+
+Configuration explicite de cette cible :
+
+```bash
+GCP_PROJECT_ID=devpod-gpu-exploration
+GCP_REGION=europe-west8
+GCP_ZONE=europe-west8-c
+GCP_INSTANCE_NAME=cracksam-frangigraph-g4-spot-ew8c
+GCP_BOOT_DISK_SIZE_GB=200
+GCP_MAX_RUN_DURATION=8h
+GCP_GUEST_SHUTDOWN_MINUTES=240
+```
+
+Les chemins de travail invités sont :
+
+```text
+/home/codespace/cracksam2-data
+/home/codespace/cracksam2-prompts
+/home/codespace/cracksam2-artifacts
+/home/codespace/Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset
+```
 
 ## Scripts et mutations
 

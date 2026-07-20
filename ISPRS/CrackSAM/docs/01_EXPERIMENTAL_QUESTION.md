@@ -43,7 +43,7 @@ différents.
 - utilité d'une évidence positive qui n'assimile pas le zéro à du fond certain ;
 - valeur ajoutée des magnitudes absolues, échelles et orientations ;
 - valeur ajoutée propre du graphe au-delà des cartes raster ;
-- prédictibilité des gains avant d'introduire une gate ;
+- prédictibilité des gains avant d'introduire une porte de confiance ;
 - robustesse sur ombres naturelles et synthétiques appariées ;
 - stabilité sur plusieurs graines d'entraînement et sur un test final intact.
 
