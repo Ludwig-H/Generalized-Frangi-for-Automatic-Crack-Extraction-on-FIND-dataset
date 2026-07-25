@@ -45,7 +45,12 @@ from cracksam2.oof import (
     strict_oof_training_contract,
     validate_oof_run_contract,
 )
-from cracksam2.residual import FrangiGraphResidual
+from cracksam2.residual import (
+    LEGACY_ADAPTER_MODE,
+    RESIDUAL_ADAPTER_MODES,
+    VERIFIED_ADAPTER_MODE,
+    FrangiGraphResidual,
+)
 from cracksam2.residual_data import (
     FrangiGraphRasterDataset,
     FrangiRasterNormalization,
@@ -72,6 +77,8 @@ DEFAULT_PROTOCOL_MANIFEST = (
 )
 CHECKPOINT_FORMAT_VERSION = 1
 CHECKPOINT_TRAINING_STATES = frozenset(("incomplete", "complete"))
+SELECTOR_FUSION_GRID_SOURCE = "SAM2ImageFeatures.high_resolution_features[0]"
+SELECTOR_FEATURE_CELL_UNIT = "hiera_high_resolution_feature_cells"
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -103,12 +110,48 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--hidden-channels", type=int, default=32)
     parser.add_argument(
+        "--adapter-mode",
+        choices=RESIDUAL_ADAPTER_MODES,
+        default=VERIFIED_ADAPTER_MODE,
+        help="Versioned residual architecture; legacy mode reproduces old checkpoints.",
+    )
+    parser.add_argument(
+        "--profile-radii-feature-cells",
+        "--profile-radii",
+        dest="profile_radii",
+        type=float,
+        nargs="+",
+        default=[1.5, 3.0],
+        metavar="RADIUS",
+        help=(
+            "Sampling radii in cells of the first SAM 2/Hiera high-resolution "
+            "feature grid. --profile-radii is a backward-compatible alias."
+        ),
+    )
+    parser.add_argument(
+        "--evidence-dilation-feature-cells",
+        "--evidence-dilation",
+        dest="evidence_dilation",
+        type=int,
+        default=2,
+        metavar="CELLS",
+        help=(
+            "Correction-envelope dilation radius in cells of the first SAM "
+            "2/Hiera high-resolution feature grid. --evidence-dilation is a "
+            "backward-compatible alias."
+        ),
+    )
+    parser.add_argument("--evidence-threshold", type=float, default=0.5)
+    parser.add_argument("--evidence-loss-weight", type=float, default=0.25)
+    parser.add_argument("--evidence-target-tolerance", type=int, default=3)
+    parser.add_argument(
         "--raster-condition",
         choices=("correct", "no_evidence"),
         default="correct",
         help=(
             "Use the matching Frangi raster, or its canonical absent-evidence "
-            "encoding for the equal-capacity control model."
+            "encoding for a legacy equal-capacity control. The verified local "
+            "adapter instead uses a same-checkpoint evaluation override."
         ),
     )
     parser.add_argument("--epochs", type=int, default=30)
@@ -159,12 +202,24 @@ def _validate_args(args: argparse.Namespace) -> None:
             raise ValueError(f"--{name.replace('_', '-')} must be positive")
     if args.num_workers < 0 or args.checkpoint_every_steps < 0:
         raise ValueError("worker and checkpoint intervals cannot be negative")
+    if args.evidence_dilation < 0 or args.evidence_target_tolerance < 0:
+        raise ValueError("evidence dilation and target tolerance cannot be negative")
+    if not args.profile_radii or any(
+        not np.isfinite(value) or value <= 0 for value in args.profile_radii
+    ):
+        raise ValueError(
+            "--profile-radii-feature-cells/--profile-radii must contain "
+            "positive values"
+        )
+    if not 0.0 < args.evidence_threshold < 1.0:
+        raise ValueError("--evidence-threshold must lie in (0, 1)")
     for name in (
         "base_lr",
         "poly_power",
         "gradient_clip",
         "safety_weight",
         "topology_weight",
+        "evidence_loss_weight",
     ):
         if float(getattr(args, name)) < 0.0:
             raise ValueError(f"--{name.replace('_', '-')} cannot be negative")
@@ -174,6 +229,19 @@ def _validate_args(args: argparse.Namespace) -> None:
         )
     if args.safety_margin < 0.0:
         raise ValueError("--safety-margin cannot be negative")
+    if args.adapter_mode == LEGACY_ADAPTER_MODE and args.evidence_loss_weight != 0.0:
+        raise ValueError(
+            "legacy_raster_v1 has no evidence verifier; pass --evidence-loss-weight 0"
+        )
+    if (
+        args.adapter_mode == VERIFIED_ADAPTER_MODE
+        and args.raster_condition == "no_evidence"
+    ):
+        raise ValueError(
+            "verified_local_v1 cannot be trained with no_evidence because its hard "
+            "support constraint makes the correction identically zero; evaluate a "
+            "correct checkpoint with the no_evidence input-ablation override instead"
+        )
     if args.skeleton_iterations <= 0:
         raise ValueError("--skeleton-iterations must be positive")
     if not 0.0 <= args.ce_weight <= 1.0:
@@ -401,16 +469,49 @@ def residual_checkpoint_payload(
         raise ValueError(
             "training_state must be either 'incomplete' or 'complete'"
         )
+    adapter_mode = str(getattr(model, "adapter_mode", LEGACY_ADAPTER_MODE))
+    architecture: dict[str, object] = {
+        "raster_channels": 7,
+        "high_resolution_channels": list(high_resolution_channels),
+        "hidden_channels": int(hidden_channels),
+        "adapter_mode": adapter_mode,
+    }
+    if adapter_mode == VERIFIED_ADAPTER_MODE:
+        profile_radii = list(model.adapter.profile_radii)  # type: ignore[attr-defined]
+        evidence_dilation = int(model.adapter.evidence_dilation)  # type: ignore[attr-defined]
+        architecture.update(
+            {
+                # Historical keys remain authoritative for old evaluators.
+                "profile_radii": profile_radii,
+                "evidence_dilation": evidence_dilation,
+                "evidence_threshold": float(model.adapter.evidence_threshold),  # type: ignore[attr-defined]
+                # Explicit-unit aliases make the coordinate system unambiguous.
+                "profile_radii_feature_cells": profile_radii,
+                "evidence_dilation_feature_cells": evidence_dilation,
+            }
+        )
+        contract_architecture = run_contract.get("residual")
+        if isinstance(contract_architecture, Mapping):
+            for key, expected in (
+                ("profile_radii_feature_cells", profile_radii),
+                ("evidence_dilation_feature_cells", evidence_dilation),
+            ):
+                observed = contract_architecture.get(key)
+                if observed is not None and observed != expected:
+                    raise ValueError(
+                        f"run-contract {key} differs from the verified adapter"
+                    )
+            selector_grid = contract_architecture.get("selector_grid")
+            if selector_grid is not None:
+                if not isinstance(selector_grid, Mapping):
+                    raise ValueError("run-contract selector_grid must be a mapping")
+                architecture["selector_grid"] = dict(selector_grid)
     return {
         "format_version": CHECKPOINT_FORMAT_VERSION,
         "training_state": training_state,
         # Keys are local to model.adapter (no leading ``adapter.`` prefix).
         "residual_adapter": _local_adapter_state(model),
-        "residual": {
-            "raster_channels": 7,
-            "high_resolution_channels": list(high_resolution_channels),
-            "hidden_channels": int(hidden_channels),
-        },
+        "residual": architecture,
         "baseline_adapter": {"sha256": baseline_checkpoint_sha256},
         "graph_cache": {
             "extractor_sha256": graph_cache.manifest["extractor_sha256"],
@@ -514,18 +615,62 @@ def _load_frozen_baseline(
     return baseline, metadata, sha256_file(baseline_checkpoint)
 
 
+def _infer_high_resolution_layout(
+    baseline: torch.nn.Module,
+    example_image: torch.Tensor,
+    device: torch.device,
+    amp_dtype: str,
+) -> tuple[tuple[int, ...], tuple[int, int]]:
+    with torch.inference_mode(), _autocast(device, amp_dtype):
+        features = baseline.encode_images(example_image.unsqueeze(0).to(device))
+    high_resolution_features = features.high_resolution_features
+    channels = tuple(int(value.shape[1]) for value in high_resolution_features)
+    if not channels or any(value <= 0 for value in channels):
+        raise RuntimeError("SAM 2 did not return usable high-resolution features")
+    fusion_grid_size = (
+        int(high_resolution_features[0].shape[-2]),
+        int(high_resolution_features[0].shape[-1]),
+    )
+    if any(value <= 0 for value in fusion_grid_size):
+        raise RuntimeError("SAM 2 returned an invalid selector fusion grid")
+    return channels, fusion_grid_size
+
+
 def _infer_high_resolution_channels(
     baseline: torch.nn.Module,
     example_image: torch.Tensor,
     device: torch.device,
     amp_dtype: str,
 ) -> tuple[int, ...]:
-    with torch.inference_mode(), _autocast(device, amp_dtype):
-        features = baseline.encode_images(example_image.unsqueeze(0).to(device))
-    channels = tuple(int(value.shape[1]) for value in features.high_resolution_features)
-    if not channels or any(value <= 0 for value in channels):
-        raise RuntimeError("SAM 2 did not return usable high-resolution features")
+    """Backward-compatible channel-only wrapper for external smoke utilities."""
+
+    channels, _ = _infer_high_resolution_layout(
+        baseline, example_image, device, amp_dtype
+    )
     return channels
+
+
+def _selector_grid_contract(
+    *,
+    input_image_size: tuple[int, int],
+    fusion_grid_size: tuple[int, int],
+) -> dict[str, object]:
+    """Describe the feature-cell coordinate system used by the local selector."""
+
+    input_height, input_width = (int(value) for value in input_image_size)
+    fusion_height, fusion_width = (int(value) for value in fusion_grid_size)
+    if min(input_height, input_width, fusion_height, fusion_width) <= 0:
+        raise ValueError("selector input and fusion-grid sizes must be positive")
+    return {
+        "source": SELECTOR_FUSION_GRID_SOURCE,
+        "parameter_unit": SELECTOR_FEATURE_CELL_UNIT,
+        "input_image_size_pixels": [input_height, input_width],
+        "fusion_grid_size_feature_cells": [fusion_height, fusion_width],
+        "effective_stride_input_pixels_per_feature_cell": [
+            input_height / fusion_height,
+            input_width / fusion_width,
+        ],
+    }
 
 
 def train_batch(
@@ -550,6 +695,8 @@ def train_batch(
             output["candidate_logits"],
             output["baseline_logits"],
             targets,
+            evidence_logits=output.get("evidence_logits"),
+            evidence_support=output.get("evidence_support"),
             **loss_parameters,
         )
     loss = losses["loss"]
@@ -707,14 +854,22 @@ def main(argv: list[str] | None = None) -> int:
         device=device,
     )
     example = train_dataset[0]["image"]
-    high_resolution_channels = _infer_high_resolution_channels(
+    high_resolution_channels, selector_fusion_grid_size = _infer_high_resolution_layout(
         baseline, example, device, args.amp_dtype
+    )
+    selector_grid = _selector_grid_contract(
+        input_image_size=(int(example.shape[-2]), int(example.shape[-1])),
+        fusion_grid_size=selector_fusion_grid_size,
     )
     model = FrangiGraphResidual(
         baseline,
         raster_channels=len(FRANGI_RASTER_CHANNELS),
         high_resolution_channels=high_resolution_channels,
         hidden_channels=args.hidden_channels,
+        adapter_mode=args.adapter_mode,
+        profile_radii=args.profile_radii,
+        evidence_dilation=args.evidence_dilation,
+        evidence_threshold=args.evidence_threshold,
     ).to(device)
     model.train()
     if any(parameter.requires_grad for parameter in model.baseline.parameters()):
@@ -740,9 +895,30 @@ def main(argv: list[str] | None = None) -> int:
         "channels": list(FRANGI_RASTER_CHANNELS),
         "manifest_sha256": cache.manifest_sha256,
     }
+    residual_contract: dict[str, object] = {
+        "raster_channels": len(FRANGI_RASTER_CHANNELS),
+        "high_resolution_channels": list(high_resolution_channels),
+        "hidden_channels": args.hidden_channels,
+        "adapter_mode": args.adapter_mode,
+        "profile_radii": list(args.profile_radii),
+        "evidence_dilation": args.evidence_dilation,
+        "evidence_threshold": args.evidence_threshold,
+    }
+    if args.adapter_mode == VERIFIED_ADAPTER_MODE:
+        residual_contract.update(
+            {
+                "profile_radii_feature_cells": list(args.profile_radii),
+                "evidence_dilation_feature_cells": args.evidence_dilation,
+                "selector_grid": selector_grid,
+            }
+        )
     run_contract: dict[str, object] = {
         "contract_version": RESIDUAL_RUN_CONTRACT_VERSION,
-        "method": "FrangiGraph-Residual-raster-v1",
+        "method": (
+            "FrangiGraph-SelectiveResidual-local-v1"
+            if args.adapter_mode == VERIFIED_ADAPTER_MODE
+            else "FrangiGraph-Residual-raster-v1"
+        ),
         "raster_condition": args.raster_condition,
         "held_out_fold": args.fold,
         "oof_training": oof_training,
@@ -754,11 +930,7 @@ def main(argv: list[str] | None = None) -> int:
             **baseline_metadata,
             "adapter_checkpoint": _file_identity(args.baseline_checkpoint),
         },
-        "residual": {
-            "raster_channels": len(FRANGI_RASTER_CHANNELS),
-            "high_resolution_channels": list(high_resolution_channels),
-            "hidden_channels": args.hidden_channels,
-        },
+        "residual": residual_contract,
         "graph_cache": graph_checkpoint_contract,
         "raster_preprocessing": normalization.preprocessing_contract(),
         "data": {
@@ -804,6 +976,8 @@ def main(argv: list[str] | None = None) -> int:
             "topology_weight": args.topology_weight,
             "safety_weight": args.safety_weight,
             "safety_margin": args.safety_margin,
+            "evidence_loss_weight": args.evidence_loss_weight,
+            "evidence_target_tolerance": args.evidence_target_tolerance,
             "skeleton_iterations": args.skeleton_iterations,
             "gradient_clip": args.gradient_clip,
             "threshold": args.threshold,
@@ -819,6 +993,7 @@ def main(argv: list[str] | None = None) -> int:
                 CRACKSAM_ROOT / "cracksam2" / "oof.py",
                 CRACKSAM_ROOT / "cracksam2" / "residual_data.py",
                 CRACKSAM_ROOT / "cracksam2" / "residual.py",
+                CRACKSAM_ROOT / "cracksam2" / "evidence_selection.py",
                 CRACKSAM_ROOT / "cracksam2" / "losses.py",
                 CRACKSAM_ROOT / "cracksam2" / "model.py",
             )
@@ -834,6 +1009,14 @@ def main(argv: list[str] | None = None) -> int:
         "run_contract_sha256": run_contract_sha256,
         "trainable_parameters": sum(p.numel() for p in adapter_parameters),
     }
+    if args.adapter_mode == VERIFIED_ADAPTER_MODE:
+        config.update(
+            {
+                "profile_radii_feature_cells": list(args.profile_radii),
+                "evidence_dilation_feature_cells": args.evidence_dilation,
+                "selector_grid": selector_grid,
+            }
+        )
     # ``--resume`` is an invocation detail rather than part of the immutable
     # experiment.  Keeping it null makes the original and resumed config
     # exactly comparable.
@@ -880,6 +1063,8 @@ def main(argv: list[str] | None = None) -> int:
         "safety_weight": args.safety_weight,
         "safety_margin": args.safety_margin,
         "skeleton_iterations": args.skeleton_iterations,
+        "evidence_weight": args.evidence_loss_weight,
+        "evidence_target_tolerance": args.evidence_target_tolerance,
     }
     stop_requested = False
 

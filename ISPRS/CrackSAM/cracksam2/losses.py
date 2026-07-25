@@ -150,6 +150,109 @@ def soft_cldice_loss_per_image(
     )
 
 
+def frangi_evidence_target(
+    targets: torch.Tensor,
+    *,
+    tolerance: int = 3,
+) -> torch.Tensor:
+    """Return the train-only label for Frangi support verification.
+
+    A candidate is labelled compatible when it falls on the annotated crack or
+    within a small tolerance for raster/skeleton alignment.  This target does
+    not encode marginal utility over SAM: the segmentation loss must learn that
+    distinction.  It is consumed only during training and is never an inference
+    input or cache channel.
+    """
+
+    if targets.ndim == 3:
+        targets = targets.unsqueeze(1)
+    if targets.ndim != 4 or targets.shape[1] != 1:
+        raise ValueError(f"targets must have shape (B,1,H,W), got {targets.shape}")
+    if tolerance < 0:
+        raise ValueError("tolerance cannot be negative")
+    binary = (targets > 0.5).to(dtype=torch.float32)
+    if tolerance:
+        binary = F.max_pool2d(
+            binary,
+            kernel_size=2 * tolerance + 1,
+            stride=1,
+            padding=tolerance,
+        )
+    return binary
+
+
+def masked_balanced_evidence_loss(
+    evidence_logits: torch.Tensor,
+    evidence_support: torch.Tensor,
+    targets: torch.Tensor,
+    *,
+    tolerance: int = 3,
+) -> dict[str, torch.Tensor]:
+    """Balanced compatibility BCE evaluated only at Frangi support cells.
+
+    Positives and negatives contribute equally within each image when both are
+    present.  An empty support has a finite differentiable zero loss, which is
+    required for images where Frangi abstains entirely.
+    """
+
+    if evidence_logits.ndim != 4 or evidence_logits.shape[1] != 1:
+        raise ValueError("evidence_logits must have shape (B,1,H,W)")
+    if evidence_support.shape != evidence_logits.shape:
+        raise ValueError("evidence_support and evidence_logits must have equal shape")
+    labels = frangi_evidence_target(targets, tolerance=tolerance).to(
+        device=evidence_logits.device,
+        dtype=evidence_logits.dtype,
+    )
+    if labels.shape[0] != evidence_logits.shape[0]:
+        raise ValueError("evidence logits and targets must have equal batch sizes")
+    if labels.shape[-2:] != evidence_logits.shape[-2:]:
+        if (
+            labels.shape[-2] >= evidence_logits.shape[-2]
+            and labels.shape[-1] >= evidence_logits.shape[-1]
+        ):
+            # Match the selector's support max-pooling: a feature cell is a
+            # positive candidate when any tolerated GT pixel falls inside it.
+            labels = F.adaptive_max_pool2d(labels, evidence_logits.shape[-2:])
+        else:
+            labels = F.interpolate(
+                labels, size=evidence_logits.shape[-2:], mode="nearest"
+            )
+    if labels.shape != evidence_logits.shape:
+        raise ValueError(
+            "evidence logits and segmentation targets must have equal shape"
+        )
+    valid = evidence_support.to(device=evidence_logits.device) > 0.5
+    positive = valid & (labels > 0.5)
+    negative = valid & ~positive
+    loss_map = F.binary_cross_entropy_with_logits(
+        evidence_logits, labels, reduction="none"
+    )
+    per_image: list[torch.Tensor] = []
+    for index in range(evidence_logits.shape[0]):
+        positive_loss = loss_map[index][positive[index]]
+        negative_loss = loss_map[index][negative[index]]
+        if positive_loss.numel() and negative_loss.numel():
+            value = 0.5 * (positive_loss.mean() + negative_loss.mean())
+        elif positive_loss.numel():
+            value = positive_loss.mean()
+        elif negative_loss.numel():
+            value = negative_loss.mean()
+        else:
+            value = evidence_logits[index].sum() * 0.0
+        per_image.append(value)
+    valid_count = valid.float().sum()
+    positive_fraction = torch.where(
+        valid_count > 0,
+        positive.float().sum() / valid_count.clamp_min(1.0),
+        valid_count,
+    )
+    return {
+        "loss": torch.stack(per_image).mean(),
+        "positive_fraction": positive_fraction,
+        "support_fraction": valid.float().mean(),
+    }
+
+
 def residual_training_loss(
     candidate_logits: torch.Tensor,
     baseline_logits: torch.Tensor,
@@ -160,6 +263,10 @@ def residual_training_loss(
     safety_weight: float = 1.0,
     safety_margin: float = 0.0,
     skeleton_iterations: int = 20,
+    evidence_logits: torch.Tensor | None = None,
+    evidence_support: torch.Tensor | None = None,
+    evidence_weight: float = 0.0,
+    evidence_target_tolerance: int = 3,
 ) -> dict[str, torch.Tensor]:
     """Loss for the residual candidate with an image-level safety penalty.
 
@@ -173,9 +280,12 @@ def residual_training_loss(
         ("topology_weight", topology_weight),
         ("safety_weight", safety_weight),
         ("safety_margin", safety_margin),
+        ("evidence_weight", evidence_weight),
     ):
         if value < 0:
             raise ValueError(f"{name} cannot be negative")
+    if evidence_target_tolerance < 0:
+        raise ValueError("evidence_target_tolerance cannot be negative")
     candidate_loss, candidate_ce, candidate_dice = cracksam_loss_per_image(
         candidate_logits, targets, ce_weight=ce_weight
     )
@@ -194,19 +304,40 @@ def residual_training_loss(
         # disabled; at 448 px it is materially more expensive than BCE/Dice.
         topology = torch.zeros_like(candidate_loss)
     degradation = F.relu(candidate_loss - baseline_loss + safety_margin)
+    if (evidence_logits is None) != (evidence_support is None):
+        raise ValueError(
+            "evidence_logits and evidence_support must be provided together"
+        )
+    if evidence_logits is None:
+        evidence = candidate_logits.sum() * 0.0
+        evidence_positive_fraction = evidence.detach()
+        evidence_support_fraction = evidence.detach()
+    else:
+        evidence_values = masked_balanced_evidence_loss(
+            evidence_logits,
+            evidence_support,
+            targets,
+            tolerance=evidence_target_tolerance,
+        )
+        evidence = evidence_values["loss"]
+        evidence_positive_fraction = evidence_values["positive_fraction"]
+        evidence_support_fraction = evidence_values["support_fraction"]
     total_per_image = (
         candidate_loss
         + topology_weight * topology
         + safety_weight * degradation
     )
     return {
-        "loss": total_per_image.mean(),
+        "loss": total_per_image.mean() + evidence_weight * evidence,
         "segmentation": candidate_loss.mean(),
         "ce": candidate_ce.mean(),
         "dice": candidate_dice.mean(),
         "topology": topology.mean(),
         "degradation": degradation.mean(),
         "degraded_fraction": (degradation > 0).float().mean(),
+        "evidence": evidence,
+        "evidence_positive_fraction": evidence_positive_fraction,
+        "evidence_support_fraction": evidence_support_fraction,
     }
 
 

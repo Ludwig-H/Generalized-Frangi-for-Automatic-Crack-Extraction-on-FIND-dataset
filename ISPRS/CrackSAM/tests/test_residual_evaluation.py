@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import hashlib
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -34,14 +35,17 @@ from cracksam2.oof import strict_oof_training_contract
 from cracksam2.residual_evaluation import (
     GraphRasterEvaluationDataset,
     ROW_FIELDS,
+    SELECTOR_DIAGNOSTIC_FIELDS,
     RasterPreprocessing,
     append_progress_batch,
     build_evaluation_row,
+    build_selector_diagnostic,
     ensure_evaluation_contract,
     evaluate_residual_loader,
     load_group_assignments,
     load_safe_torch_checkpoint,
     read_progress_rows,
+    read_selector_diagnostics,
     resolve_raster_condition,
     summarize_rows,
     validate_residual_checkpoint,
@@ -51,6 +55,8 @@ from cracksam2.residual_data import FrangiRasterNormalization
 from evaluate_frangi_graph_residual import (  # noqa: E402
     _evaluation_usage_policy,
     _ordered_finalize,
+    _selector_metadata_from_checkpoint,
+    parse_args,
 )
 
 
@@ -62,6 +68,21 @@ def _identity_preprocessing() -> RasterPreprocessing:
         offset=(0.0,) * len(channels),
         scale=(1.0,) * len(channels),
     )
+
+
+def test_evaluation_help_explains_checkpoint_bound_feature_cell_units() -> None:
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "evaluate_frangi_graph_residual.py"), "--help"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
+    help_text = " ".join(result.stdout.split())
+    assert "profile radii and evidence dilation" in help_text
+    assert "first SAM 2/Hiera high-resolution feature grid" in help_text
+    assert "evaluation never overrides them" in help_text
 
 
 def _row(target: torch.Tensor | None = None) -> dict[str, object]:
@@ -81,6 +102,36 @@ def _row(target: torch.Tensor | None = None) -> dict[str, object]:
         target=target,
         frangi_stats={"similarity": 0.75, "density": 0.25},
         frangi_support=support,
+    )
+
+
+def _selector_diagnostic(
+    case_name: str = "case.png",
+    *,
+    score_source: str = "evidence_score_fusion",
+) -> dict[str, object]:
+    support = torch.tensor([[[1.0, 1.0], [0.0, 0.0]]])
+    score = torch.tensor([[[0.8, 0.2], [0.0, 0.0]]])
+    selected = torch.tensor([[[1.0, 0.0], [0.0, 0.0]]])
+    envelope_fusion = selected.clone()
+    envelope_output = torch.zeros(1, 4, 4)
+    envelope_output[:, :2, :2] = 1.0
+    residual = torch.zeros(1, 4, 4)
+    residual[:, :2, :2] = 2.0
+    target = torch.zeros(1, 4, 4)
+    target[:, 0, 0] = 1.0
+    target[:, 0, 3] = 1.0
+    return build_selector_diagnostic(
+        case_name=case_name,
+        evidence_score_source=score_source,
+        gate_spatial_support_source="accepted_local_selector_output",
+        evidence_support_fusion=support,
+        evidence_score_fusion=score,
+        evidence_selected_fusion=selected,
+        correction_envelope_fusion=envelope_fusion,
+        correction_envelope_output=envelope_output,
+        residual_logits=residual,
+        target=target,
     )
 
 
@@ -131,6 +182,84 @@ def test_progress_is_resumable_and_repairs_only_a_truncated_last_line(
     with pytest.raises(ValueError, match="Duplicate"):
         append_progress_batch(path, dataset="synthetic", rows=[_row()])
         read_progress_rows(path, expected_dataset="synthetic")
+
+
+def test_selector_diagnostic_uses_fusion_cells_and_output_residual_amplitude() -> None:
+    diagnostic = _selector_diagnostic()
+
+    assert tuple(diagnostic) == SELECTOR_DIAGNOSTIC_FIELDS
+    assert diagnostic["fusion_height"] == 2
+    assert diagnostic["fusion_width"] == 2
+    assert diagnostic["spatial_cells"] == 4
+    assert diagnostic["selector_support_fraction"] == 0.5
+    assert diagnostic["selector_accepted_fraction_on_support"] == 0.5
+    assert diagnostic["evidence_score_support_mean"] == pytest.approx(0.5)
+    assert diagnostic["evidence_score_support_p05"] == pytest.approx(0.23)
+    assert diagnostic["evidence_score_support_p50"] == pytest.approx(0.5)
+    assert diagnostic["evidence_score_support_p95"] == pytest.approx(0.77)
+    assert diagnostic["correction_envelope_fraction_on_fusion_grid"] == 0.25
+    assert diagnostic["residual_absolute_mean_inside_output_envelope"] == 2.0
+    assert diagnostic["residual_absolute_mean_outside_output_envelope"] == 0.0
+    assert (
+        diagnostic[
+            "annotation_overlap_precision_on_selected_support"
+        ]
+        == 1.0
+    )
+    assert (
+        diagnostic["annotation_overlap_recall_on_supported_target"]
+        == 0.5
+    )
+    assert _selector_diagnostic(
+        score_source="evidence_probability"
+    )["evidence_score_source"] == "evidence_probability"
+
+
+def test_old_progress_schema_resumes_and_finalizes_partial_selector_diagnostics(
+    tmp_path: Path,
+) -> None:
+    progress = tmp_path / "progress.jsonl"
+    old_row = dict(_row())
+    old_row["case_name"] = "old.png"
+    append_progress_batch(progress, dataset="synthetic", rows=[old_row])
+    old_entry = json.loads(progress.read_text(encoding="utf-8").splitlines()[0])
+    assert set(old_entry) == {"format_version", "dataset", "rows"}
+
+    new_row = dict(_row())
+    new_row["case_name"] = "new.png"
+    append_progress_batch(
+        progress,
+        dataset="synthetic",
+        rows=[new_row],
+        selector_diagnostics=[_selector_diagnostic("new.png")],
+    )
+
+    assert list(read_progress_rows(progress, expected_dataset="synthetic")) == [
+        "old.png",
+        "new.png",
+    ]
+    assert list(
+        read_selector_diagnostics(progress, expected_dataset="synthetic")
+    ) == ["new.png"]
+    _ordered_finalize(
+        output=tmp_path,
+        dataset_name="synthetic",
+        selected_names=["old.png", "new.png"],
+        role="gate_fit",
+        causal_raster_override=False,
+    )
+
+    artifact = json.loads(
+        (tmp_path / "selector_diagnostics.json").read_text(encoding="utf-8")
+    )
+    assert artifact["complete"] is False
+    assert artifact["selected_cases"] == 2
+    assert artifact["diagnostic_cases"] == 1
+    assert artifact["missing_case_names"] == ["old.png"]
+    assert artifact["row_fields"] == list(SELECTOR_DIAGNOSTIC_FIELDS)
+    assert [row["case_name"] for row in artifact["rows"]] == ["new.png"]
+    with (tmp_path / "per_image.csv").open(newline="", encoding="utf-8") as stream:
+        assert tuple(csv.DictReader(stream).fieldnames or ()) == ROW_FIELDS
 
 
 def test_contract_and_final_csv_are_atomic_and_strict(tmp_path: Path) -> None:
@@ -320,10 +449,104 @@ def test_checkpoint_loading_is_safe_and_bound_to_baseline_and_cache(
     assert spec.held_out_fold == 2
     assert spec.oof_training["training_folds"] == [0, 1, 3]
     assert spec.training_state == "complete"
+    assert spec.adapter_mode == "legacy_raster_v1"
+    assert spec.profile_radii == ()
+    assert (
+        _selector_metadata_from_checkpoint(
+            payload,
+            adapter_mode=spec.adapter_mode,
+            profile_radii=spec.profile_radii,
+            evidence_dilation=spec.evidence_dilation,
+        )
+        == {}
+    )
     with pytest.raises(ValueError, match="another baseline"):
         validate_residual_checkpoint(
             loaded,
             baseline_checkpoint_sha256="c" * 64,
+            graph_cache_manifest=manifest,
+        )
+
+
+def test_checkpoint_validates_verified_local_architecture() -> None:
+    manifest = {
+        "extractor_sha256": "a" * 64,
+        "frangi": {"scales": [1.0]},
+        "channels": list(FRANGI_RASTER_CHANNELS),
+        "manifest_sha256": "d" * 64,
+    }
+    payload = _residual_payload("b" * 64, manifest)
+    verified_architecture = {
+        "adapter_mode": "verified_local_v1",
+        "profile_radii": [1.5, 3.0],
+        "evidence_dilation": 2,
+        "evidence_threshold": 0.5,
+    }
+    payload["residual"].update(verified_architecture)
+    payload["run_contract"]["residual"] = dict(verified_architecture)
+    payload["run_contract_sha256"] = hashlib.sha256(
+        json.dumps(
+            payload["run_contract"],
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=True,
+        ).encode("utf-8")
+    ).hexdigest()
+
+    spec = validate_residual_checkpoint(
+        payload,
+        baseline_checkpoint_sha256="b" * 64,
+        graph_cache_manifest=manifest,
+    )
+
+    assert spec.adapter_mode == "verified_local_v1"
+    assert spec.profile_radii == (1.5, 3.0)
+    assert spec.evidence_dilation == 2
+    assert spec.evidence_threshold == 0.5
+
+    selector_grid = {
+        "source": "SAM2ImageFeatures.high_resolution_features[0]",
+        "parameter_unit": "hiera_high_resolution_feature_cells",
+        "input_image_size_pixels": [448, 448],
+        "fusion_grid_size_feature_cells": [256, 224],
+        "effective_stride_input_pixels_per_feature_cell": [1.75, 2.0],
+    }
+    payload["residual"].update(
+        {
+            "profile_radii_feature_cells": [1.5, 3.0],
+            "evidence_dilation_feature_cells": 2,
+            "selector_grid": selector_grid,
+        }
+    )
+    selector_metadata = _selector_metadata_from_checkpoint(
+        payload,
+        adapter_mode=spec.adapter_mode,
+        profile_radii=spec.profile_radii,
+        evidence_dilation=spec.evidence_dilation,
+    )
+    assert selector_metadata == {
+        "profile_radii_feature_cells": [1.5, 3.0],
+        "evidence_dilation_feature_cells": 2,
+        "selector_grid": selector_grid,
+    }
+
+    payload["residual"]["selector_grid"][
+        "effective_stride_input_pixels_per_feature_cell"
+    ] = [2.0, 2.0]
+    with pytest.raises(ValueError, match="effective stride"):
+        _selector_metadata_from_checkpoint(
+            payload,
+            adapter_mode=spec.adapter_mode,
+            profile_radii=spec.profile_radii,
+            evidence_dilation=spec.evidence_dilation,
+        )
+    payload["residual"].pop("selector_grid")
+
+    payload["residual"]["evidence_threshold"] = 1.0
+    with pytest.raises(ValueError, match="evidence_threshold"):
+        validate_residual_checkpoint(
+            payload,
+            baseline_checkpoint_sha256="b" * 64,
             graph_cache_manifest=manifest,
         )
 
@@ -537,6 +760,34 @@ class _FakeResidual(torch.nn.Module):
         return {"baseline_logits": baseline, "candidate_logits": candidate}
 
 
+class _FakeVerifiedResidual(torch.nn.Module):
+    def forward(self, images, rasters, output_size, accept_residual):
+        batch = images.shape[0]
+        baseline = torch.full((batch, 1, *output_size), -2.0, device=images.device)
+        residual = torch.zeros_like(baseline)
+        residual[:, :, 0, 1] = 4.0
+        candidate = baseline + residual
+        support_fusion = torch.zeros_like(baseline)
+        support_fusion[:, :, 0, :2] = 1.0
+        score_fusion = torch.zeros_like(baseline)
+        score_fusion[:, :, 0, 0] = 0.8
+        score_fusion[:, :, 0, 1] = 0.2
+        selected_fusion = torch.zeros_like(baseline)
+        selected_fusion[:, :, 0, 1] = 1.0
+        envelope_fusion = selected_fusion.clone()
+        return {
+            "baseline_logits": baseline,
+            "candidate_logits": candidate,
+            "residual_logits": residual,
+            "evidence_score_fusion": score_fusion,
+            "evidence_support_fusion": support_fusion,
+            "evidence_selected_fusion": selected_fusion,
+            "correction_envelope_fusion": envelope_fusion,
+            "evidence_selected": selected_fusion,
+            "correction_envelope": envelope_fusion,
+        }
+
+
 def test_loader_pipeline_runs_without_sam2_and_writes_gate_ready_rows(
     tmp_path: Path,
 ) -> None:
@@ -565,6 +816,63 @@ def test_loader_pipeline_runs_without_sam2_and_writes_gate_ready_rows(
     assert all(set(DEFAULT_GATE_FEATURES).issubset(row) for row in rows.values())
 
 
+def test_verified_loader_journals_and_finalizes_complete_selector_diagnostics(
+    tmp_path: Path,
+) -> None:
+    loader = DataLoader(_SyntheticResidualDataset(), batch_size=2, shuffle=False)
+    progress = tmp_path / "progress.jsonl"
+
+    completed = evaluate_residual_loader(
+        _FakeVerifiedResidual(),
+        loader,
+        preprocessing=_identity_preprocessing(),
+        source_groups={"case0.png": "wall0", "case1.png": "wall1"},
+        dataset="synthetic",
+        role="gate_calibration",
+        fold="4",
+        progress_path=progress,
+        device="cpu",
+        amp_dtype="none",
+        show_progress=False,
+    )
+    rows = read_progress_rows(progress, expected_dataset="synthetic")
+    diagnostics = read_selector_diagnostics(
+        progress, expected_dataset="synthetic"
+    )
+
+    assert completed == 2
+    assert list(diagnostics) == ["case0.png", "case1.png"]
+    assert all(
+        diagnostic["evidence_score_source"] == "evidence_score_fusion"
+        for diagnostic in diagnostics.values()
+    )
+    assert all(
+        diagnostic["gate_spatial_support_source"]
+        == "accepted_local_selector_output"
+        for diagnostic in diagnostics.values()
+    )
+    # The local accepted support contains the only correction.  This verifies
+    # that gate spatial summaries no longer use the raw cache support by default.
+    assert all(
+        row["support_correction_probability_mean"] > 0.0 for row in rows.values()
+    )
+
+    _ordered_finalize(
+        output=tmp_path,
+        dataset_name="synthetic",
+        selected_names=["case0.png", "case1.png"],
+        role="gate_calibration",
+        causal_raster_override=False,
+    )
+    artifact = json.loads(
+        (tmp_path / "selector_diagnostics.json").read_text(encoding="utf-8")
+    )
+    assert artifact["complete"] is True
+    assert artifact["diagnostic_cases"] == 2
+    assert artifact["missing_case_names"] == []
+    assert not list(tmp_path.glob(".selector_diagnostics.json.*.tmp"))
+
+
 def test_no_evidence_is_canonical_and_override_is_one_way(tmp_path: Path) -> None:
     assert resolve_raster_condition("correct", None, allow_causal_override=False) == (
         "correct",
@@ -575,7 +883,7 @@ def test_no_evidence_is_canonical_and_override_is_one_way(tmp_path: Path) -> Non
     ) == ("no_evidence", True)
     with pytest.raises(ValueError, match="must never receive"):
         resolve_raster_condition("no_evidence", "correct", allow_causal_override=True)
-    with pytest.raises(ValueError, match="allow-causal-raster-override"):
+    with pytest.raises(ValueError, match="allow-input-ablation-raster-override"):
         resolve_raster_condition("correct", "no_evidence", allow_causal_override=False)
 
     progress = tmp_path / "no_evidence.jsonl"
@@ -598,6 +906,49 @@ def test_no_evidence_is_canonical_and_override_is_one_way(tmp_path: Path) -> Non
         assert row["frangi_similarity_support_mean"] == 0.0
         assert row["frangi_density"] == 0.0
         assert row["support_correction_probability_mean"] == 0.0
+
+
+@pytest.mark.parametrize(
+    "override_flag",
+    (
+        "--allow-input-ablation-raster-override",
+        "--allow-causal-raster-override",
+    ),
+)
+def test_evaluation_cli_accepts_canonical_input_ablation_flag_and_legacy_alias(
+    monkeypatch: pytest.MonkeyPatch,
+    override_flag: str,
+) -> None:
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "evaluate_frangi_graph_residual.py",
+            "--data-root",
+            "/data",
+            "--list-file",
+            "/data/list.txt",
+            "--split",
+            "train",
+            "--dataset-name",
+            "synthetic",
+            "--graph-cache",
+            "/cache",
+            "--sam2-checkpoint",
+            "/weights/sam2.pt",
+            "--baseline-checkpoint",
+            "/weights/baseline.pt",
+            "--residual-checkpoint",
+            "/weights/residual.pt",
+            "--output",
+            "/output",
+            "--role",
+            "development",
+            override_flag,
+        ],
+    )
+
+    assert parse_args().allow_causal_raster_override is True
 
 
 def test_group_assignments_verify_physical_fold(tmp_path: Path) -> None:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import subprocess
 import sys
 from pathlib import Path
 
@@ -298,6 +299,102 @@ def test_exclude_training_fold_cli_is_automatic_and_cannot_override_policy() -> 
         training._validate_args(fold_four_override)
 
 
+def test_verified_adapter_cli_refuses_structurally_empty_training() -> None:
+    required = [
+        "--data-root",
+        "data",
+        "--fold",
+        "0",
+        "--graph-cache",
+        "cache",
+        "--sam2-checkpoint",
+        "sam.pt",
+        "--baseline-checkpoint",
+        "baseline.pt",
+        "--output",
+        "output",
+    ]
+    verified = training.parse_args(required)
+    training._validate_args(verified)
+    assert verified.adapter_mode == "verified_local_v1"
+    assert verified.evidence_loss_weight == 0.25
+
+    explicit_units = training.parse_args(
+        [
+            *required,
+            "--profile-radii-feature-cells",
+            "2.0",
+            "4.0",
+            "--evidence-dilation-feature-cells",
+            "3",
+        ]
+    )
+    training._validate_args(explicit_units)
+    assert explicit_units.profile_radii == [2.0, 4.0]
+    assert explicit_units.evidence_dilation == 3
+
+    legacy_aliases = training.parse_args(
+        [
+            *required,
+            "--profile-radii",
+            "2.0",
+            "4.0",
+            "--evidence-dilation",
+            "3",
+        ]
+    )
+    training._validate_args(legacy_aliases)
+    assert legacy_aliases.profile_radii == explicit_units.profile_radii
+    assert legacy_aliases.evidence_dilation == explicit_units.evidence_dilation
+
+    empty = training.parse_args([*required, "--raster-condition", "no_evidence"])
+    with pytest.raises(ValueError, match="cannot be trained with no_evidence"):
+        training._validate_args(empty)
+
+    legacy = training.parse_args(
+        [
+            *required,
+            "--adapter-mode",
+            "legacy_raster_v1",
+            "--evidence-loss-weight",
+            "0",
+            "--raster-condition",
+            "no_evidence",
+        ]
+    )
+    training._validate_args(legacy)
+
+
+def test_selector_grid_contract_records_feature_cell_geometry() -> None:
+    contract = training._selector_grid_contract(
+        input_image_size=(448, 448),
+        fusion_grid_size=(256, 224),
+    )
+
+    assert contract == {
+        "source": "SAM2ImageFeatures.high_resolution_features[0]",
+        "parameter_unit": "hiera_high_resolution_feature_cells",
+        "input_image_size_pixels": [448, 448],
+        "fusion_grid_size_feature_cells": [256, 224],
+        "effective_stride_input_pixels_per_feature_cell": [1.75, 2.0],
+    }
+
+
+def test_training_help_names_selector_feature_cell_units() -> None:
+    result = subprocess.run(
+        [sys.executable, str(CRACKSAM_ROOT / "train_frangi_graph_residual.py"), "--help"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
+    help_text = " ".join(result.stdout.split())
+    assert "--profile-radii-feature-cells" in help_text
+    assert "--evidence-dilation-feature-cells" in help_text
+    assert "first SAM 2/Hiera high-resolution feature grid" in help_text
+
+
 def test_output_reuse_and_resume_config_are_guarded(tmp_path: Path) -> None:
     fresh = tmp_path / "fresh"
     training._prepare_output_directory(fresh, resume=False)
@@ -452,3 +549,56 @@ def test_cpu_training_and_atomic_resume_checkpoint_smoke(tmp_path: Path) -> None
     for name, value in model.adapter.state_dict().items():
         torch.testing.assert_close(value, saved_adapter[name])
     assert list(tmp_path.glob(".latest.pt.*.tmp")) == []
+
+
+def test_verified_checkpoint_records_explicit_selector_grid_units(tmp_path: Path) -> None:
+    _, _, _, cache, names = _write_training_fixture(tmp_path, [1.0] * 5)
+    index = load_graph_cache_index(
+        cache, names, image_size=(8, 8), noise_mode="original"
+    )
+    normalization = fit_frangi_raster_normalization(index, names[:4])
+    model = _TinyResidual()
+    model.adapter_mode = "verified_local_v1"
+    model.adapter.profile_radii = (1.5, 3.0)
+    model.adapter.evidence_dilation = 2
+    model.adapter.evidence_threshold = 0.5
+    optimizer = torch.optim.AdamW(model.adapter.parameters(), lr=1e-2)
+    scaler = torch.amp.GradScaler("cuda", enabled=False)
+    selector_grid = training._selector_grid_contract(
+        input_image_size=(448, 448), fusion_grid_size=(256, 256)
+    )
+    contract = {
+        "contract_version": 2,
+        "held_out_fold": 4,
+        "oof_training": strict_oof_training_contract(4),
+        "excluded_training_folds": [],
+        "all_folds_excluded_from_training": [4],
+        "residual": {
+            "profile_radii_feature_cells": [1.5, 3.0],
+            "evidence_dilation_feature_cells": 2,
+            "selector_grid": selector_grid,
+        },
+    }
+    payload = training.residual_checkpoint_payload(
+        model,
+        high_resolution_channels=(3,),
+        hidden_channels=1,
+        baseline_checkpoint_sha256="b" * 64,
+        graph_cache=index,
+        normalization=normalization,
+        run_contract=contract,
+        run_contract_sha256=training._json_sha256(contract),
+        optimizer_state=optimizer.state_dict(),
+        scaler_state=scaler.state_dict(),
+        epoch=1,
+        next_batch=0,
+        global_step=1,
+        best_validation_iou=0.0,
+    )
+
+    assert payload["format_version"] == 1
+    assert payload["residual"]["profile_radii"] == [1.5, 3.0]
+    assert payload["residual"]["profile_radii_feature_cells"] == [1.5, 3.0]
+    assert payload["residual"]["evidence_dilation"] == 2
+    assert payload["residual"]["evidence_dilation_feature_cells"] == 2
+    assert payload["residual"]["selector_grid"] == selector_grid

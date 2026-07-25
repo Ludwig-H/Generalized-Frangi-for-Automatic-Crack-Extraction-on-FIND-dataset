@@ -6,8 +6,8 @@ fondée sur **SAM 2 Hiera Large**. Il poursuit trois objectifs distincts :
 1. conserver une baseline SAM 2 + LoRA reproductible ;
 2. documenter honnêtement l'expérience historique où une similarité
    Frangi-graphe était injectée comme masque dense ;
-3. préparer une nouvelle méthode où Frangi fournit des candidats structuraux
-   que les features de SAM vérifient avant une correction résiduelle sûre.
+3. tester un prototype où Frangi fournit des candidats structuraux que les
+   features de SAM vérifient avant une correction résiduelle localisée.
 
 > [!IMPORTANT]
 > La baseline locale est entraînée sur SAM 2. Elle reprend l'idée PEFT de
@@ -43,23 +43,37 @@ est inadapté. Même après entraînement Frangi, le prompt ne récupère que
 
 ## Piste principale
 
-La piste retenue est **FrangiGraph-Residual** :
+La piste retenue est désormais **FrangiGraph-SelectiveResidual**. C'est un
+prototype destiné à tester l'hypothèse qu'une sélection locale peut mieux
+résister aux réponses Frangi sur les ombres ; cette robustesse n'est pas encore
+démontrée expérimentalement.
 
 - une voie baseline sans prompt produit `z0` ;
 - la similarité et le graphe Frangi deviennent une évidence auxiliaire
   réfutable, jamais une probabilité de segmentation ;
-- un petit adaptateur vérifie cette évidence avec les features multi-échelles
-  de SAM et prédit une correction signée `Δz` ;
+- un petit adaptateur vérifie localement cette évidence avec les features
+  multi-échelles de SAM et un profil photométrique vallée/marche ;
+- une correction signée `Δz` est structurellement interdite hors des zones
+  Frangi acceptées ;
 - une porte d'abstention permet de rendre exactement `z0` lorsque le candidat
   géométrique est incertain.
 
-La première version testable utilise sept cartes Frangi et prédit seulement une
-correction de la baseline. Sa porte de confiance est une simple régression
-logistique à sept nombres d'entrée, pas un Transformer. Un vérificateur plus
-complexe des nœuds et arêtes ne sera envisagé qu'après preuve que le signal
-Frangi est utile et que ses gains sont prévisibles sur validation.
+La version active réutilise les sept cartes Frangi et ajoute trois descripteurs
+photométriques calculés sur la **luminance**, perpendiculairement au ridge :
+symétrie de vallée sombre, marche unilatérale et contraste bilatéral. Elle
+ajoute un canal de cohérence de l'orientation Hessienne après agrégation. Elle
+apprend sur le seul jeu d'entraînement un score local d'alignement avec le
+voisinage de l'annotation ; ce score n'est pas une probabilité calibrée ni une
+mesure d'utilité marginale par rapport à SAM. Une porte globale logistique
+reste le second coupe-circuit. Un GNN de nœuds/arêtes ne sera envisagé qu'après
+un gain reproductible face à des contrôles réentraînés et à couverture
+comparable.
+
+Il n'existe encore ni résultat GPU pour ce sélecteur, ni expérience avec
+augmentation d'ombres, ni évaluation de benchmark externe pour ce prototype.
 
 - [Architecture FrangiGraph-Residual](docs/03_FRANGI_GRAPH_RESIDUAL.md)
+- [Prototype de sélection locale et protocole ombres](docs/07_SELECTIVE_FRANGI_EVIDENCE.md)
 - [Feuille de route complète](docs/04_IMPLEMENTATION_ROADMAP.md)
 - [Workflow reprenable du pilote](workflows/README.md#pilote-frangigraph--porte-logistique)
 
@@ -68,9 +82,10 @@ Frangi est utile et que ses gains sont prévisibles sur validation.
 1. [Question expérimentale et vocabulaire](docs/01_EXPERIMENTAL_QUESTION.md)
 2. [Baseline et comparaison avec CrackSAM](docs/02_BASELINE_COMPARISON.md)
 3. [Piste Frangi-graphe principale](docs/03_FRANGI_GRAPH_RESIDUAL.md)
-4. [Roadmap d'implémentation et matrice d'ablations](docs/04_IMPLEMENTATION_ROADMAP.md)
-5. [Exécution sur une VM G4](docs/05_GCP_EXECUTION.md)
-6. [Références qui motivent l'architecture](docs/06_DESIGN_REFERENCES.md)
+4. [Prototype de sélection locale face aux ombres](docs/07_SELECTIVE_FRANGI_EVIDENCE.md)
+5. [Roadmap d'implémentation et matrice d'ablations](docs/04_IMPLEMENTATION_ROADMAP.md)
+6. [Exécution sur une VM G4](docs/05_GCP_EXECUTION.md)
+7. [Références qui motivent l'architecture](docs/06_DESIGN_REFERENCES.md)
 
 ## Organisation
 
@@ -115,6 +130,9 @@ pseudo-masque sont conservés sous `docs/archive/` uniquement pour provenance.
 
 - Les chemins absolus présents dans certains JSON sont des traces de la VM
   d'origine et ne doivent pas être réécrits.
+- Le pilote sélectif utilise désormais un contrat de workflow schéma 3 ; une
+  ancienne `FRANGIGRAPH_RUN_ROOT` en schéma 2 doit être conservée et ne peut pas
+  servir de racine de reprise au schéma 3.
 - Les checkpoints historiques lient leurs résultats au code de leur commit ;
   la réorganisation actuelle ne prétend pas permettre une reprise bit-à-bit.
 - `data/`, `prompt_cache/` et `artifacts/` restent locaux et ignorés par Git.

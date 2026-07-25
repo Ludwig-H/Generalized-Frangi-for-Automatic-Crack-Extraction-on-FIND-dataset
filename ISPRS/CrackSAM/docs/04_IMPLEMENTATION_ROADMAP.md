@@ -176,6 +176,14 @@ sans charger SAM.
 
 ## Phase 4 — Première correction résiduelle par cartes Frangi
 
+> **Statut au 21 juillet 2026.** Le pilote non sélectif est terminé. Son faible
+> plafond oracle global et des réponses Frangi observées sur des ombres
+> motivent le prototype `verified_local_v1`, décrit dans
+> [07_SELECTIVE_FRANGI_EVIDENCE.md](07_SELECTIVE_FRANGI_EVIDENCE.md). Le cache
+> v2 et les checkpoints historiques restent inchangés. La robustesse aux ombres
+> est une hypothèse à tester : aucune augmentation d'ombre ni aucun benchmark
+> externe n'a encore été évalué pour cette variante.
+
 ### Modules proposés
 
 ```text
@@ -224,6 +232,21 @@ L = L_{seg,image}(z_1,y)
 - similarité seule versus canaux absolus ;
 - features finales seules versus pyramide haute résolution.
 
+Le passage du même checkpoint sous `no_evidence` est un test de nécessité de
+l'entrée et de fallback, pas une preuve causale complète. Les contrôles
+réellement discriminants à ajouter sont des modèles réentraînés à architecture
+identique avec Frangi correct, décalé, permuté ou aléatoire à couverture
+comparable, ainsi qu'un contrôle sans profils photométriques. Ils doivent
+séparer l'apport du contenu Frangi de la parcimonie, du contexte SAM et de la
+capacité supplémentaire du correcteur.
+
+Dans `verified_local_v1`, les rayons de profil et la dilation de correction sont
+mesurés en cellules de la grille de fusion Hiera haute résolution. La tolérance
+de la cible auxiliaire est mesurée en pixels du masque de sortie avant sa
+projection sur cette grille. Le seuil local `0,5` est un défaut opérationnel,
+pas un seuil calibré. La cible indique la proximité d'une annotation dilatée,
+pas l'utilité marginale du candidat par rapport à la baseline.
+
 ### Condition pour passer à la suite
 
 Poursuivre seulement si le candidat présente sur validation :
@@ -234,6 +257,14 @@ Poursuivre seulement si le candidat présente sur validation :
 - aucune violation du test de neutralité à l'initialisation.
 
 ## Phase 5 — Ombres et fiabilité géométrique
+
+> **Travail à venir.** Cette génération appariée n'est pas encore intégrée au
+> pilote et aucun résultat de robustesse aux ombres n'est actuellement
+> disponible. Le benchmark primaire
+> [Shadow-Crack de Fan et al. (2023)](https://www.ieee-jas.net/article/doi/10.1109/JAS.2023.123447),
+> motivé notamment par la proximité possible d'intensité entre ombres et
+> fissures, est à évaluer après gel du protocole ; aucun score du dépôt n'y est
+> encore disponible.
 
 ### Génération appariée
 
@@ -303,15 +334,19 @@ indépendantes. Sinon, conserver le modèle raster plus simple.
 
 ### Ordre
 
-1. régression logistique globale ;
-2. calibration out-of-fold ;
-3. porte par composante seulement si la version simple échoue ;
-4. porte spatiale seulement si elle devient réellement nécessaire.
+1. prototype de vérificateur raster local, introduit pour tester la séparation
+   entre fissure et ombre dans une même image ;
+2. régression logistique globale comme second coupe-circuit ;
+3. calibration out-of-fold : score global ajusté sur les folds 0–3 et seuil
+   choisi sur le seul fold 4 ; le seuil local `0,5` devra disposer de sa propre
+   calibration tenue à l'écart ;
+4. porte par composante après publication des vrais identifiants du graphe.
 
 Entrées possibles : statistiques du graphe, entropie baseline, stabilité sous
 augmentation, confiance du vérificateur et désaccord `z0/z1`.
 
-À l'inférence :
+À l'inférence, `q` désigne un score de sélection, et non une probabilité
+calibrée :
 
 ```text
 si q < seuil : sortie = z0 exactement
@@ -360,7 +395,17 @@ Chaque checkpoint lie :
 - seed, commit et état du worktree ;
 - version du schéma de résultats.
 
+Le workflow actif utilise un contrat de run de schéma 3. Une racine
+`FRANGIGRAPH_RUN_ROOT` créée avec le schéma 2 ne peut pas être reprise avec ce
+workflow : il faut conserver l'ancienne racine pour provenance et démarrer le
+schéma 3 dans une nouvelle racine. Cette version de contrat de workflow est
+indépendante du cache raster Frangi, qui reste au schéma 2.
+
 ## Phase 9 — Évaluation confirmatoire
+
+Les familles et benchmarks externes mentionnés dans cette feuille de route sont
+des évaluations futures. Aucun benchmark externe n'a encore été évalué pour
+`verified_local_v1`.
 
 ### Critères pré-enregistrés
 
@@ -420,7 +465,7 @@ Le projet est terminé lorsque :
 - la baseline et chaque variante sont restaurables par SHA ;
 - la neutralité et le fallback exact ont des tests automatiques ;
 - la valeur marginale du graphe est isolée de celle des cartes raster ;
-- les ombres sont évaluées sur un protocole causal ;
+- les ombres sont évaluées sur un protocole apparié et contrôlé ;
 - le résultat final respecte les critères statistiques pré-enregistrés ;
 - le coût G4, la latence et la mémoire sont rapportés ;
 - une expérience négative reste publiable avec ses causes identifiées.

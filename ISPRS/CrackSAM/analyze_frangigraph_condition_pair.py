@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Paired causal contrast between Frangi ``correct`` and ``no_evidence`` runs.
+"""Paired condition contrast between Frangi ``correct`` and ``no_evidence`` runs.
 
 The primary design compares two residuals retrained with identical capacity,
 folds, seed and hyperparameters.  The intervention is the availability of the
@@ -211,13 +211,30 @@ def load_workflow_contract(run_root: Path) -> tuple[dict[str, Any], dict[str, ob
         "gate_fit_folds",
         "gate_calibration_fold",
     }
-    if set(payload) != required:
-        raise ValueError("Workflow contract has missing or unknown top-level fields")
     if payload.get("schema") != WORKFLOW_SCHEMA:
         raise ValueError("Unknown workflow contract schema")
     schema_version = payload.get("schema_version")
-    if schema_version not in (1, 2):
-        raise ValueError("Paired condition analysis supports workflow schema 1 or 2")
+    if schema_version not in (1, 2, 3):
+        raise ValueError("Paired condition analysis supports workflow schema 1, 2 or 3")
+    if schema_version == 3:
+        required.add("selector_parameter_units")
+    if set(payload) != required:
+        raise ValueError("Workflow contract has missing or unknown top-level fields")
+    if schema_version == 3:
+        selector_units = _mapping(
+            payload.get("selector_parameter_units"), "selector parameter units"
+        )
+        expected_selector_units = {
+            "profile_radii_feature_cells": "hiera_high_resolution_feature_cells",
+            "evidence_dilation_feature_cells": (
+                "hiera_high_resolution_feature_cells"
+            ),
+            "fusion_grid_source": (
+                "SAM2ImageFeatures.high_resolution_features[0]"
+            ),
+        }
+        if selector_units != expected_selector_units:
+            raise ValueError("Workflow schema version 3 has invalid selector units")
     parameters = _mapping(payload.get("parameters"), "workflow parameters")
     required_parameters = (
         "fold_csv",
@@ -235,7 +252,9 @@ def load_workflow_contract(run_root: Path) -> tuple[dict[str, Any], dict[str, ob
                 "Workflow schema version 1 must not declare raster_condition"
             )
     elif parameters.get("raster_condition") not in ("correct", "no_evidence"):
-        raise ValueError("Workflow schema version 2 has no valid raster_condition")
+        raise ValueError(
+            f"Workflow schema version {schema_version} has no valid raster_condition"
+        )
     commit = str(parameters["git_commit"]).lower()
     if len(commit) not in (40, 64) or any(
         character not in "0123456789abcdef" for character in commit
@@ -451,11 +470,11 @@ def _workflow_condition(
                 f"{label} schema-v1 workflow unexpectedly declares raster_condition"
             )
         return "correct", "implicit_correct_from_schema_v1"
-    if version == 2:
+    if version in (2, 3):
         condition = parameters.get("raster_condition")
         if condition not in ("correct", "no_evidence"):
-            raise ValueError(f"{label} schema-v2 workflow has invalid condition")
-        return str(condition), "explicit_from_schema_v2"
+            raise ValueError(f"{label} schema-v{version} workflow has invalid condition")
+        return str(condition), f"explicit_from_schema_v{version}"
     raise ValueError(f"{label} workflow has unsupported schema version")
 
 
@@ -527,8 +546,8 @@ def validate_workflow_pair(
         control_parameters[key] = f"<allowed:{key}>"
     normalized_correct = dict(correct)
     normalized_control = dict(no_evidence)
-    normalized_correct["schema_version"] = "<compatible:1-or-2>"
-    normalized_control["schema_version"] = "<compatible:1-or-2>"
+    normalized_correct["schema_version"] = "<compatible:1-or-2-or-3>"
+    normalized_control["schema_version"] = "<compatible:1-or-2-or-3>"
     normalized_correct["parameters"] = correct_parameters
     normalized_control["parameters"] = control_parameters
     differences = _diff_paths(normalized_correct, normalized_control)
@@ -690,13 +709,13 @@ def validate_evaluation_pairs(
                 raise ValueError(f"Fold {fold} primary gate eligibility is invalid")
             if _threshold_calibration_eligible(right):
                 raise ValueError(
-                    f"Fold {fold} causal ablation must be ineligible for calibration"
+                    f"Fold {fold} input ablation must be ineligible for calibration"
                 )
             if _gate_fit_eligible(left) != (fold != "4"):
                 raise ValueError(f"Fold {fold} primary gate-fit eligibility is invalid")
             if _gate_fit_eligible(right):
                 raise ValueError(
-                    f"Fold {fold} causal ablation must be ineligible for gate fit"
+                    f"Fold {fold} input ablation must be ineligible for gate fit"
                 )
         normalized_left = _normalized_evaluation_contract(left.contract, design)
         normalized_right = _normalized_evaluation_contract(right.contract, design)

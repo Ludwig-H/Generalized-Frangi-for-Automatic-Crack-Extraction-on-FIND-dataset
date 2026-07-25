@@ -27,7 +27,12 @@ usage() {
         'Important optional variables (all have explicit defaults below):' \
         '  FRANGIGRAPH_PYTHON_BIN, FRANGIGRAPH_DEVICE, FRANGIGRAPH_NUM_WORKERS' \
         '  FRANGIGRAPH_GRAPH_CACHE (absolute reusable/resumable cache directory)' \
-        '  FRANGIGRAPH_RASTER_CONDITION (correct [default] or no_evidence control)' \
+        '  FRANGIGRAPH_ADAPTER_MODE (verified_local_v1 [default] or legacy_raster_v1)' \
+        '  FRANGIGRAPH_RASTER_CONDITION (correct [default]; no_evidence is legacy-only)' \
+        '  FRANGIGRAPH_PROFILE_RADII_FEATURE_CELLS (default: 1.5 3.0)' \
+        '  FRANGIGRAPH_EVIDENCE_DILATION_FEATURE_CELLS (default: 2)' \
+        '    Both are measured on the first Hiera high-resolution feature grid.' \
+        '    FRANGIGRAPH_PROFILE_RADII and FRANGIGRAPH_EVIDENCE_DILATION are aliases.' \
         '  FRANGIGRAPH_EPOCHS, FRANGIGRAPH_BATCH_SIZE, FRANGIGRAPH_EVAL_BATCH_SIZE' \
         '  FRANGIGRAPH_LABEL_MINIMUM_GAIN, FRANGIGRAPH_SEGMENTATION_THRESHOLD' \
         '  FRANGIGRAPH_SMOKE_SAMPLES_PER_FOLD, FRANGIGRAPH_GIT_COMMIT' \
@@ -114,10 +119,10 @@ FRANGI_TAU="${FRANGIGRAPH_TAU:-0.18}"
 FRANGI_MIN_REL_SIZE="${FRANGIGRAPH_MIN_REL_SIZE:-120.0}"
 FRANGI_GRAPH_ORDER="${FRANGIGRAPH_GRAPH_ORDER:-1}"
 
-# ``correct`` is the scientific candidate. ``no_evidence`` keeps the same
-# trainable residual capacity and replaces all Frangi rasters with their
-# canonical absent-evidence encoding. An unset, empty, or explicitly correct
-# variable therefore has exactly the same downstream value and contract bytes.
+# ``correct`` is the scientific candidate. The verified adapter's input
+# necessity is tested by evaluating its checkpoint with no_evidence, not by
+# trying to train through its structurally zero support. The old trainable
+# ``no_evidence`` control remains available only with legacy_raster_v1.
 RASTER_CONDITION="${FRANGIGRAPH_RASTER_CONDITION:-correct}"
 case "${RASTER_CONDITION}" in
     correct|no_evidence) ;;
@@ -127,6 +132,46 @@ case "${RASTER_CONDITION}" in
         exit 2
         ;;
 esac
+
+ADAPTER_MODE="${FRANGIGRAPH_ADAPTER_MODE:-verified_local_v1}"
+case "${ADAPTER_MODE}" in
+    verified_local_v1|legacy_raster_v1) ;;
+    *)
+        printf '%s\n' \
+            'FRANGIGRAPH_ADAPTER_MODE must be verified_local_v1 or legacy_raster_v1' >&2
+        exit 2
+        ;;
+esac
+if [[ "${ADAPTER_MODE}" == "verified_local_v1" && "${RASTER_CONDITION}" == "no_evidence" ]]; then
+    printf '%s\n' \
+        'verified_local_v1 cannot be trained with no_evidence: train correct, then use' \
+        'evaluate_frangi_graph_residual.py --raster-condition no_evidence --allow-input-ablation-raster-override.' >&2
+    exit 2
+fi
+if [[ -n "${FRANGIGRAPH_PROFILE_RADII_FEATURE_CELLS:-}" && \
+      -n "${FRANGIGRAPH_PROFILE_RADII:-}" && \
+      "${FRANGIGRAPH_PROFILE_RADII_FEATURE_CELLS}" != "${FRANGIGRAPH_PROFILE_RADII}" ]]; then
+    printf '%s\n' \
+        'FRANGIGRAPH_PROFILE_RADII_FEATURE_CELLS conflicts with its legacy alias FRANGIGRAPH_PROFILE_RADII' >&2
+    exit 2
+fi
+PROFILE_RADII_FEATURE_CELLS_TEXT="${FRANGIGRAPH_PROFILE_RADII_FEATURE_CELLS:-${FRANGIGRAPH_PROFILE_RADII:-1.5 3.0}}"
+read -r -a PROFILE_RADII_FEATURE_CELLS <<< "${PROFILE_RADII_FEATURE_CELLS_TEXT}"
+if [[ -n "${FRANGIGRAPH_EVIDENCE_DILATION_FEATURE_CELLS:-}" && \
+      -n "${FRANGIGRAPH_EVIDENCE_DILATION:-}" && \
+      "${FRANGIGRAPH_EVIDENCE_DILATION_FEATURE_CELLS}" != "${FRANGIGRAPH_EVIDENCE_DILATION}" ]]; then
+    printf '%s\n' \
+        'FRANGIGRAPH_EVIDENCE_DILATION_FEATURE_CELLS conflicts with its legacy alias FRANGIGRAPH_EVIDENCE_DILATION' >&2
+    exit 2
+fi
+EVIDENCE_DILATION_FEATURE_CELLS="${FRANGIGRAPH_EVIDENCE_DILATION_FEATURE_CELLS:-${FRANGIGRAPH_EVIDENCE_DILATION:-2}}"
+EVIDENCE_THRESHOLD="${FRANGIGRAPH_EVIDENCE_THRESHOLD:-0.5}"
+if [[ "${ADAPTER_MODE}" == "legacy_raster_v1" ]]; then
+    EVIDENCE_LOSS_WEIGHT="${FRANGIGRAPH_EVIDENCE_LOSS_WEIGHT:-0.0}"
+else
+    EVIDENCE_LOSS_WEIGHT="${FRANGIGRAPH_EVIDENCE_LOSS_WEIGHT:-0.25}"
+fi
+EVIDENCE_TARGET_TOLERANCE="${FRANGIGRAPH_EVIDENCE_TARGET_TOLERANCE:-3}"
 
 # Residual parameters. Validation is descriptive only; latest.pt at the fixed
 # final epoch is always used for OOF prediction.
@@ -276,7 +321,9 @@ CONTRACT_TMP="$(mktemp "${RUN_ROOT}/.workflow_contract.XXXXXX")"
     "${FRANGI_SCALES_TEXT}" "${FRANGI_RADIUS}" "${FRANGI_SS}" \
     "${FRANGI_SI}" "${FRANGI_SA}" "${FRANGI_TAU}" \
     "${FRANGI_MIN_REL_SIZE}" "${FRANGI_GRAPH_ORDER}" \
-    "${RASTER_CONDITION}" \
+    "${RASTER_CONDITION}" "${ADAPTER_MODE}" "${PROFILE_RADII_FEATURE_CELLS_TEXT}" \
+    "${EVIDENCE_DILATION_FEATURE_CELLS}" "${EVIDENCE_THRESHOLD}" \
+    "${EVIDENCE_LOSS_WEIGHT}" "${EVIDENCE_TARGET_TOLERANCE}" \
     "${HIDDEN_CHANNELS}" "${BASE_LR}" "${POLY_POWER}" \
     "${WEIGHT_DECAY}" "${CE_WEIGHT}" "${TOPOLOGY_WEIGHT}" \
     "${SAFETY_WEIGHT}" "${SAFETY_MARGIN}" "${SKELETON_ITERATIONS}" \
@@ -296,7 +343,10 @@ keys = (
     "eval_batch_size", "warmup_steps", "checkpoint_every_steps",
     "smoke_samples_per_fold", "frangi_scales", "frangi_radius", "frangi_ss",
     "frangi_si", "frangi_sa", "frangi_tau", "frangi_min_rel_size",
-    "frangi_graph_order", "raster_condition", "hidden_channels", "base_lr", "poly_power",
+    "frangi_graph_order", "raster_condition", "adapter_mode",
+    "profile_radii_feature_cells", "evidence_dilation_feature_cells",
+    "evidence_threshold", "evidence_loss_weight",
+    "evidence_target_tolerance", "hidden_channels", "base_lr", "poly_power",
     "weight_decay", "ce_weight", "topology_weight", "safety_weight",
     "safety_margin", "skeleton_iterations", "gradient_clip",
     "segmentation_threshold", "label_minimum_gain", "gate_l2",
@@ -309,11 +359,16 @@ if len(values) != len(keys):
     raise SystemExit("internal workflow contract arity mismatch")
 payload = {
     "schema": "cracksam2.frangigraph-logistic-gate-workflow",
-    "schema_version": 2,
+    "schema_version": 3,
     "parameters": dict(zip(keys, values, strict=True)),
     "historical_test_inputs_used": False,
     "gate_fit_folds": [0, 1, 2, 3],
     "gate_calibration_fold": 4,
+    "selector_parameter_units": {
+        "profile_radii_feature_cells": "hiera_high_resolution_feature_cells",
+        "evidence_dilation_feature_cells": "hiera_high_resolution_feature_cells",
+        "fusion_grid_source": "SAM2ImageFeatures.high_resolution_features[0]",
+    },
 }
 temporary = destination
 with open(temporary, "w", encoding="utf-8") as stream:
@@ -476,6 +531,12 @@ for fold in 0 1 2 3 4; do
         --baseline-checkpoint "${BASELINE_CHECKPOINT}"
         --output "${fold_output}"
         --hidden-channels "${HIDDEN_CHANNELS}"
+        --adapter-mode "${ADAPTER_MODE}"
+        --profile-radii-feature-cells "${PROFILE_RADII_FEATURE_CELLS[@]}"
+        --evidence-dilation-feature-cells "${EVIDENCE_DILATION_FEATURE_CELLS}"
+        --evidence-threshold "${EVIDENCE_THRESHOLD}"
+        --evidence-loss-weight "${EVIDENCE_LOSS_WEIGHT}"
+        --evidence-target-tolerance "${EVIDENCE_TARGET_TOLERANCE}"
         --raster-condition "${RASTER_CONDITION}"
         --epochs "${EPOCHS}"
         --batch-size "${BATCH_SIZE}"

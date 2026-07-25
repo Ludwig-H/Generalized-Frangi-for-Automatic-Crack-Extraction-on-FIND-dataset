@@ -12,6 +12,8 @@ sys.path.insert(0, str(CRACKSAM_ROOT))
 from cracksam2.losses import (  # noqa: E402
     binary_dice_loss_per_image,
     cracksam_loss_per_image,
+    frangi_evidence_target,
+    masked_balanced_evidence_loss,
     residual_training_loss,
     soft_cldice_loss_per_image,
     soft_skeletonize,
@@ -90,3 +92,105 @@ def test_residual_loss_rejects_negative_weights() -> None:
     tensor = torch.zeros(1, 1, 4, 4)
     with pytest.raises(ValueError, match="topology_weight"):
         residual_training_loss(tensor, tensor, tensor, topology_weight=-0.1)
+
+
+def test_evidence_target_uses_a_bounded_spatial_tolerance() -> None:
+    target = torch.zeros(1, 1, 9, 9)
+    target[:, :, 4, 4] = 1.0
+
+    exact = frangi_evidence_target(target, tolerance=0)
+    tolerant = frangi_evidence_target(target, tolerance=2)
+
+    assert torch.count_nonzero(exact) == 1
+    assert torch.count_nonzero(tolerant) == 25
+    assert tolerant[0, 0, 2, 2] == 1
+    assert tolerant[0, 0, 1, 1] == 0
+
+
+def test_evidence_loss_balances_positive_and_negative_support_per_image() -> None:
+    logits = torch.zeros(1, 1, 5, 5, requires_grad=True)
+    support = torch.zeros_like(logits)
+    support[:, :, 2, 2] = 1.0
+    support[:, :, 0, :] = 1.0
+    target = torch.zeros_like(logits)
+    target[:, :, 2, 2] = 1.0
+
+    result = masked_balanced_evidence_loss(
+        logits, support, target, tolerance=0
+    )
+
+    assert result["loss"].item() == pytest.approx(torch.log(torch.tensor(2.0)).item())
+    assert result["positive_fraction"].item() == pytest.approx(1.0 / 6.0)
+    result["loss"].backward()
+    assert logits.grad is not None
+    # The one positive and all five negatives each receive half of the class-
+    # balanced loss, rather than the positive being overwhelmed five-to-one.
+    positive_gradient = abs(float(logits.grad[0, 0, 2, 2]))
+    negative_gradient_sum = float(logits.grad[0, 0, 0].abs().sum())
+    assert positive_gradient == pytest.approx(negative_gradient_sum)
+
+
+def test_empty_evidence_support_has_a_finite_differentiable_zero_loss() -> None:
+    logits = torch.randn(2, 1, 4, 4, requires_grad=True)
+    result = masked_balanced_evidence_loss(
+        logits,
+        torch.zeros_like(logits),
+        torch.zeros_like(logits),
+    )
+
+    assert result["loss"].item() == 0.0
+    assert result["support_fraction"].item() == 0.0
+    result["loss"].backward()
+    assert logits.grad is not None
+    assert torch.count_nonzero(logits.grad) == 0
+
+
+def test_evidence_target_is_aggregated_on_the_thresholded_feature_grid() -> None:
+    logits = torch.full((1, 1, 4, 4), -2.0, requires_grad=True)
+    support = torch.zeros_like(logits)
+    support[:, :, 1, 1] = 1.0
+    target = torch.zeros(1, 1, 8, 8)
+    # A one-pixel annotation near the edge of the corresponding 2x2 output
+    # block must supervise the single selector cell, not four mixed logits.
+    target[:, :, 3, 3] = 1.0
+
+    result = masked_balanced_evidence_loss(
+        logits, support, target, tolerance=0
+    )
+    expected = torch.nn.functional.binary_cross_entropy_with_logits(
+        torch.tensor(-2.0), torch.tensor(1.0)
+    )
+
+    assert result["loss"].item() == pytest.approx(expected.item())
+    assert result["positive_fraction"].item() == 1.0
+
+
+def test_residual_loss_adds_weighted_evidence_supervision() -> None:
+    target = torch.zeros(1, 1, 4, 4)
+    candidate = torch.zeros_like(target, requires_grad=True)
+    evidence_logits = torch.zeros_like(target, requires_grad=True)
+    support = torch.ones_like(target)
+
+    without = residual_training_loss(
+        candidate,
+        torch.zeros_like(target),
+        target,
+        topology_weight=0.0,
+        safety_weight=0.0,
+    )
+    with_evidence = residual_training_loss(
+        candidate,
+        torch.zeros_like(target),
+        target,
+        topology_weight=0.0,
+        safety_weight=0.0,
+        evidence_logits=evidence_logits,
+        evidence_support=support,
+        evidence_weight=0.25,
+        evidence_target_tolerance=0,
+    )
+
+    assert with_evidence["loss"] > without["loss"]
+    assert with_evidence["evidence"].item() == pytest.approx(
+        torch.log(torch.tensor(2.0)).item()
+    )

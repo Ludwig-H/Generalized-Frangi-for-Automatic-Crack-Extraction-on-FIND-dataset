@@ -13,10 +13,17 @@ bash ISPRS/CrackSAM/workflows/run_full_cracksam2_experiment.sh
 ## Pilote FrangiGraph + porte logistique
 
 `run_frangigraph_logistic_gate_pilot.sh` enchaîne le cache à sept cartes, cinq
-correcteurs résiduels hors-fold, les prédictions OOF, l'ajustement de la
-régression logistique sur les folds 0–3 et le choix du seuil sur le seul fold 4.
-Le mode `FULL` refuse un worktree sale ; le mode `SMOKE` est explicitement non
-scientifique. Les deux modes sont reprenables après une préemption Spot.
+correcteurs résiduels sélectifs hors-fold, les prédictions OOF, l'ajustement de
+la régression logistique sur les folds 0–3 et le choix du seuil sur le seul
+fold 4. Le mode `FULL` refuse un worktree sale ; le mode `SMOKE` est
+explicitement non scientifique. Les deux modes sont reprenables après une
+préemption Spot.
+
+Le contrat actif est `schema_version=3`. Un ancien
+`FRANGIGRAPH_RUN_ROOT` créé sous le schéma 2 n'est **pas reprenable** avec ce
+workflow : conservez-le pour provenance et choisissez une nouvelle racine pour
+le schéma 3. Une reprise n'est possible qu'avec un contrat schéma 3 strictement
+identique.
 
 ```bash
 export CRACKSAM2_DATA_ROOT=/home/codespace/cracksam2-data
@@ -38,21 +45,46 @@ Le label primaire du mode `FULL` exige un gain strict `ΔIoU > 0,005`. Le mode
 `SMOKE` utilise zéro uniquement pour exercer la chaîne technique. Aucun jeu
 historique n'entre dans l'apprentissage des coefficients ou du seuil.
 
-La condition par défaut est `correct` : les sept cartes Frangi correspondantes
-alimentent le correcteur pendant l'entraînement et l'évaluation OOF. Pour le
-contrôle causal à capacité égale, utilisez un nouveau répertoire de run et :
+L'architecture par défaut est `verified_local_v1` : elle vérifie localement les
+sept cartes avec les features SAM et des profils vallée/marche calculés sur la
+luminance. Elle apprend un score d'alignement avec une annotation dilatée, pas
+une probabilité calibrée ni l'utilité marginale par rapport à la baseline. Le
+seuil local `0,5` est un défaut opérationnel à calibrer ultérieurement sur des
+groupes tenus à l'écart. Les rayons de profil et la dilation sont exprimés en
+cellules de la grille de fusion Hiera ; la tolérance de cible est exprimée en
+pixels du masque de sortie avant projection.
+
+La condition d'entraînement est `correct`. Le support Frangi est un masque
+structurel ; il serait donc inutile d'entraîner cette architecture sous
+`no_evidence`, et le workflow le refuse.
+
+Le test de nécessité d'entrée consiste à évaluer le **même checkpoint** avec
+l'encodage absent. Le workflow principal n'exécute pas automatiquement cette
+seconde passe :
 
 ```bash
-export FRANGIGRAPH_RASTER_CONDITION=no_evidence
-bash ISPRS/CrackSAM/workflows/run_frangigraph_logistic_gate_pilot.sh --mode FULL
+python ISPRS/CrackSAM/evaluate_frangi_graph_residual.py \
+  ... \
+  --raster-condition no_evidence \
+  --allow-input-ablation-raster-override
 ```
 
-Ce contrôle conserve exactement la même architecture et remplace les cartes
-par l'encodage canonique d'absence de preuve. Seules les valeurs littérales
-`correct` et `no_evidence` sont acceptées. La variable absente, vide ou définie
-à `correct` produit la même valeur aval et les mêmes octets dans le contrat
-immuable ; la condition est enregistrée dans `workflow_contract.json`, ce qui
-interdit de la changer lors d'une reprise.
+Avec le même forward, ce test doit restituer `z0` bit à bit. Il vérifie la
+dépendance du résidu à l'entrée Frangi et le fallback, mais ne constitue pas un
+contraste causal complet à capacité égale. Une reproduction du protocole
+historique `legacy_raster_v1` sous `no_evidence` reste disponible en fixant
+explicitement
+`FRANGIGRAPH_ADAPTER_MODE=legacy_raster_v1`,
+`FRANGIGRAPH_EVIDENCE_LOSS_WEIGHT=0` et une nouvelle racine de run. Tous les
+paramètres du sélecteur sont enregistrés dans `workflow_contract.json`, ce qui
+interdit de les changer lors d'une reprise. Cette reproduction legacy n'est pas
+un contrôle apparié du nouveau vérificateur.
+
+Les contrôles réellement informatifs restent à exécuter : réentraînements à
+architecture et budget identiques avec Frangi décalé, permuté ou aléatoire à
+couverture comparable, puis ablation des profils photométriques. Le pilote
+n'intègre actuellement ni augmentation d'ombre ni évaluation de benchmark
+externe ; sa robustesse aux ombres reste une hypothèse.
 
 ## Matrice causale du prompt historique
 

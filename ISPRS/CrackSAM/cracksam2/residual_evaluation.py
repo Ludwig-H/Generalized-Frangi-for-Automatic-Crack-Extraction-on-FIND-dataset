@@ -46,10 +46,17 @@ from .graph_types import (
 )
 from .metrics import segmentation_metrics
 from .oof import validate_oof_run_contract, validate_strict_oof_training_contract
+from .residual import (
+    LEGACY_ADAPTER_MODE,
+    RESIDUAL_ADAPTER_MODES,
+    VERIFIED_ADAPTER_MODE,
+)
 
 EVALUATION_SCHEMA = "cracksam2.frangigraph-residual-evaluation"
 EVALUATION_SCHEMA_VERSION = 1
 PROGRESS_SCHEMA_VERSION = 1
+SELECTOR_DIAGNOSTICS_SCHEMA = "cracksam2.frangigraph-selector-diagnostics"
+SELECTOR_DIAGNOSTICS_SCHEMA_VERSION = 1
 EVALUATION_ROLES: tuple[str, ...] = (
     "gate_fit",
     "gate_calibration",
@@ -81,6 +88,33 @@ ROW_FIELDS: tuple[str, ...] = (
     *METRIC_FIELDS,
     *LABEL_FIELDS,
     *DEFAULT_GATE_FEATURES,
+)
+
+# Selector diagnostics deliberately live outside ``ROW_FIELDS``.  Gate-ready
+# CSVs and historical progress entries therefore retain their exact schema,
+# while new progress entries may atomically carry this optional side record.
+SELECTOR_DIAGNOSTIC_FIELDS: tuple[str, ...] = (
+    "case_name",
+    "evidence_score_source",
+    "gate_spatial_support_source",
+    "fusion_height",
+    "fusion_width",
+    "spatial_cells",
+    "selector_support_cells",
+    "selector_selected_cells",
+    "annotation_overlap_target_support_cells",
+    "annotation_overlap_true_positive_cells",
+    "selector_support_fraction",
+    "evidence_score_support_mean",
+    "evidence_score_support_p05",
+    "evidence_score_support_p50",
+    "evidence_score_support_p95",
+    "selector_accepted_fraction_on_support",
+    "correction_envelope_fraction_on_fusion_grid",
+    "residual_absolute_mean_inside_output_envelope",
+    "residual_absolute_mean_outside_output_envelope",
+    "annotation_overlap_precision_on_selected_support",
+    "annotation_overlap_recall_on_supported_target",
 )
 
 
@@ -248,6 +282,385 @@ def _sigmoid(value: np.ndarray) -> np.ndarray:
     return output
 
 
+def _binary_spatial_mask(value: Any, name: str) -> np.ndarray:
+    array = _single_spatial_array(value, name)
+    tolerance = 1e-6
+    if np.any(array < -tolerance) or np.any(array > 1.0 + tolerance):
+        raise ValueError(f"{name} must lie in [0, 1]")
+    rounded = array > 0.5
+    if not np.allclose(array, rounded, rtol=0.0, atol=tolerance):
+        raise ValueError(f"{name} must be binary")
+    return rounded
+
+
+def build_selector_diagnostic(
+    *,
+    case_name: str,
+    evidence_score_source: str,
+    gate_spatial_support_source: str,
+    evidence_support_fusion: Any,
+    evidence_score_fusion: Any,
+    evidence_selected_fusion: Any,
+    correction_envelope_fusion: Any,
+    correction_envelope_output: Any,
+    residual_logits: Any,
+    target: Any | None = None,
+) -> dict[str, object]:
+    """Build one target-isolated local-selector diagnostic record.
+
+    Scores are summarized only on the selector's effective support. Annotation
+    overlap is descriptive and never a gate feature or the verifier's dilated
+    auxiliary training target: recall is conditioned on exact annotation cells
+    that also have Frangi support.
+    """
+
+    if not case_name:
+        raise ValueError("selector diagnostic case_name cannot be empty")
+    if evidence_score_source not in (
+        "evidence_score_fusion",
+        "evidence_score",
+        "evidence_probability",
+    ):
+        raise ValueError("unknown evidence score output name")
+    if gate_spatial_support_source != "accepted_local_selector_output":
+        raise ValueError("selector diagnostics require accepted local gate support")
+    support = _binary_spatial_mask(
+        evidence_support_fusion, "evidence_support_fusion"
+    )
+    selected = _binary_spatial_mask(
+        evidence_selected_fusion, "evidence_selected_fusion"
+    )
+    envelope_fusion = _binary_spatial_mask(
+        correction_envelope_fusion, "correction_envelope_fusion"
+    )
+    score = _single_spatial_array(evidence_score_fusion, "evidence_score_fusion")
+    selector_shapes = {
+        support.shape,
+        selected.shape,
+        envelope_fusion.shape,
+        score.shape,
+    }
+    if len(selector_shapes) != 1:
+        raise ValueError(
+            f"selector fusion maps have different shapes: {selector_shapes}"
+        )
+    envelope_output = _binary_spatial_mask(
+        correction_envelope_output, "correction_envelope_output"
+    )
+    residual = _single_spatial_array(residual_logits, "residual_logits")
+    if envelope_output.shape != residual.shape:
+        raise ValueError(
+            "output correction envelope and residual logits must have equal shape"
+        )
+    tolerance = 1e-6
+    if np.any(score < -tolerance) or np.any(score > 1.0 + tolerance):
+        raise ValueError("evidence_score must lie in [0, 1]")
+    score = np.clip(score, 0.0, 1.0)
+    if np.any(selected & ~support):
+        raise ValueError("evidence_selected must be a subset of evidence_support")
+    if np.any(selected & ~envelope_fusion):
+        raise ValueError(
+            "correction_envelope_fusion must contain evidence_selected_fusion"
+        )
+
+    fusion_height, fusion_width = (int(value) for value in support.shape)
+    spatial_cells = int(support.size)
+    support_cells = int(np.count_nonzero(support))
+    selected_cells = int(np.count_nonzero(selected))
+    if support_cells:
+        support_scores = score[support]
+        score_mean = float(np.mean(support_scores))
+        score_p05, score_p50, score_p95 = (
+            float(value) for value in np.quantile(support_scores, (0.05, 0.5, 0.95))
+        )
+        accepted_fraction = selected_cells / support_cells
+    else:
+        score_mean = score_p05 = score_p50 = score_p95 = 0.0
+        accepted_fraction = 0.0
+
+    absolute_residual = np.abs(residual)
+    residual_inside = (
+        float(np.mean(absolute_residual[envelope_output]))
+        if envelope_output.any()
+        else 0.0
+    )
+    outside = ~envelope_output
+    residual_outside = (
+        float(np.mean(absolute_residual[outside])) if outside.any() else 0.0
+    )
+
+    if target is None:
+        target_support_cells: int | None = None
+        true_positive_cells: int | None = None
+        alignment_precision: float | None = None
+        alignment_recall: float | None = None
+    else:
+        truth_output = _single_spatial_array(
+            target, "selector_alignment_target"
+        ) > 0.5
+        if truth_output.shape == support.shape:
+            truth_fusion = truth_output
+        else:
+            truth_tensor = torch.from_numpy(truth_output.astype(np.float32))[None, None]
+            if (
+                truth_output.shape[0] >= fusion_height
+                and truth_output.shape[1] >= fusion_width
+            ):
+                truth_tensor = torch.nn.functional.adaptive_max_pool2d(
+                    truth_tensor, (fusion_height, fusion_width)
+                )
+            else:
+                truth_tensor = torch.nn.functional.interpolate(
+                    truth_tensor,
+                    size=(fusion_height, fusion_width),
+                    mode="nearest",
+                )
+            truth_fusion = truth_tensor[0, 0].numpy() > 0.5
+        supported_target = support & truth_fusion
+        true_positive = selected & truth_fusion
+        target_support_cells = int(np.count_nonzero(supported_target))
+        true_positive_cells = int(np.count_nonzero(true_positive))
+        alignment_precision = (
+            true_positive_cells / selected_cells if selected_cells else 0.0
+        )
+        alignment_recall = (
+            true_positive_cells / target_support_cells
+            if target_support_cells
+            else 0.0
+        )
+
+    return normalize_selector_diagnostic(
+        {
+            "case_name": case_name,
+            "evidence_score_source": evidence_score_source,
+            "gate_spatial_support_source": gate_spatial_support_source,
+            "fusion_height": fusion_height,
+            "fusion_width": fusion_width,
+            "spatial_cells": spatial_cells,
+            "selector_support_cells": support_cells,
+            "selector_selected_cells": selected_cells,
+            "annotation_overlap_target_support_cells": (
+                target_support_cells
+            ),
+            "annotation_overlap_true_positive_cells": (
+                true_positive_cells
+            ),
+            "selector_support_fraction": support_cells / spatial_cells,
+            "evidence_score_support_mean": score_mean,
+            "evidence_score_support_p05": score_p05,
+            "evidence_score_support_p50": score_p50,
+            "evidence_score_support_p95": score_p95,
+            "selector_accepted_fraction_on_support": accepted_fraction,
+            "correction_envelope_fraction_on_fusion_grid": float(
+                np.mean(envelope_fusion)
+            ),
+            "residual_absolute_mean_inside_output_envelope": residual_inside,
+            "residual_absolute_mean_outside_output_envelope": residual_outside,
+            "annotation_overlap_precision_on_selected_support": (
+                alignment_precision
+            ),
+            "annotation_overlap_recall_on_supported_target": (
+                alignment_recall
+            ),
+        }
+    )
+
+
+def normalize_selector_diagnostic(row: Mapping[str, object]) -> dict[str, object]:
+    """Validate the fixed side-record schema without touching ``ROW_FIELDS``."""
+
+    missing = [name for name in SELECTOR_DIAGNOSTIC_FIELDS if name not in row]
+    extra = sorted(set(row) - set(SELECTOR_DIAGNOSTIC_FIELDS))
+    if missing or extra:
+        raise ValueError(
+            f"Selector diagnostic fields differ; missing={missing}, extra={extra}"
+        )
+    case_name = row["case_name"]
+    if not isinstance(case_name, str) or not case_name:
+        raise ValueError("selector diagnostic case_name must be non-empty text")
+    score_source = row["evidence_score_source"]
+    if score_source not in (
+        "evidence_score_fusion",
+        "evidence_score",
+        "evidence_probability",
+    ):
+        raise ValueError("selector diagnostic has an unknown score source")
+    gate_support_source = row["gate_spatial_support_source"]
+    if gate_support_source != "accepted_local_selector_output":
+        raise ValueError("selector diagnostic has an unknown gate support source")
+
+    integer_fields = (
+        "fusion_height",
+        "fusion_width",
+        "spatial_cells",
+        "selector_support_cells",
+        "selector_selected_cells",
+    )
+    normalized: dict[str, object] = {
+        "case_name": case_name,
+        "evidence_score_source": score_source,
+        "gate_spatial_support_source": gate_support_source,
+    }
+    for field in integer_fields:
+        value = row[field]
+        if isinstance(value, bool):
+            raise ValueError(f"{field} must be an integer count")
+        try:
+            integer = int(value)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"{field} must be an integer count") from exc
+        if integer < 0 or float(value) != integer:
+            raise ValueError(f"{field} must be a non-negative integer")
+        normalized[field] = integer
+    if int(normalized["fusion_height"]) <= 0 or int(normalized["fusion_width"]) <= 0:
+        raise ValueError("fusion dimensions must be positive")
+    if int(normalized["spatial_cells"]) != int(normalized["fusion_height"]) * int(
+        normalized["fusion_width"]
+    ):
+        raise ValueError("spatial_cells differs from fusion dimensions")
+    if int(normalized["selector_support_cells"]) > int(
+        normalized["spatial_cells"]
+    ):
+        raise ValueError("selector_support_cells exceeds spatial_cells")
+    if int(normalized["selector_selected_cells"]) > int(
+        normalized["selector_support_cells"]
+    ):
+        raise ValueError("selector_selected_cells exceeds selector_support_cells")
+
+    optional_count_fields = (
+        "annotation_overlap_target_support_cells",
+        "annotation_overlap_true_positive_cells",
+    )
+    optional_counts: dict[str, int | None] = {}
+    for field in optional_count_fields:
+        value = row[field]
+        if value is None:
+            optional_counts[field] = None
+            normalized[field] = None
+            continue
+        if isinstance(value, bool):
+            raise ValueError(f"{field} must be an integer count or null")
+        try:
+            integer = int(value)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"{field} must be an integer count or null") from exc
+        if integer < 0 or float(value) != integer:
+            raise ValueError(f"{field} must be a non-negative integer or null")
+        optional_counts[field] = integer
+        normalized[field] = integer
+    target_count = optional_counts[optional_count_fields[0]]
+    true_positive_count = optional_counts[optional_count_fields[1]]
+    if (target_count is None) != (true_positive_count is None):
+        raise ValueError("selector alignment counts must be both present or both null")
+    if target_count is not None:
+        if target_count > int(normalized["selector_support_cells"]):
+            raise ValueError("alignment target support exceeds selector support")
+        if true_positive_count is None or true_positive_count > min(
+            target_count, int(normalized["selector_selected_cells"])
+        ):
+            raise ValueError("alignment true positives exceed their denominators")
+
+    bounded_fields = (
+        "selector_support_fraction",
+        "evidence_score_support_mean",
+        "evidence_score_support_p05",
+        "evidence_score_support_p50",
+        "evidence_score_support_p95",
+        "selector_accepted_fraction_on_support",
+        "correction_envelope_fraction_on_fusion_grid",
+    )
+    for field in bounded_fields:
+        try:
+            value = float(row[field])
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"{field} must be numeric") from exc
+        if not math.isfinite(value) or not 0.0 <= value <= 1.0:
+            raise ValueError(f"{field} must lie in [0, 1]")
+        normalized[field] = value
+    if not (
+        float(normalized["evidence_score_support_p05"])
+        <= float(normalized["evidence_score_support_p50"])
+        <= float(normalized["evidence_score_support_p95"])
+    ):
+        raise ValueError("evidence score quantiles are not ordered")
+
+    expected_support_fraction = int(normalized["selector_support_cells"]) / int(
+        normalized["spatial_cells"]
+    )
+    support_cells = int(normalized["selector_support_cells"])
+    expected_accepted_fraction = (
+        int(normalized["selector_selected_cells"]) / support_cells
+        if support_cells
+        else 0.0
+    )
+    if not math.isclose(
+        float(normalized["selector_support_fraction"]),
+        expected_support_fraction,
+        rel_tol=0.0,
+        abs_tol=1e-12,
+    ):
+        raise ValueError("selector_support_fraction differs from its counts")
+    if not math.isclose(
+        float(normalized["selector_accepted_fraction_on_support"]),
+        expected_accepted_fraction,
+        rel_tol=0.0,
+        abs_tol=1e-12,
+    ):
+        raise ValueError("accepted support fraction differs from its counts")
+
+    for field in (
+        "residual_absolute_mean_inside_output_envelope",
+        "residual_absolute_mean_outside_output_envelope",
+    ):
+        try:
+            value = float(row[field])
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"{field} must be numeric") from exc
+        if not math.isfinite(value) or value < 0.0:
+            raise ValueError(f"{field} must be finite and non-negative")
+        normalized[field] = value
+
+    alignment_fields = (
+        "annotation_overlap_precision_on_selected_support",
+        "annotation_overlap_recall_on_supported_target",
+    )
+    for field in alignment_fields:
+        value = row[field]
+        if target_count is None:
+            if value is not None:
+                raise ValueError("alignment metrics need an alignment target")
+            normalized[field] = None
+            continue
+        try:
+            numeric = float(value)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(
+                f"{field} must be numeric when target is available"
+            ) from exc
+        if not math.isfinite(numeric) or not 0.0 <= numeric <= 1.0:
+            raise ValueError(f"{field} must lie in [0, 1]")
+        normalized[field] = numeric
+    if target_count is not None and true_positive_count is not None:
+        selected_cells = int(normalized["selector_selected_cells"])
+        expected_precision = (
+            true_positive_count / selected_cells if selected_cells else 0.0
+        )
+        expected_recall = true_positive_count / target_count if target_count else 0.0
+        if not math.isclose(
+            float(normalized[alignment_fields[0]]),
+            expected_precision,
+            rel_tol=0.0,
+            abs_tol=1e-12,
+        ) or not math.isclose(
+            float(normalized[alignment_fields[1]]),
+            expected_recall,
+            rel_tol=0.0,
+            abs_tol=1e-12,
+        ):
+            raise ValueError("alignment metrics differ from their counts")
+    return {field: normalized[field] for field in SELECTOR_DIAGNOSTIC_FIELDS}
+
+
 def build_evaluation_row(
     *,
     case_name: str,
@@ -369,8 +782,9 @@ def append_progress_batch(
     *,
     dataset: str,
     rows: Sequence[Mapping[str, object]],
+    selector_diagnostics: Sequence[Mapping[str, object]] | None = None,
 ) -> None:
-    """Durably append a completed batch to the interruption-safe journal."""
+    """Durably append gate rows and optional selector records in one journal line."""
     if not rows:
         raise ValueError("Cannot append an empty progress batch")
     normalized = [normalize_evaluation_row(row) for row in rows]
@@ -381,6 +795,21 @@ def append_progress_batch(
         "dataset": dataset,
         "rows": normalized,
     }
+    if selector_diagnostics is not None:
+        if not selector_diagnostics:
+            raise ValueError("selector_diagnostics cannot be an empty explicit batch")
+        normalized_diagnostics = [
+            normalize_selector_diagnostic(row) for row in selector_diagnostics
+        ]
+        row_names = [str(row["case_name"]) for row in normalized]
+        diagnostic_names = [
+            str(row["case_name"]) for row in normalized_diagnostics
+        ]
+        if diagnostic_names != row_names:
+            raise ValueError(
+                "Selector diagnostics must match progress rows in exact batch order"
+            )
+        entry["selector_diagnostics"] = normalized_diagnostics
     payload = json.dumps(
         _json_safe(entry), sort_keys=True, ensure_ascii=True, allow_nan=False
     )
@@ -392,17 +821,18 @@ def append_progress_batch(
         os.fsync(stream.fileno())
 
 
-def read_progress_rows(
+def _read_progress_records(
     path: str | os.PathLike[str], *, expected_dataset: str
-) -> dict[str, dict[str, object]]:
-    """Read a journal and repair only a partially written final line."""
+) -> tuple[dict[str, dict[str, object]], dict[str, dict[str, object]]]:
+    """Read both record types and repair only a partially written final line."""
     source_path = Path(path)
     if not source_path.is_file():
-        return {}
+        return {}, {}
     size = source_path.stat().st_size
     valid_end = 0
     append_newline = False
     rows: dict[str, dict[str, object]] = {}
+    diagnostics: dict[str, dict[str, object]] = {}
     with source_path.open("rb") as stream:
         line_number = 0
         while True:
@@ -431,6 +861,7 @@ def read_progress_rows(
             batch_rows = entry.get("rows")
             if not isinstance(batch_rows, list) or not batch_rows:
                 raise ValueError(f"Empty progress batch at line {line_number}")
+            batch_names: list[str] = []
             for raw_row in batch_rows:
                 if not isinstance(raw_row, dict):
                     raise ValueError(f"Invalid progress row at line {line_number}")
@@ -439,6 +870,30 @@ def read_progress_rows(
                 if name in rows:
                     raise ValueError(f"Duplicate progress case {name!r}")
                 rows[name] = row
+                batch_names.append(name)
+            raw_diagnostics = entry.get("selector_diagnostics")
+            if raw_diagnostics is not None:
+                if not isinstance(raw_diagnostics, list) or not raw_diagnostics:
+                    raise ValueError(
+                        f"Invalid selector diagnostic batch at line {line_number}"
+                    )
+                diagnostic_names: list[str] = []
+                for raw_diagnostic in raw_diagnostics:
+                    if not isinstance(raw_diagnostic, dict):
+                        raise ValueError(
+                            f"Invalid selector diagnostic at line {line_number}"
+                        )
+                    diagnostic = normalize_selector_diagnostic(raw_diagnostic)
+                    name = str(diagnostic["case_name"])
+                    if name in diagnostics:
+                        raise ValueError(f"Duplicate selector diagnostic case {name!r}")
+                    diagnostics[name] = diagnostic
+                    diagnostic_names.append(name)
+                if diagnostic_names != batch_names:
+                    raise ValueError(
+                        "Selector diagnostics differ from their progress batch at "
+                        f"line {line_number}"
+                    )
             valid_end = line_end
             append_newline = not raw.endswith(b"\n")
     if valid_end < size:
@@ -451,7 +906,88 @@ def read_progress_rows(
             stream.write(b"\n")
             stream.flush()
             os.fsync(stream.fileno())
+    return rows, diagnostics
+
+
+def read_progress_rows(
+    path: str | os.PathLike[str], *, expected_dataset: str
+) -> dict[str, dict[str, object]]:
+    """Read gate rows from old or selector-extended progress journals."""
+
+    rows, _ = _read_progress_records(path, expected_dataset=expected_dataset)
     return rows
+
+
+def read_selector_diagnostics(
+    path: str | os.PathLike[str], *, expected_dataset: str
+) -> dict[str, dict[str, object]]:
+    """Read optional selector records; schema-v1 historical entries yield none."""
+
+    _, diagnostics = _read_progress_records(path, expected_dataset=expected_dataset)
+    return diagnostics
+
+
+def write_selector_diagnostics_atomic(
+    path: str | os.PathLike[str],
+    diagnostics: Mapping[str, Mapping[str, object]],
+    *,
+    dataset: str,
+    selected_names: Sequence[str],
+) -> Path:
+    """Publish ordered selector diagnostics without changing historical CSVs."""
+
+    names = list(selected_names)
+    if not names or len(names) != len(set(names)):
+        raise ValueError("selected_names must be unique and non-empty")
+    extra = sorted(set(diagnostics) - set(names))
+    if extra:
+        raise ValueError(f"Selector diagnostics contain unexpected cases: {extra[:5]}")
+    rows = [
+        normalize_selector_diagnostic(diagnostics[name])
+        for name in names
+        if name in diagnostics
+    ]
+    if not rows:
+        raise ValueError("Cannot publish an empty selector diagnostic artifact")
+    missing = [name for name in names if name not in diagnostics]
+    payload = {
+        "schema": SELECTOR_DIAGNOSTICS_SCHEMA,
+        "schema_version": SELECTOR_DIAGNOSTICS_SCHEMA_VERSION,
+        "dataset": dataset,
+        "selected_cases": len(names),
+        "diagnostic_cases": len(rows),
+        "complete": not missing,
+        "missing_case_names": missing,
+        "row_fields": list(SELECTOR_DIAGNOSTIC_FIELDS),
+        "semantics": {
+            "selector_grid": (
+                "fusion-grid decision cells; dimensions are recorded per case"
+            ),
+            "gate_spatial_support": (
+                "verified-local gate spatial summaries use the accepted binary "
+                "selector output; cache-level Frangi similarity and density remain raw"
+            ),
+            "score": (
+                "evidence_score on Frangi-supported fusion cells; "
+                "evidence_probability is a backward-compatible output alias"
+            ),
+            "accepted_fraction": "selected support cells / all support cells",
+            "envelope_fraction": "accepted correction envelope on the fusion grid",
+            "residual_amplitude": (
+                "mean absolute residual logit inside/outside the output-resolution "
+                "correction envelope"
+            ),
+            "annotation_overlap": (
+                "descriptive only and never a gate feature or the dilated auxiliary "
+                "training target; the exact binary annotation is max-pooled to the "
+                "fusion grid when downsampling; precision uses selected support cells "
+                "and recall uses annotated support cells; an empty denominator maps "
+                "to 0.0"
+            ),
+        },
+        "rows": rows,
+    }
+    return write_json_atomic(path, payload)
 
 
 def ensure_evaluation_contract(
@@ -480,7 +1016,12 @@ def ensure_evaluation_contract(
         return path
     stale = [
         root / name
-        for name in ("progress.jsonl", "per_image.csv", "summary.json")
+        for name in (
+            "progress.jsonl",
+            "per_image.csv",
+            "summary.json",
+            "selector_diagnostics.json",
+        )
         if (root / name).exists()
     ]
     if stale:
@@ -699,6 +1240,10 @@ class ResidualCheckpointSpec:
     raster_channels: int
     high_resolution_channels: tuple[int, ...]
     hidden_channels: int
+    adapter_mode: str
+    profile_radii: tuple[float, ...]
+    evidence_dilation: int
+    evidence_threshold: float
     preprocessing: RasterPreprocessing
     training_raster_condition: str
     held_out_fold: int
@@ -763,6 +1308,28 @@ def validate_residual_checkpoint(
         raise ValueError("Residual high-resolution feature channels are invalid")
     if hidden_channels <= 0:
         raise ValueError("Residual hidden_channels must be positive")
+    adapter_mode = str(architecture.get("adapter_mode", LEGACY_ADAPTER_MODE))
+    if adapter_mode not in RESIDUAL_ADAPTER_MODES:
+        raise ValueError(f"Unknown residual adapter_mode: {adapter_mode!r}")
+    if adapter_mode == VERIFIED_ADAPTER_MODE:
+        try:
+            profile_radii = tuple(float(value) for value in architecture["profile_radii"])
+            evidence_dilation = int(architecture["evidence_dilation"])
+            evidence_threshold = float(architecture["evidence_threshold"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValueError("Invalid verified-local residual architecture") from exc
+        if not profile_radii or any(
+            not math.isfinite(value) or value <= 0 for value in profile_radii
+        ):
+            raise ValueError("Residual profile_radii must be positive and finite")
+        if evidence_dilation < 0:
+            raise ValueError("Residual evidence_dilation cannot be negative")
+        if not math.isfinite(evidence_threshold) or not 0 < evidence_threshold < 1:
+            raise ValueError("Residual evidence_threshold must lie in (0, 1)")
+    else:
+        profile_radii = ()
+        evidence_dilation = 0
+        evidence_threshold = 0.5
     preprocessing = RasterPreprocessing.from_mapping(
         payload.get("raster_preprocessing")
     )
@@ -785,6 +1352,36 @@ def validate_residual_checkpoint(
     training_raster_condition = run_contract.get("raster_condition")
     if training_raster_condition not in ("correct", "no_evidence"):
         raise ValueError("Residual checkpoint has no valid raster_condition")
+    if (
+        adapter_mode == VERIFIED_ADAPTER_MODE
+        and training_raster_condition != "correct"
+    ):
+        raise ValueError(
+            "verified_local_v1 checkpoints must be trained with correct evidence"
+        )
+    if adapter_mode == VERIFIED_ADAPTER_MODE:
+        contract_architecture = run_contract.get("residual")
+        if not isinstance(contract_architecture, Mapping):
+            raise ValueError("Verified residual run contract lacks its architecture")
+        expected_verified = {
+            "adapter_mode": adapter_mode,
+            "profile_radii": list(profile_radii),
+            "evidence_dilation": evidence_dilation,
+            "evidence_threshold": evidence_threshold,
+        }
+        mismatches = {
+            key: {
+                "checkpoint": expected,
+                "run_contract": contract_architecture.get(key),
+            }
+            for key, expected in expected_verified.items()
+            if contract_architecture.get(key) != expected
+        }
+        if mismatches:
+            raise ValueError(
+                "Verified residual architecture differs from its run contract: "
+                f"{mismatches}"
+            )
     oof_training = validate_oof_run_contract(run_contract)
     held_out_fold = int(oof_training["held_out_fold"])
     validate_strict_oof_training_contract(
@@ -825,6 +1422,10 @@ def validate_residual_checkpoint(
         raster_channels=raster_channels,
         high_resolution_channels=high_resolution_channels,
         hidden_channels=hidden_channels,
+        adapter_mode=adapter_mode,
+        profile_radii=profile_radii,
+        evidence_dilation=evidence_dilation,
+        evidence_threshold=evidence_threshold,
         preprocessing=preprocessing,
         training_raster_condition=str(training_raster_condition),
         held_out_fold=held_out_fold,
@@ -841,9 +1442,10 @@ def resolve_raster_condition(
 ) -> tuple[str, bool]:
     """Resolve a safe evaluation condition from the checkpoint by default.
 
-    The only permitted mismatch is the causal ablation ``correct`` to
-    ``no_evidence``.  Feeding real Frangi evidence to the equal-capacity model
-    trained without it is refused even when the override switch is present.
+    The only permitted mismatch is the same-checkpoint input ablation
+    ``correct`` to ``no_evidence``.  It is a necessity test, not an estimate of
+    Frangi's total causal contribution. Feeding real evidence to a model trained
+    without it is refused even when the override switch is present.
     """
     allowed = ("correct", "no_evidence")
     if training_condition not in allowed:
@@ -857,7 +1459,8 @@ def resolve_raster_condition(
     if changed and not allow_causal_override:
         raise ValueError(
             "Raster condition differs from the residual checkpoint; pass "
-            "--allow-causal-raster-override only for an intentional ablation"
+            "--allow-input-ablation-raster-override only for an intentional "
+            "same-checkpoint input ablation"
         )
     if training_condition == "no_evidence" and condition == "correct":
         raise ValueError(
@@ -1096,11 +1699,77 @@ def evaluate_residual_loader(
             names = list(batch["case_name"])
             if baseline_logits.shape[0] != len(names):
                 raise ValueError("Residual output batch size differs from case names")
+            score_source = next(
+                (
+                    name
+                    for name in (
+                        "evidence_score_fusion",
+                        "evidence_score",
+                        "evidence_probability",
+                    )
+                    if name in output
+                ),
+                None,
+            )
+            selector_keys = {
+                "evidence_score_fusion",
+                "evidence_score",
+                "evidence_probability",
+                "evidence_support_fusion",
+                "evidence_support",
+                "evidence_selected_fusion",
+                "evidence_selected",
+                "correction_envelope_fusion",
+                "correction_envelope",
+            }
+            present_selector_keys = selector_keys.intersection(output)
+            if present_selector_keys and score_source is None:
+                raise ValueError(
+                    "Residual output exposes selector maps without an evidence score"
+                )
+            selector_diagnostics: list[dict[str, object]] = []
+            if score_source is not None:
+                support_key = (
+                    "evidence_support_fusion"
+                    if "evidence_support_fusion" in output
+                    else "evidence_support"
+                )
+                selected_key = (
+                    "evidence_selected_fusion"
+                    if "evidence_selected_fusion" in output
+                    else "evidence_selected"
+                )
+                envelope_fusion_key = (
+                    "correction_envelope_fusion"
+                    if "correction_envelope_fusion" in output
+                    else "correction_envelope"
+                )
+                missing_selector_keys = [
+                    key
+                    for key in (
+                        support_key,
+                        selected_key,
+                        envelope_fusion_key,
+                        "evidence_selected",
+                        "correction_envelope",
+                    )
+                    if key not in output
+                ]
+                if missing_selector_keys:
+                    raise ValueError(
+                        "Residual selector output is incomplete; missing "
+                        + ", ".join(missing_selector_keys)
+                    )
             rows: list[dict[str, object]] = []
             for index, name in enumerate(names):
                 if name not in source_groups:
                     raise ValueError(f"Missing physical source group for {name!r}")
-                support = raw_rasters[index, support_index].unsqueeze(0)
+                raw_support = raw_rasters[index, support_index].unsqueeze(0)
+                gate_spatial_support = (
+                    output["evidence_selected"][index]
+                    if score_source is not None
+                    else raw_support
+                )
                 rows.append(
                     build_evaluation_row(
                         case_name=name,
@@ -1123,15 +1792,44 @@ def evaluate_residual_loader(
                                 else 0.0
                             ),
                         },
-                        frangi_support=support,
+                        frangi_support=gate_spatial_support,
                         segmentation_threshold=segmentation_threshold,
                         label_minimum_gain=label_minimum_gain,
                     )
                 )
+                if score_source is not None:
+                    residual_logits = output.get("residual_logits")
+                    if residual_logits is None:
+                        residual_value = (
+                            candidate_logits[index] - baseline_logits[index]
+                        )
+                    else:
+                        residual_value = residual_logits[index]
+                    selector_diagnostics.append(
+                        build_selector_diagnostic(
+                            case_name=name,
+                            evidence_score_source=score_source,
+                            gate_spatial_support_source=(
+                                "accepted_local_selector_output"
+                            ),
+                            evidence_support_fusion=output[support_key][index],
+                            evidence_score_fusion=output[score_source][index],
+                            evidence_selected_fusion=output[selected_key][index],
+                            correction_envelope_fusion=output[
+                                envelope_fusion_key
+                            ][index],
+                            correction_envelope_output=output[
+                                "correction_envelope"
+                            ][index],
+                            residual_logits=residual_value,
+                            target=targets[index],
+                        )
+                    )
             append_progress_batch(
                 progress_path,
                 dataset=dataset,
                 rows=rows,
+                selector_diagnostics=(selector_diagnostics or None),
             )
             completed += len(rows)
     return completed
@@ -1145,10 +1843,14 @@ __all__ = [
     "LABEL_FIELDS",
     "METRIC_FIELDS",
     "ROW_FIELDS",
+    "SELECTOR_DIAGNOSTIC_FIELDS",
+    "SELECTOR_DIAGNOSTICS_SCHEMA",
+    "SELECTOR_DIAGNOSTICS_SCHEMA_VERSION",
     "RasterPreprocessing",
     "ResidualCheckpointSpec",
     "append_progress_batch",
     "build_evaluation_row",
+    "build_selector_diagnostic",
     "ensure_evaluation_contract",
     "evaluate_residual_loader",
     "file_identity",
@@ -1157,11 +1859,14 @@ __all__ = [
     "load_group_assignments",
     "load_safe_torch_checkpoint",
     "normalize_evaluation_row",
+    "normalize_selector_diagnostic",
     "read_progress_rows",
+    "read_selector_diagnostics",
     "resolve_raster_condition",
     "summarize_rows",
     "validate_baseline_checkpoint",
     "validate_residual_checkpoint",
     "write_json_atomic",
     "write_rows_csv_atomic",
+    "write_selector_diagnostics_atomic",
 ]

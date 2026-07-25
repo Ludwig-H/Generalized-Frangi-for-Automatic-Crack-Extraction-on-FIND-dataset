@@ -46,7 +46,7 @@ Frangi-graphe ──► cache v2 ──► adaptateur/vérificateur ──► Δ
 5. **Coût maîtrisé** : une seule passe Hiera ; le correcteur et la porte restent
    petits devant le modèle SAM.
 
-## Première version testable : correction par cartes Frangi
+## Version historique reproductible : correction par cartes Frangi
 
 Le premier modèle reçoit une pyramide de cartes, sans logit :
 
@@ -60,13 +60,11 @@ Le premier modèle reçoit une pyramide de cartes, sans logit :
 
 Le correcteur reçoit aussi le logit de la baseline et les cartes internes haute
 résolution de SAM. Un petit réseau convolutionnel fusionne le tout et produit
-uniquement `Δz`. Dans cette phase :
+uniquement `Δz`. Dans cette phase historique :
 
 - backbone, prompt encoder, decoder et LoRA baseline sont gelés ;
 - aucun Graph Transformer ;
-- aucune porte spatiale ;
-- prompt dropout et corruptions Frangi sont utilisés pour empêcher la
-  dépendance systématique au prior.
+- aucune porte spatiale.
 
 Cette première version utilise le support et la distance au squelette issu du
 MST, mais pas la centralité ni une liste explicite de nœuds et d'arêtes. Un gain
@@ -86,12 +84,47 @@ logistique. Elle reçoit sept nombres calculables sans masque vrai :
 6. similarité moyenne `node_sim_max` sur le support Frangi retenu ;
 7. densité du support Frangi.
 
-Elle produit la probabilité que le candidat améliore la baseline. Ses
-coefficients sont appris sur quatre parts du jeu d'entraînement et le seuil
-d'ouverture sur une cinquième part séparée. Si aucun seuil n'est suffisamment
-fiable, la porte reste fermée. **Cette porte n'est pas un Transformer.** Le
+Elle produit un score logistique associé à l'amélioration observée du candidat ;
+ce score n'est appelé probabilité que si une calibration séparée le justifie.
+Ses coefficients sont ajustés sur les folds 0–3 du jeu d'entraînement et le
+seuil d'ouverture sur le seul fold 4. Si aucun seuil n'est suffisamment fiable,
+la porte reste fermée. **Cette porte n'est pas un Transformer.** Le
 Transformer de graphe décrit plus bas serait, un jour peut-être, un vérificateur
 des arêtes ; c'est un autre composant.
+
+## Version active : évidence locale vérifiée
+
+Le faible plafond oracle global du pilote raster et des contre-exemples où
+Frangi répond à une ombre motivent l'hypothèse d'une sélection locale. Ils ne
+démontrent pas encore que cette sélection est robuste aux ombres. Le prototype
+`verified_local_v1` combine par zone cartes Frangi, features Hiera, logit
+baseline et profils de **luminance** orientés vallée-sombre/marche-d'ombre.
+Seules les bandes autour des supports acceptés peuvent modifier `z0`; partout
+ailleurs le retour à la baseline est exact.
+
+Le vérificateur apprend un score d'alignement avec une annotation dilatée. La
+BCE équilibrée ne calibre pas ce score en probabilité, et sa cible ne mesure pas
+l'utilité marginale du signal Frangi au-delà de ce que la baseline sait déjà
+segmenter. Le seuil `0,5` n'est qu'un défaut opérationnel à recalibrer sur des
+groupes tenus à l'écart.
+
+Les rayons des profils et la dilation de l'enveloppe sont exprimés en cellules
+de la grille de fusion Hiera haute résolution, pas en pixels du masque de
+sortie. La tolérance de la cible auxiliaire est, elle, appliquée en pixels du
+masque de sortie avant projection sur cette grille. Les maxima vallée, marche
+et contraste sont calculés indépendamment sur les rayons : ils ne désignent pas
+nécessairement un même rayon gagnant.
+
+L'ancien `legacy_raster_v1` est conservé pour les checkpoints publiés. Le cache
+v2 n'est pas modifié. La conception, la supervision locale, les limites et le
+protocole de validation sont détaillés dans
+[FrangiGraph-SelectiveResidual](07_SELECTIVE_FRANGI_EVIDENCE.md).
+
+Évaluer un checkpoint `verified_local_v1` sous `no_evidence` vérifie que son
+résidu nécessite l'entrée Frangi et que le fallback exact fonctionne. Ce n'est
+pas, à lui seul, un contraste causal complet à capacité égale. Il faudra encore
+des contrôles réentraînés avec signal décalé, permuté ou sélection aléatoire à
+couverture comparable, ainsi qu'une ablation des profils photométriques.
 
 ## Extension : vérificateur de graphe
 
@@ -129,9 +162,13 @@ irrévocables :
 - magnitude absolue avant normalisation relative ;
 - accord sémantique avec les features SAM.
 
-L'entraînement doit inclure des paires avant/après ombre synthétique, avec
+L'entraînement devra inclure des paires avant/après ombre synthétique, avec
 recalcul complet du graphe. Il faut distinguer les ombres loin de la fissure de
 celles qui la traversent.
+
+À ce jour, aucune augmentation d'ombre ni aucun benchmark externe n'a été
+évalué pour `verified_local_v1` ; les indices ci-dessus restent des hypothèses
+de conception.
 
 ## Invariants obligatoires
 

@@ -378,7 +378,8 @@ def _validate_contract(
         )
     if causal_raster_override:
         raise ValueError(
-            f"Fold {fold} is a causal raster override evaluation; these rows are "
+            f"Fold {fold} is an input-ablation raster override evaluation; "
+            "these rows are "
             "analytical-only and cannot be assembled for gate fit or calibration"
         )
     analytical_only = contract.get("analytical_only", False)
@@ -500,6 +501,10 @@ def _common_contract_artifacts(
         "raster_channels",
         "high_resolution_channels",
         "hidden_channels",
+        "adapter_mode",
+        "profile_radii",
+        "evidence_dilation",
+        "evidence_threshold",
         "training_raster_condition",
         "evaluation_raster_condition",
         "causal_raster_override",

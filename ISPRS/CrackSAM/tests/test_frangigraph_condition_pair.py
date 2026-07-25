@@ -187,7 +187,7 @@ def _write_workflow(
         "sam2_checkpoint": "/checkpoints/sam2.pt",
         "baseline_checkpoint": "/checkpoints/baseline.pt",
     }
-    if schema_version == 2:
+    if schema_version in (2, 3):
         parameters["raster_condition"] = condition
     contract = {
         "schema": "cracksam2.frangigraph-logistic-gate-workflow",
@@ -197,7 +197,31 @@ def _write_workflow(
         "gate_fit_folds": [0, 1, 2, 3],
         "gate_calibration_fold": 4,
     }
+    if schema_version == 3:
+        contract["selector_parameter_units"] = {
+            "profile_radii_feature_cells": "hiera_high_resolution_feature_cells",
+            "evidence_dilation_feature_cells": (
+                "hiera_high_resolution_feature_cells"
+            ),
+            "fusion_grid_source": (
+                "SAM2ImageFeatures.high_resolution_features[0]"
+            ),
+        }
     _write_json(run / "workflow_contract.json", contract)
+
+
+def test_load_workflow_contract_accepts_schema_three_selector_units(
+    tmp_path: Path,
+) -> None:
+    run = tmp_path / "schema-three"
+    _write_workflow(run, "correct", schema_version=3)
+
+    payload, _ = analysis.load_workflow_contract(run)
+
+    assert payload["schema_version"] == 3
+    assert payload["selector_parameter_units"]["fusion_grid_source"] == (
+        "SAM2ImageFeatures.high_resolution_features[0]"
+    )
 
 
 def _fixture(tmp_path: Path) -> tuple[Path, Path, Path]:

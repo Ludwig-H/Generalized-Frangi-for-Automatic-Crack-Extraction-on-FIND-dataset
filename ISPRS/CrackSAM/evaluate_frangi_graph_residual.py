@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -19,7 +20,7 @@ from torch.utils.data import DataLoader, Subset
 
 from cracksam2.data import CrackSegmentationDataset, sample_names_sha256
 from cracksam2.model import build_cracksam2, load_adapter_state_dict
-from cracksam2.residual import FrangiGraphResidual
+from cracksam2.residual import VERIFIED_ADAPTER_MODE, FrangiGraphResidual
 from cracksam2.residual_evaluation import (
     EVALUATION_ROLES,
     EVALUATION_SCHEMA,
@@ -32,17 +33,29 @@ from cracksam2.residual_evaluation import (
     load_group_assignment_records,
     load_safe_torch_checkpoint,
     read_progress_rows,
+    read_selector_diagnostics,
     resolve_raster_condition,
     summarize_rows,
     validate_baseline_checkpoint,
     validate_residual_checkpoint,
     write_json_atomic,
     write_rows_csv_atomic,
+    write_selector_diagnostics_atomic,
 )
+
+SELECTOR_FUSION_GRID_SOURCE = "SAM2ImageFeatures.high_resolution_features[0]"
+SELECTOR_FEATURE_CELL_UNIT = "hiera_high_resolution_feature_cells"
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(
+        description=__doc__,
+        epilog=(
+            "For verified_local_v1, profile radii and evidence dilation are "
+            "checkpoint-bound values measured in cells of the first SAM 2/Hiera "
+            "high-resolution feature grid; evaluation never overrides them."
+        ),
+    )
     parser.add_argument("--data-root", type=Path, required=True)
     parser.add_argument("--list-file", type=Path, required=True)
     parser.add_argument(
@@ -67,11 +80,15 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--allow-input-ablation-raster-override",
         "--allow-causal-raster-override",
+        dest="allow_causal_raster_override",
         action="store_true",
         help=(
-            "Allow the intentional correct-checkpoint/no_evidence ablation. "
-            "The inverse direction remains forbidden."
+            "Allow the intentional same-checkpoint correct/no_evidence input "
+            "ablation (necessity test). The inverse direction remains forbidden. "
+            "The older --allow-causal-raster-override spelling is retained as an "
+            "alias."
         ),
     )
     parser.add_argument("--output", type=Path, required=True)
@@ -136,6 +153,95 @@ def validate_args(args: argparse.Namespace) -> None:
         raise ValueError("gate_calibration is reserved for held-out fold 4")
 
 
+def _positive_integer_pair(value: object, name: str) -> list[int]:
+    if not isinstance(value, (list, tuple)) or len(value) != 2:
+        raise ValueError(f"{name} must contain two positive integers")
+    pair: list[int] = []
+    for item in value:
+        if isinstance(item, bool):
+            raise ValueError(f"{name} must contain two positive integers")
+        try:
+            integer = int(item)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"{name} must contain two positive integers") from exc
+        if integer <= 0 or integer != item:
+            raise ValueError(f"{name} must contain two positive integers")
+        pair.append(integer)
+    return pair
+
+
+def _selector_metadata_from_checkpoint(
+    residual_payload: Mapping[str, object],
+    *,
+    adapter_mode: str,
+    profile_radii: tuple[float, ...],
+    evidence_dilation: int,
+) -> dict[str, object]:
+    """Expose explicit feature-cell aliases and optional recorded grid geometry."""
+
+    if adapter_mode != VERIFIED_ADAPTER_MODE:
+        return {}
+    architecture = residual_payload.get("residual")
+    if not isinstance(architecture, Mapping):
+        raise ValueError("Residual checkpoint has no residual architecture")
+    radii = list(profile_radii)
+    for key, expected in (
+        ("profile_radii_feature_cells", radii),
+        ("evidence_dilation_feature_cells", evidence_dilation),
+    ):
+        observed = architecture.get(key)
+        if observed is not None and observed != expected:
+            raise ValueError(f"Residual checkpoint has inconsistent {key}")
+    metadata: dict[str, object] = {
+        "profile_radii_feature_cells": radii,
+        "evidence_dilation_feature_cells": evidence_dilation,
+    }
+    raw_grid = architecture.get("selector_grid")
+    if raw_grid is None:
+        # Checkpoints created before selector-grid provenance was added remain valid.
+        return metadata
+    if not isinstance(raw_grid, Mapping):
+        raise ValueError("Residual selector_grid must be a mapping")
+    if raw_grid.get("source") != SELECTOR_FUSION_GRID_SOURCE:
+        raise ValueError("Residual selector_grid has an unknown feature source")
+    if raw_grid.get("parameter_unit") != SELECTOR_FEATURE_CELL_UNIT:
+        raise ValueError("Residual selector_grid has an unknown parameter unit")
+    input_size = _positive_integer_pair(
+        raw_grid.get("input_image_size_pixels"), "selector input image size"
+    )
+    grid_size = _positive_integer_pair(
+        raw_grid.get("fusion_grid_size_feature_cells"), "selector fusion-grid size"
+    )
+    raw_stride = raw_grid.get("effective_stride_input_pixels_per_feature_cell")
+    if not isinstance(raw_stride, (list, tuple)) or len(raw_stride) != 2:
+        raise ValueError("selector effective stride must contain two positive values")
+    try:
+        stride = [float(value) for value in raw_stride]
+    except (TypeError, ValueError) as exc:
+        raise ValueError(
+            "selector effective stride must contain two positive values"
+        ) from exc
+    expected_stride = [
+        input_size[0] / grid_size[0],
+        input_size[1] / grid_size[1],
+    ]
+    if any(
+        not math.isfinite(observed)
+        or observed <= 0.0
+        or not math.isclose(observed, expected, rel_tol=1e-9, abs_tol=1e-12)
+        for observed, expected in zip(stride, expected_stride)
+    ):
+        raise ValueError("selector effective stride is inconsistent with its grid sizes")
+    metadata["selector_grid"] = {
+        "source": SELECTOR_FUSION_GRID_SOURCE,
+        "parameter_unit": SELECTOR_FEATURE_CELL_UNIT,
+        "input_image_size_pixels": input_size,
+        "fusion_grid_size_feature_cells": grid_size,
+        "effective_stride_input_pixels_per_feature_cell": stride,
+    }
+    return metadata
+
+
 def _build_model(
     *,
     args: argparse.Namespace,
@@ -182,6 +288,10 @@ def _build_model(
         raster_channels=residual_spec.raster_channels,
         high_resolution_channels=residual_spec.high_resolution_channels,
         hidden_channels=residual_spec.hidden_channels,
+        adapter_mode=residual_spec.adapter_mode,
+        profile_radii=residual_spec.profile_radii or (1.5, 3.0),
+        evidence_dilation=residual_spec.evidence_dilation,
+        evidence_threshold=residual_spec.evidence_threshold,
     ).to(device)
     incompatible = model.adapter.load_state_dict(
         residual_spec.adapter_state, strict=True
@@ -225,6 +335,16 @@ def _ordered_finalize(
         )
     rows = [rows_by_case[name] for name in selected_names]
     write_rows_csv_atomic(output / "per_image.csv", rows)
+    selector_diagnostics = read_selector_diagnostics(
+        output / "progress.jsonl", expected_dataset=dataset_name
+    )
+    if selector_diagnostics:
+        write_selector_diagnostics_atomic(
+            output / "selector_diagnostics.json",
+            selector_diagnostics,
+            dataset=dataset_name,
+            selected_names=selected_names,
+        )
     summary = summarize_rows(rows)
     usage_policy = _evaluation_usage_policy(
         role=role, causal_raster_override=causal_raster_override
@@ -328,6 +448,31 @@ def run(args: argparse.Namespace) -> dict[str, object]:
     usage_policy = _evaluation_usage_policy(
         role=args.role, causal_raster_override=causal_raster_override
     )
+    residual_contract: dict[str, object] = {
+        "raster_channels": residual_spec.raster_channels,
+        "high_resolution_channels": list(residual_spec.high_resolution_channels),
+        "hidden_channels": residual_spec.hidden_channels,
+        # Historical names remain present for consumers of schema version 1.
+        "adapter_mode": residual_spec.adapter_mode,
+        "profile_radii": list(residual_spec.profile_radii),
+        "evidence_dilation": residual_spec.evidence_dilation,
+        "evidence_threshold": residual_spec.evidence_threshold,
+        "raster_preprocessing": residual_spec.preprocessing.as_dict(),
+        "training_raster_condition": residual_spec.training_raster_condition,
+        "evaluation_raster_condition": evaluation_raster_condition,
+        "causal_raster_override": causal_raster_override,
+        "checkpoint_held_out_fold": residual_spec.held_out_fold,
+        "checkpoint_oof_training": dict(residual_spec.oof_training),
+        "checkpoint_training_state": residual_spec.training_state,
+    }
+    residual_contract.update(
+        _selector_metadata_from_checkpoint(
+            residual_payload,
+            adapter_mode=residual_spec.adapter_mode,
+            profile_radii=residual_spec.profile_radii,
+            evidence_dilation=residual_spec.evidence_dilation,
+        )
+    )
     contract = {
         "schema": EVALUATION_SCHEMA,
         "schema_version": EVALUATION_SCHEMA_VERSION,
@@ -361,22 +506,17 @@ def run(args: argparse.Namespace) -> dict[str, object]:
             "verify_cache_hashes": not args.skip_cache_hash_verification,
             "verify_data_hashes": not args.skip_data_hash_verification,
         },
-        "residual": {
-            "raster_channels": residual_spec.raster_channels,
-            "high_resolution_channels": list(residual_spec.high_resolution_channels),
-            "hidden_channels": residual_spec.hidden_channels,
-            "raster_preprocessing": residual_spec.preprocessing.as_dict(),
-            "training_raster_condition": residual_spec.training_raster_condition,
-            "evaluation_raster_condition": evaluation_raster_condition,
-            "causal_raster_override": causal_raster_override,
-            "checkpoint_held_out_fold": residual_spec.held_out_fold,
-            "checkpoint_oof_training": dict(residual_spec.oof_training),
-            "checkpoint_training_state": residual_spec.training_state,
-        },
+        "residual": residual_contract,
         "segmentation_threshold": args.segmentation_threshold,
         "label_minimum_gain": args.label_minimum_gain,
         "gate_policy": {
             "feature_rows_only": True,
+            "spatial_support_source": (
+                "accepted_local_selector_output"
+                if residual_spec.adapter_mode == VERIFIED_ADAPTER_MODE
+                else "raw_frangi_cache_support"
+            ),
+            "frangi_cache_statistics_source": "raw_frangi_cache",
             "threshold_selected_by_this_command": False,
             "eligible_for_later_gate_fit": usage_policy[
                 "eligible_for_later_gate_fit"

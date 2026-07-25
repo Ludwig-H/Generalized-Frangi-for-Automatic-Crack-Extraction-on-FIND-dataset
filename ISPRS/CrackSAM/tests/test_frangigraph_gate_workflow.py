@@ -26,8 +26,9 @@ def test_workflow_has_safe_shell_and_user_facing_modes() -> None:
     assert 'CACHE_ROOT="${FRANGIGRAPH_GRAPH_CACHE:-${RUN_ROOT}/graph_cache}"' in text
     assert '"graph_cache_root", "train_list"' in text
     assert 'RASTER_CONDITION="${FRANGIGRAPH_RASTER_CONDITION:-correct}"' in text
-    assert '"frangi_graph_order", "raster_condition", "hidden_channels"' in text
-    assert '"schema_version": 2' in text
+    assert 'ADAPTER_MODE="${FRANGIGRAPH_ADAPTER_MODE:-verified_local_v1}"' in text
+    assert '"frangi_graph_order", "raster_condition", "adapter_mode"' in text
+    assert '"schema_version": 3' in text
     assert (
         'FRANGI_SCALES_TEXT="${FRANGIGRAPH_SCALES:-1.0 3.0 5.0 9.0 15.0}"'
         in text
@@ -48,9 +49,12 @@ def test_workflow_has_safe_shell_and_user_facing_modes() -> None:
     assert result.returncode == 0
     assert "SMOKE|FULL" in result.stdout
     assert "FRANGIGRAPH_RASTER_CONDITION" in result.stdout
+    assert "FRANGIGRAPH_PROFILE_RADII_FEATURE_CELLS" in result.stdout
+    assert "FRANGIGRAPH_EVIDENCE_DILATION_FEATURE_CELLS" in result.stdout
+    assert "first Hiera high-resolution feature grid" in result.stdout
 
 
-def test_workflow_binds_equal_capacity_raster_condition_everywhere() -> None:
+def test_workflow_binds_versioned_local_selector_everywhere() -> None:
     text = workflow_text()
     assert re.search(
         r'case "\$\{RASTER_CONDITION\}" in\s+correct\|no_evidence\) ;;',
@@ -62,11 +66,28 @@ def test_workflow_binds_equal_capacity_raster_condition_everywhere() -> None:
     )
     assert text.count('--raster-condition "${RASTER_CONDITION}"') == 2
     assert "--raster-condition correct" not in text
+    assert text.count('--adapter-mode "${ADAPTER_MODE}"') == 1
+    assert (
+        '--profile-radii-feature-cells "${PROFILE_RADII_FEATURE_CELLS[@]}"'
+        in text
+    )
+    assert (
+        '--evidence-dilation-feature-cells "${EVIDENCE_DILATION_FEATURE_CELLS}"'
+        in text
+    )
+    assert '--evidence-loss-weight "${EVIDENCE_LOSS_WEIGHT}"' in text
+    assert "verified_local_v1 cannot be trained with no_evidence" in text
+    assert '"profile_radii_feature_cells", "evidence_dilation_feature_cells"' in text
+    assert '"fusion_grid_source": "SAM2ImageFeatures.high_resolution_features[0]"' in text
 
     # The resolved value is passed once to the immutable contract generator;
     # `${VAR:-correct}` makes unset, empty, and explicit `correct` byte-equivalent.
     contract_prefix, _ = text.split("<<'PY'", maxsplit=1)
-    assert contract_prefix.count('"${RASTER_CONDITION}"') == 2
+    assert (
+        '"${RASTER_CONDITION}" "${ADAPTER_MODE}" '
+        '"${PROFILE_RADII_FEATURE_CELLS_TEXT}"'
+        in contract_prefix
+    )
 
 
 def test_workflow_rejects_unknown_raster_condition_before_io(tmp_path: Path) -> None:
@@ -90,6 +111,31 @@ def test_workflow_rejects_unknown_raster_condition_before_io(tmp_path: Path) -> 
         "FRANGIGRAPH_RASTER_CONDITION must be exactly correct or no_evidence"
         in result.stderr
     )
+    assert "Required file is missing" not in result.stderr
+
+
+def test_workflow_rejects_conflicting_selector_unit_aliases_before_io(
+    tmp_path: Path,
+) -> None:
+    env = {
+        **os.environ,
+        "CRACKSAM2_DATA_ROOT": str(tmp_path / "missing-data"),
+        "SAM2_CHECKPOINT": str(tmp_path / "missing-sam2.pt"),
+        "BASELINE_CHECKPOINT": str(tmp_path / "missing-baseline.pt"),
+        "FRANGIGRAPH_RUN_ROOT": str(tmp_path / "unused-run"),
+        "FRANGIGRAPH_PROFILE_RADII_FEATURE_CELLS": "1.5 3.0",
+        "FRANGIGRAPH_PROFILE_RADII": "2.0 4.0",
+    }
+    result = subprocess.run(
+        ["bash", str(WORKFLOW), "--mode", "SMOKE"],
+        check=False,
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+
+    assert result.returncode == 2
+    assert "conflicts with its legacy alias" in result.stderr
     assert "Required file is missing" not in result.stderr
 
 

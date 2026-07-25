@@ -267,7 +267,7 @@ def test_assembler_rejects_causal_override_rows_for_both_gate_stages(
     contract_path.write_text(json.dumps(contract), encoding="utf-8")
     output = tmp_path / "causal-must-not-be-assembled"
 
-    with pytest.raises(ValueError, match="causal raster override evaluation"):
+    with pytest.raises(ValueError, match="input-ablation raster override evaluation"):
         assemble_oof_gate_data(directories, output)
 
     assert not (output / "gate_fit.csv").exists()
