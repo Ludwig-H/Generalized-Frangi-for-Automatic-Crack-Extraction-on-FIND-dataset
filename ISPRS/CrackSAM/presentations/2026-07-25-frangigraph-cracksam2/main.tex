@@ -19,9 +19,9 @@
   colorlinks=true,
   allcolors=rouge_inria,
   pdfauthor={Louis Hauseux, Raphaël Antoine, Philippe Foucher, Pierre Charbonnier, Josiane Zerubia},
-  pdftitle={Frangi-graphe et CrackSAM 2},
-  pdfsubject={Diagnostic des essais Frangi-similarité avec SAM 2 et feuille de route},
-  pdfkeywords={SAM, SAM 2, SAM 3, CrackSAM, Frangi, graph, crack segmentation}
+  pdftitle={Frangi-similarité pour guider CrackSAM 2},
+  pdfsubject={Définition et résultats illustrés du guidage Frangi-similarité avec SAM 2},
+  pdfkeywords={SAM, SAM 2, SAM 3, CrackSAM, Frangi, similarity, crack segmentation}
 }
 
 \definecolor{success}{HTML}{3C8D5A}
@@ -62,9 +62,42 @@
     \fcolorbox{black!18}{white}{\includegraphics[width=0.94\linewidth]{#2}}
   \end{minipage}%
 }
+\newcommand{\compactpanel}[2]{%
+  \begin{minipage}[t]{0.188\textwidth}
+    \centering
+    {\fontsize{6.1}{6.8}\selectfont\bfseries #1}\par\vspace{1pt}
+    \setlength{\fboxsep}{0.7pt}%
+    \fcolorbox{black!16}{white}{%
+      \includegraphics[width=0.92\linewidth,height=1.62cm,keepaspectratio]{#2}}
+  \end{minipage}%
+}
+\newcommand{\caserow}[4]{%
+  \noindent
+  \begin{minipage}[c]{0.73\linewidth}
+    {\scriptsize\bfseries #1}
+  \end{minipage}\hfill
+  \begin{minipage}[c]{0.25\linewidth}
+    \raggedleft\statusbadge{#3}{#4}
+  \end{minipage}\par
+  \vspace{1pt}
+  \compactpanel{Entrée}{#2_input.jpg}\hfill
+  \compactpanel{Vérité terrain}{#2_gt.jpg}\hfill
+  \compactpanel{Frangi--similarité}{#2_frangi.jpg}\hfill
+  \compactpanel{Baseline}{#2_baseline.jpg}\hfill
+  \compactpanel{Avec Frangi}{#2_guided.jpg}%
+}
+\newcommand{\prompttile}[2]{%
+  \begin{minipage}[t]{0.315\textwidth}
+    \centering
+    {\scriptsize\bfseries #1}\par\vspace{2pt}
+    \setlength{\fboxsep}{1pt}%
+    \fcolorbox{black!16}{white}{%
+      \includegraphics[height=1.78cm,width=0.92\linewidth,keepaspectratio]{#2}}
+  \end{minipage}%
+}
 
-\title[CrackSAM 2 et Frangi-graphe]{CrackSAM 2 et Frangi-graphe}
-\subtitle{Bilan des essais et choix de la prochaine intégration}
+\title[CrackSAM 2 et Frangi--similarité]{Frangi--similarité pour guider CrackSAM 2}
+\subtitle{Définition, résultats illustrés et leçons de l'injection dense}
 \date[25/07/2026]{25 juillet 2026}
 \author[L. \textsc{Hauseux} et al.]{%
   {\small Inria, équipe \textsc{Ayana} : Louis \textsc{Hauseux}, Josiane \textsc{Zerubia}}\\
@@ -76,377 +109,388 @@
 
 \frame{\titlepage}
 
-\begin{frame}{Point de départ}
-  \centering
-  \vspace{0.15cm}
-  {\LARGE\bfseries Les modèles de fondation sont devenus\\
-  incontournables en segmentation d'images. \refmark{1--3}}\par
-
-  \vspace{0.65cm}
-  \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.30\textwidth}
-      \centering
-      {\Large\bfseries\color{inkblue} Base}\\[5pt]
-      {\small SAM 2 fournit des représentations visuelles générales et une interface de segmentation guidée.}
-    \end{column}
-    \begin{column}{0.30\textwidth}
-      \centering
-      {\Large\bfseries\color{warning} Adaptation}\\[5pt]
-      {\small CrackSAM transforme cette base en segmenter automatique de fissures.}
-    \end{column}
-    \begin{column}{0.30\textwidth}
-      \centering
-      {\Large\bfseries\color{success} Géométrie}\\[5pt]
-      {\small Frangi apporte des lignes, des orientations et des connexions.}
-    \end{column}
-  \end{columns}
-
-  \vspace{0.7cm}
-  {\large\bfseries Objectif : utiliser Frangi sans dégrader la prédiction de SAM 2.}
-  \source{\refmark{1} Kirillov et al., ICCV 2023. \quad
-  \refmark{2} Ravi et al., 2024. \quad
-  \refmark{3} Carion et al., ICLR 2026.}
-\end{frame}
-
 % -----------------------------------------------------------------------------
 \section{De SAM à CrackSAM}
-\frame{\sectionpage}
 
-\begin{frame}{Trois générations de SAM}
+\begin{frame}{SAM en 90 secondes}
   \centering
-  \vspace{0.15cm}
+  \vspace{0.1cm}
   \begin{tikzpicture}[>=Latex,node distance=0.48cm]
     \node[rounded corners=6pt,draw=inkblue!55,fill=softblue,
-      text width=3.25cm,minimum height=3.25cm,align=left,inner sep=8pt] (sam1) {
+      text width=3.25cm,minimum height=3.05cm,align=left,inner sep=8pt] (sam1) {
       {\Large\bfseries\color{inkblue} SAM}\hfill{\small 2023}\\[6pt]
       \textbf{Images}\\
-      {\scriptsize Points, boîtes ou masques}\\[5pt]
-      {\scriptsize Encodeur ViT + décodeur léger}\\[5pt]
-      {\scriptsize SA-1B : 11 M d'images, 1,1 Md de masques}
+      {\scriptsize Segmentation guidée par points, boîtes ou masques}\\[5pt]
+      {\scriptsize Encodeur ViT + décodeur léger}
       \hfill\refmark{1}};
     \node[rounded corners=6pt,draw=warning!55,fill=warning!8,
-      text width=3.25cm,minimum height=3.25cm,align=left,inner sep=8pt,right=of sam1] (sam2) {
+      text width=3.25cm,minimum height=3.05cm,align=left,inner sep=8pt,right=of sam1] (sam2) {
       {\Large\bfseries\color{warning} SAM 2}\hfill{\small 2024}\\[6pt]
       \textbf{Images + vidéos}\\
-      {\scriptsize Même type d'invites visuelles}\\[5pt]
-      {\scriptsize Hiera multi-échelle + mémoire continue}\\[5pt]
-      {\scriptsize SA-V : 35,5 M de masques vidéo}
+      {\scriptsize Encodeur Hiera multi-échelle}\\[5pt]
+      {\scriptsize Mémoire vidéo ; décodeur avec connexions haute résolution}
       \hfill\refmark{2}};
     \node[rounded corners=6pt,draw=success!55,fill=softgreen,
-      text width=3.25cm,minimum height=3.25cm,align=left,inner sep=8pt,right=of sam2] (sam3) {
+      text width=3.25cm,minimum height=3.05cm,align=left,inner sep=8pt,right=of sam2] (sam3) {
       {\Large\bfseries\color{success} SAM 3}\hfill{\small 2025}\\[6pt]
       \textbf{Concepts visuels}\\
-      {\scriptsize Texte ou exemples ($+$ / $-$)}\\[5pt]
-      {\scriptsize Détecteur + suivi + tête de présence}\\[5pt]
-      {\scriptsize Toutes les instances d'un concept}
+      {\scriptsize Texte ou exemples positifs/négatifs}\\[5pt]
+      {\scriptsize Détecte toutes les instances d'un concept}
       \hfill\refmark{3}};
     \draw[->,very thick,black!45] (sam1) -- (sam2);
     \draw[->,very thick,black!45] (sam2) -- (sam3);
   \end{tikzpicture}
 
-  \vspace{0.4cm}
-  {\large Chaque version élargit le type d'entrée et le domaine d'utilisation.}
+  \vspace{0.42cm}
+  \begin{block}{Choix expérimental}
+    \centering\small SAM 2 est conservé pour une comparaison contrôlée sur la segmentation binaire d'images fixes ; SAM 3 reste une étude séparée.
+  \end{block}
   \source{\refmark{1} Kirillov et al., ICCV 2023. \quad
   \refmark{2} Ravi et al., 2024. \quad
   \refmark{3} Carion et al., ICLR 2026.}
 \end{frame}
 
-\begin{frame}{SAM (2023) : une segmentation guidée sur image}
+\begin{frame}{CrackSAM 2 : la comparaison contrôlée}
   \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.58\textwidth}
+    \begin{column}{0.53\textwidth}
       \centering
-      \includegraphics[width=\linewidth,height=0.61\textheight,keepaspectratio]{sam_model_diagram.png}
-    \end{column}
-    \begin{column}{0.39\textwidth}
       \vspace{0.2cm}
-      \begin{tikzpicture}[node distance=0.34cm]
-        \node[rounded corners=4pt,draw=inkblue!45,fill=softblue,
-          text width=4.25cm,align=left,inner sep=6pt] (enc) {
-          \textbf{Encodeur image}\\[-1pt]
-          {\scriptsize ViT ; l'image est encodée une fois}};
-        \node[rounded corners=4pt,draw=warning!50,fill=warning!7,
-          text width=4.25cm,align=left,inner sep=6pt,below=of enc] (prompt) {
-          \textbf{Encodeur d'invites}\\[-1pt]
-          {\scriptsize point positif/négatif, boîte ou masque}};
-        \node[rounded corners=4pt,draw=success!50,fill=softgreen,
-          text width=4.25cm,align=left,inner sep=6pt,below=of prompt] (dec) {
-          \textbf{Décodeur de masque}\\[-1pt]
-          {\scriptsize léger ; produit plusieurs masques si l'invite est ambiguë}};
-      \end{tikzpicture}
-      \vspace{0.12cm}
-
-      \begin{block}{Pour notre application}
-        \small SAM délimite un objet indiqué par une invite. CrackSAM l'adapte à la prédiction binaire \og fissure / fond\fg{}. \refmark{1}
-      \end{block}
-    \end{column}
-  \end{columns}
-  \source{\refmark{1} Kirillov et al., \emph{Segment Anything}, ICCV 2023.}
-\end{frame}
-
-\begin{frame}{SAM 2 (2024) : un modèle commun pour l'image et la vidéo}
-  \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.55\textwidth}
-      \centering
-      \vspace{0.15cm}
-      \begin{tikzpicture}[>=Latex,node distance=0.42cm]
-        \node[rounded corners=5pt,draw=inkblue!55,fill=softblue,
-          text width=4.65cm,minimum height=0.92cm,align=center] (hiera) {
-          \textbf{Encodeur Hiera}\\{\scriptsize représentations hiérarchiques et multi-échelles}};
-        \node[rounded corners=5pt,draw=warning!55,fill=warning!8,
-          text width=4.65cm,minimum height=0.92cm,align=center,below=of hiera] (memory) {
-          \textbf{Attention à la mémoire}\\{\scriptsize prompts et prédictions des images précédentes}};
-        \node[rounded corners=5pt,draw=success!55,fill=softgreen,
-          text width=4.65cm,minimum height=0.92cm,align=center,below=of memory] (decoder) {
-          \textbf{Décodeur de masque}\\{\scriptsize points, boîtes ou masques ; sorties image ou vidéo}};
-        \draw[->,thick] (hiera) -- (memory);
-        \draw[->,thick] (memory) -- (decoder);
-      \end{tikzpicture}
-    \end{column}
-    \begin{column}{0.42\textwidth}
-      \textbf{Ajouts techniques} \refmark{2}
-      \begin{itemize}
-        \item mémoire continue pour suivre un objet ;
-        \item connexions haute résolution vers le décodeur ;
-        \item tête indiquant si l'objet est présent ;
-        \item entraînement commun sur images et vidéos.
-      \end{itemize}
-      \small En mode image, la mémoire est vide : l'image est traitée comme une vidéo d'une seule image.
-    \end{column}
-  \end{columns}
-
-  \vspace{0.35cm}
-  \centering
-  \metriccard{inkblue}{Segmentation d'image}{plus précis}{et $6\times$ plus rapide que SAM}
-  \hspace{0.35cm}
-  \metriccard{success}{Segmentation vidéo}{$3\times$ moins}{d'interactions que les méthodes comparées}
-  \source{\refmark{2} Ravi et al., \emph{SAM 2: Segment Anything in Images and Videos}, 2024.}
-\end{frame}
-
-\begin{frame}{SAM 3 (2025) : segmenter toutes les instances d'un concept}
-  \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.48\textwidth}
-      \centering
-      \begin{tikzpicture}[node distance=0.34cm,>=Latex]
-        \node[rounded corners=5pt,draw=black!35,fill=softgray,
-          minimum width=4.65cm,minimum height=0.75cm,align=center] (text) {
-          \textbf{Texte} : \og fissure de chaussée\fg{}};
-        \node[rounded corners=5pt,draw=inkblue!50,fill=softblue,
-          minimum width=4.65cm,minimum height=0.75cm,align=center,below=of text] (example) {
-          \textbf{Exemples image} : positifs et négatifs};
-        \node[rounded corners=6pt,draw=success!55,fill=softgreen,
-          minimum width=4.65cm,minimum height=1.15cm,align=center,below=0.52cm of example] (sam3) {
-          {\large\bfseries Détecteur + suivi}\\[-1pt]
-          {\scriptsize toutes les instances qui correspondent au concept}};
-        \draw[->,thick,inkblue] (text) -- (sam3);
-        \draw[->,thick,inkblue] (example) -- (sam3);
-      \end{tikzpicture}
-    \end{column}
-    \begin{column}{0.49\textwidth}
-      \textbf{Ajouts techniques} \refmark{3}
-      \begin{itemize}
-        \item encodeur visuel partagé ;
-        \item détecteur d'image de type DETR ;
-        \item module de suivi à mémoire hérité de SAM 2 ;
-        \item tête de présence séparant reconnaissance et localisation.
-      \end{itemize}
-      \small Les points, boîtes et masques restent disponibles pour corriger une instance.
-    \end{column}
-  \end{columns}
-
-  \vspace{0.42cm}
-  \begin{block}{Pour les fissures}
-    \centering\small Le texte et les exemples peuvent aider à reconnaître le concept. La précision sur des structures très fines doit toutefois être évaluée séparément.
-  \end{block}
-  \source{\refmark{3} Carion et al., \emph{SAM 3: Segment Anything with Concepts}, ICLR 2026.}
-\end{frame}
-
-\begin{frame}{Pourquoi nous utilisons SAM 2}
-  \centering
-  \vspace{0.1cm}
-  {\large Notre tâche est une segmentation automatique, binaire, sur des images fixes.}\par
-  \vspace{0.55cm}
-  \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.30\textwidth}
-      \centering
-      {\Large\bfseries\color{inkblue} Tâche}\\[5pt]
-      {\small SAM 2 s'adapte directement à une classe connue. SAM 3 vise toutes les instances d'un concept.}
-    \end{column}
-    \begin{column}{0.30\textwidth}
-      \centering
-      {\Large\bfseries\color{warning} Représentations}\\[5pt]
-      {\small Les représentations Hiera-L sont déjà utilisées par notre baseline et par le correcteur Frangi.}
-    \end{column}
-    \begin{column}{0.30\textwidth}
-      \centering
-      {\Large\bfseries\color{success} Comparaison}\\[5pt]
-      {\small Passer à SAM 3 changerait simultanément l'encodeur, la tâche et l'interface d'entrée.}
-    \end{column}
-  \end{columns}
-
-  \vspace{0.65cm}
-  \begin{block}{Choix}
-    \centering\large Nous poursuivons l'intégration de Frangi avec \textbf{SAM 2}. SAM 3 reste une étude séparée.
-  \end{block}
-  \source{\refmark{2} Ravi et al., 2024. \quad
-  \refmark{3} Carion et al., ICLR 2026.}
-\end{frame}
-
-\begin{frame}{CrackSAM adapte SAM à la segmentation automatique des fissures}
-  \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.52\textwidth}
-      \centering
-      \vspace{0.3cm}
-      \begin{tikzpicture}[node distance=0.42cm,>=Latex]
+      \begin{tikzpicture}[node distance=0.35cm,>=Latex]
         \node[rounded corners=5pt,fill=softgray,draw=black!25,
-          text width=4.9cm,align=center,inner sep=7pt] (sam) {
-          {\bfseries SAM 1 ViT-H pré-entraîné}\\
-          {\scriptsize paramètres largement gelés}};
+          text width=5.0cm,align=center,inner sep=6pt] (hiera) {
+          {\bfseries SAM 2 Hiera-L pré-entraîné}\\
+          {\scriptsize image $1024^2$ ; représentations multi-échelles}};
         \node[rounded corners=5pt,fill=softblue,draw=inkblue!45,
-          text width=4.9cm,align=center,inner sep=7pt,below=of sam] (adapt) {
-          {\bfseries LoRA ou adaptateurs}\\
-          {\scriptsize prompt encoder et mask decoder également ajustés}};
+          text width=5.0cm,align=center,inner sep=6pt,below=of hiera] (lora) {
+          {\bfseries LoRA $q/v$, rang 4}\\
+          {\scriptsize encodeur + attentions du décodeur}};
         \node[rounded corners=5pt,fill=softgreen,draw=success!45,
-          text width=4.9cm,align=center,inner sep=7pt,below=of adapt] (mask) {
+          text width=5.0cm,align=center,inner sep=6pt,below=of lora] (mask) {
           {\bfseries Masque de fissure automatique}\\
-          {\scriptsize aucun clic demandé à l'inférence}};
-        \draw[->,thick] (sam) -- (adapt);
-        \draw[->,thick] (adapt) -- (mask);
+          {\scriptsize un logit fissure ; aucun clic à l'inférence}};
+        \draw[->,thick] (hiera) -- (lora);
+        \draw[->,thick] (lora) -- (mask);
       \end{tikzpicture}
     \end{column}
-    \begin{column}{0.44\textwidth}
-      \vspace{0.2cm}
-      \textbf{Protocole publié} \refmark{4}
+    \begin{column}{0.43\textwidth}
+      \vspace{0.12cm}
+      \textbf{Une seule différence entre les variantes}
       \begin{itemize}
-        \item entraînement sur Khanhha ;
-        \item adaptation efficace en nombre de paramètres ;
-        \item tests sans réentraînement sur Road420, Facade390 et Concrete3k ;
-        \item tests supplémentaires sous bruit, baisse de lumière et flou.
+        \item baseline : aucun \texttt{mask\_input} ;
+        \item Frangi--similarité : un prompt géométrique dense ;
+        \item mêmes données, architecture et protocole d'évaluation ;
+        \item meilleur checkpoint choisi sur la validation.
       \end{itemize}
     \end{column}
   \end{columns}
-  \source{\refmark{4} Ge et al., \emph{Fine-tuning vision foundation model for crack segmentation in civil infrastructures}, Construction and Building Materials, 2024.}
-\end{frame}
 
-\begin{frame}{Dans l'article, CrackSAM résiste mieux au flou gaussien}
-  \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.69\textwidth}
-      \centering
-      \includegraphics[width=\linewidth,height=0.66\textheight,keepaspectratio]{cracksam_noise_curve.jpg}
-    \end{column}
-    \begin{column}{0.28\textwidth}
-      \vspace{0.25cm}
-      \begin{block}{Kernel size}
-        \small Taille du noyau de flou, en pixels. Une valeur 9 correspond à une fenêtre $9\times9$.
-      \end{block}
-      \vspace{0.15cm}
-      \small Plus le noyau est grand, plus l'image est lissée et les détails fins disparaissent.
-      \vspace{0.35cm}
-
-      \small La courbe CrackSAM\_LoRA baisse moins vite que celles des modèles comparés. \refmark{4}
-    \end{column}
-  \end{columns}
-  \source{\refmark{4} Ge et al., Construction and Building Materials, 2024, fig. 12.}
-\end{frame}
-
-\begin{frame}{Baseline utilisée dans cette étude}
+  \vspace{0.24cm}
   \centering
-  \renewcommand{\arraystretch}{1.35}
-  \begin{tabularx}{0.92\linewidth}{>{\bfseries}p{2.55cm}XX}
-    \toprule
-    & CrackSAM publié \refmark{4} & CrackSAM 2 utilisé ici \\
-    \midrule
-    Encodeur &
-      SAM 1 ViT-H &
-      SAM 2 Hiera-L \\
-    Adaptation &
-      LoRA / adaptateurs + encodeur d'invites + décodeur &
-      LoRA $q/v$ + attentions du décodeur \\
-    Sortie &
-      deux classes &
-      un logit fissure \\
-    Prétraitement &
-      entrée SAM 1 à 448 &
-      entrée Hiera à 1024 \\
-    \bottomrule
-  \end{tabularx}
-
-  \vspace{0.4cm}
-  \metriccard{inkblue}{CrackSAM publié}{0,5780}{IoU macro, référence externe}
+  \metriccard{inkblue}{Baseline SAM 2}{0,5675}{IoU macro sur 6 jeux}
   \hspace{0.12cm}
-  \metriccard{success}{Baseline SAM 2}{0,5675}{IoU macro des ablations}
+  \metriccard{warning}{Frangi--similarité}{0,5563}{meilleure époque : 25}
   \hspace{0.12cm}
-  \metriccard{failure}{Prompt Frangi dense}{0,5563}{$-0,0112$ vs baseline locale}
-
-  \vspace{0.25cm}
-  \small La comparaison contrôlée porte uniquement sur la baseline SAM 2 et sa variante Frangi.
-  \source{\refmark{4} Ge et al., 2024. \quad Résultats CrackSAM 2, juillet 2026.}
+  \metriccard{failure}{Écart global}{$-0,0112$}{Frangi moins baseline}
+  \source{\refmark{4} CrackSAM : Ge et al., 2024. \quad Protocole CrackSAM 2, juillet 2026.}
 \end{frame}
 
 % -----------------------------------------------------------------------------
-\section{Frangi avec SAM 2}
-\frame{\sectionpage}
+\section{Définition de Frangi--similarité}
 
-\begin{frame}{Frangi apporte une description géométrique}
+\begin{frame}{De Frangi local à une similarité entre voisins}
   \centering
-  \begin{tikzpicture}[>=Latex]
-    \node (rgb) {\includegraphics[width=0.28\textwidth,height=0.52\textheight,keepaspectratio]{find_visible.png}};
-    \node[right=0.55cm of rgb] (sim) {\includegraphics[width=0.28\textwidth,height=0.52\textheight,keepaspectratio]{find_similarity.png}};
-    \node[right=0.55cm of sim] (graph) {\includegraphics[width=0.28\textwidth,height=0.52\textheight,keepaspectratio]{find_centrality.png}};
-    \draw[->,very thick,inkblue] (rgb) -- (sim);
+  \vspace{0.02cm}
+  \begin{tikzpicture}[>=Latex,node distance=0.31cm]
+    \node (rgb) {\includegraphics[width=0.205\textwidth,height=0.43\textheight,keepaspectratio]{find_visible.png}};
+    \node[right=of rgb] (hessian) {\includegraphics[width=0.205\textwidth,height=0.43\textheight,keepaspectratio]{find_hessian_sigma30.png}};
+    \node[right=of hessian] (sim) {\includegraphics[width=0.205\textwidth,height=0.43\textheight,keepaspectratio]{find_similarity.png}};
+    \node[right=of sim] (graph) {\includegraphics[width=0.205\textwidth,height=0.43\textheight,keepaspectratio]{find_centrality.png}};
+    \draw[->,very thick,inkblue] (rgb) -- (hessian);
+    \draw[->,very thick,inkblue] (hessian) -- (sim);
     \draw[->,very thick,warning] (sim) -- (graph);
-    \node[above=0.12cm of rgb,font=\bfseries] {Image};
-    \node[above=0.12cm of sim,font=\bfseries] {Réponse de Frangi};
-    \node[above=0.12cm of graph,font=\bfseries] {Graphe};
+    \node[above=0.10cm of rgb,font=\bfseries\scriptsize] {Image};
+    \node[above=0.10cm of hessian,font=\bfseries\scriptsize] {Hessien multi-échelle};
+    \node[above=0.10cm of sim,font=\bfseries\scriptsize] {Similarité};
+    \node[above=0.10cm of graph,font=\bfseries\scriptsize] {Lecture du graphe};
   \end{tikzpicture}
-
-  \vspace{0.3cm}
-  {\large Frangi détecte des structures allongées à plusieurs échelles \refmark{5}.\\
-  Le graphe ajoute orientation, continuité et connexions.}
 
   \vspace{0.25cm}
-  \small Une frontière d'ombre peut produire une réponse proche de celle d'une fissure.
-  \source{\refmark{5} Frangi et al., \emph{Multiscale Vessel Enhancement Filtering}, MICCAI 1998.}
-\end{frame}
-
-\begin{frame}{Premier essai : injecter la carte Frangi comme un masque}
-  \centering
-  \vspace{0.2cm}
-  \begin{tikzpicture}[>=Latex,node distance=0.72cm]
-    \node[rounded corners=5pt,draw=inkblue!50,fill=softblue,
-      minimum width=2.75cm,minimum height=1.35cm,align=center] (s) {
-      {\bfseries Similarité} $S(x)$\\{\scriptsize normalisée par image}};
-    \node[rounded corners=5pt,draw=warning!55,fill=warning!8,
-      minimum width=2.85cm,minimum height=1.35cm,align=center,right=of s] (logit) {
-      $\displaystyle \log\frac{S+\varepsilon}{1-S+\varepsilon}$\\{\scriptsize pseudo-logits $256\times256$}};
-    \node[rounded corners=5pt,draw=failure!55,fill=softred,
-      minimum width=2.85cm,minimum height=1.35cm,align=center,right=of logit] (mask) {
-      {\bfseries SAM 2 \texttt{mask\_input}}\\{\scriptsize présent sur chaque image}};
-    \draw[->,very thick] (s) -- (logit);
-    \draw[->,very thick] (logit) -- (mask);
-  \end{tikzpicture}
-
-  \vspace{0.65cm}
   \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.46\textwidth}
+    \begin{column}{0.30\textwidth}
       \centering
-      \textbf{Valeur faible}\\[4pt]
-      {\small devient un logit très négatif, donc une forte indication de fond.}
+      {\large\bfseries\color{inkblue} Forme}\\[3pt]
+      {\small les deux pixels ressemblent à une structure allongée}
     \end{column}
-    \begin{column}{0.46\textwidth}
+    \begin{column}{0.30\textwidth}
       \centering
-      \textbf{Normalisation par image}\\[4pt]
-      {\small peut amplifier le maximum d'une carte dominée par le bruit.}
+      {\large\bfseries\color{warning} Force}\\[3pt]
+      {\small la courbure sombre est forte aux deux extrémités}
+    \end{column}
+    \begin{column}{0.30\textwidth}
+      \centering
+      {\large\bfseries\color{success} Alignement}\\[3pt]
+      {\small leurs orientations locales sont compatibles}
     \end{column}
   \end{columns}
 
-  \vspace{0.55cm}
-  \small Baseline et variante Frangi entraînées séparément jusqu'à 70 époques.
-  \source{Expérience CrackSAM 2 avec prompt dense, juillet 2026.}
+  \vspace{0.38cm}
+  {\large\bfseries La similarité porte sur une paire de pixels, pas sur un pixel isolé.}
+  \source{\refmark{5} Frangi et al., MICCAI 1998. \quad Illustration VT-GraF, fissure 2.}
 \end{frame}
 
-\begin{frame}{La carte est informative, mais l'injection dense dégrade SAM 2}
+\begin{frame}{Frangi--similarité : définition exacte du score}
   \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.61\textwidth}
+    \begin{column}{0.65\textwidth}
+      \small
+      Pour une arête $(i,j)$ et une échelle $\sigma$, on pose
+      {\scriptsize $\lambda_1^\sigma,\lambda_2^\sigma,\theta^\sigma$ issus du Hessien de luminance normalisé par sa norme spectrale maximale à cette échelle.}
+      \[
+        r_i^\sigma=\frac{|\lambda_1^\sigma(i)|}{|\lambda_2^\sigma(i)|+\varepsilon},
+        \qquad
+        c_i^\sigma=\lambda_2^\sigma(i)\,\mathbf{1}_{\lambda_2^\sigma(i)>0}.
+      \]
+      \vspace{-0.12cm}
+      \[
+      \begin{aligned}
+        S_{ij}^{\sigma}
+        ={}&
+        \underbrace{\exp\!\left[-\frac12
+          \left(\frac{r_i^\sigma+r_j^\sigma}{s_s}\right)^2\right]}_{\text{forme allongée}}\\[-1pt]
+        &\times
+        \underbrace{\left(1-\exp\!\left[-\frac12
+          \left(\frac{c_i^\sigma c_j^\sigma}{s_i}\right)^2\right]\right)}_{\text{force aux deux extrémités}}\\[-1pt]
+        &\times
+        \underbrace{\exp\!\left[-\frac12
+          \left(\frac{\sin(\theta_i^\sigma-\theta_j^\sigma)}{s_a}\right)^2\right]}_{\text{alignement non orienté}} .
+      \end{aligned}
+      \]
+      \vspace{-0.12cm}
+      \[
+        S_{ij}=\max_{\sigma\in\Sigma}S_{ij}^{\sigma},
+        \qquad
+        P_i=\max_{j:(i,j)\in E_{\mathrm{retenu}}}S_{ij}.
+      \]
+    \end{column}
+    \begin{column}{0.32\textwidth}
+      \centering
+      \includegraphics[width=0.90\linewidth,height=0.40\textheight,keepaspectratio]{find_similarity.png}
+
+      \vspace{0.12cm}
+      \begin{block}{Paramètres de l'essai}
+        \fontsize{6.5}{7.5}\selectfont
+        entrée : luminance visible normalisée\\
+        $\Sigma=\{1,3,5,9,15\}$ px,\quad $R=3$ px\\
+        $s_s=1,\ s_i=0{,}25,\ s_a=0{,}3$\\
+        $18\,\%$ des arêtes et n\oe{}uds les plus forts conservés
+      \end{block}
+      \vspace{0.06cm}
+      \raggedright\scriptsize
+      $P_i\in[0,1]$ est une \textbf{évidence géométrique}. Ce n'est pas une probabilité de fissure apprise.
+    \end{column}
+  \end{columns}
+  \source{Implémentation \texttt{extract\_frangi\_graph\_gpu} utilisée pour les prompts CrackSAM 2.}
+\end{frame}
+
+\begin{frame}{De la similarité au prompt dense de SAM 2}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.31\textwidth}
+      \centering
+      \includegraphics[width=0.83\linewidth]{original_gain_frangi.jpg}
+
+      \vspace{0.16cm}
+      {\small\bfseries Carte $P$ de Frangi--similarité}\\[-1pt]
+      {\scriptsize maximum incident après sélection du graphe}
+    \end{column}
+    \begin{column}{0.66\textwidth}
+      \centering
+      \vspace{0.16cm}
+      \begin{tikzpicture}[>=Latex,node distance=0.22cm]
+        \node[rounded corners=5pt,draw=inkblue!50,fill=softblue,
+          minimum width=1.55cm,minimum height=1.12cm,align=center] (p) {
+          $P\in[0,1]$\\{\scriptsize évidence}};
+        \node[rounded corners=5pt,draw=warning!55,fill=warning!8,
+          minimum width=2.15cm,minimum height=1.12cm,align=center,right=of p] (logit) {
+          {\scriptsize $\widetilde P=\operatorname{clip}(P,\varepsilon,1-\varepsilon)$}\\[-1pt]
+          $\displaystyle L=\log\frac{\widetilde P}{1-\widetilde P}$\\[-1pt]
+          {\tiny $\varepsilon=10^{-5}$}};
+        \node[rounded corners=5pt,draw=black!35,fill=softgray,
+          minimum width=1.55cm,minimum height=1.12cm,align=center,right=of logit] (resize) {
+          {\bfseries $256\times256$}\\{\scriptsize interpolation}};
+        \node[rounded corners=5pt,draw=failure!55,fill=softred,
+          minimum width=1.75cm,minimum height=1.12cm,align=center,right=of resize] (mask) {
+          {\bfseries \texttt{mask\_input}}\\{\scriptsize SAM 2}};
+        \draw[->,very thick] (p) -- (logit);
+        \draw[->,very thick] (logit) -- (resize);
+        \draw[->,very thick] (resize) -- (mask);
+      \end{tikzpicture}
+
+      \vspace{0.48cm}
+      \begin{columns}[T,onlytextwidth]
+        \begin{column}{0.47\textwidth}
+          \begin{block}{Présence}
+            \small Un grand $P$ indique une structure localement compatible avec une fissure.
+          \end{block}
+        \end{column}
+        \begin{column}{0.47\textwidth}
+          \begin{alertblock}{Absence}
+            \small $P\simeq0$ devient $L\simeq-11{,}5$ : une forte indication de fond, jamais neutre.
+          \end{alertblock}
+        \end{column}
+      \end{columns}
+
+      \vspace{0.12cm}
+      \small Le même prompt dense est présent pendant tout l'entraînement et à chaque inférence.
+    \end{column}
+  \end{columns}
+  \source{Protocole historique Frangi--similarité, meilleur checkpoint à l'époque 25.}
+\end{frame}
+
+\begin{frame}{Les cartes de similarité couvrent des situations très différentes}
+  \centering
+  \prompttile{Fissure fine sous bruit}{noisy2_gain_frangi.jpg}\hfill
+  \prompttile{Fissure et bord de façade}{facade_gain_frangi.jpg}\hfill
+  \prompttile{Fissure et ombres portées}{shadow_gain_frangi.jpg}
+
+  \vspace{0.22cm}
+  \prompttile{Ombre, jambe et fissure}{original_gain_frangi.jpg}\hfill
+  \prompttile{Texture granulaire}{noisy2_loss_frangi.jpg}\hfill
+  \prompttile{Crépi et fissure}{facade_loss_frangi.jpg}
+
+  \vspace{0.25cm}
+  \begin{block}{Point de lecture}
+    \centering\small Une réponse élevée signifie \og structure allongée, contrastée et alignée\fg{}, pas nécessairement \og fissure\fg{}.
+  \end{block}
+  \source{Cartes sigmoid des pseudo-logits, extraites de la galerie du rapport Frangi milestones.}
+\end{frame}
+
+% -----------------------------------------------------------------------------
+\section{Résultats illustrés}
+
+\begin{frame}{Bilan global : un seul petit gain moyen sur six jeux}
+  \centering
+  \includegraphics[width=0.88\linewidth,height=0.60\textheight,keepaspectratio]{delta_iou_heatmap.png}
+
+  \vspace{0.08cm}
+  \metriccard{success}{Seul gain au meilleur jalon}{+0,0027}{Khanhha bruit 1}
+  \hspace{0.15cm}
+  \metriccard{failure}{Plus forte baisse}{-0,0292}{Khanhha bruit 2}
+  \hspace{0.15cm}
+  \metriccard{failure}{IoU macro}{-0,0112}{Frangi moins baseline}
+  \source{Rapport Frangi milestones ; les checkpoints sont sélectionnés sur la validation, pas sur les jeux de test.}
+\end{frame}
+
+\begin{frame}{Gain -- Road420 : la fissure est récupérée malgré les ombres}
+  \centering
+  \imagepanel{Entrée}{shadow_gain_input.jpg}\hfill
+  \imagepanel{Vérité terrain}{shadow_gain_gt.jpg}\hfill
+  \imagepanel{Frangi--similarité}{shadow_gain_frangi.jpg}\hfill
+  \imagepanel{Baseline}{shadow_gain_baseline.jpg}\hfill
+  \imagepanel{Avec Frangi}{shadow_gain_guided.jpg}
+
+  \vspace{0.42cm}
+  \begin{columns}[c,onlytextwidth]
+    \begin{column}{0.70\textwidth}
+      \small La carte répond à la fissure horizontale \emph{et} aux trois bords d'ombre. Ici, le décodeur exploite néanmoins le bon support et complète la fissure.
+    \end{column}
+    \begin{column}{0.26\textwidth}
+      \centering
+      {\scriptsize IoU baseline $\rightarrow$ Frangi}\\[2pt]
+      {\Large\bfseries\color{success} 0,190 $\rightarrow$ 0,685}
+    \end{column}
+  \end{columns}
+  \source{Road420, \texttt{IMG\_6353} ; $\Delta\IoU=+0{,}4954$.}
+\end{frame}
+
+\begin{frame}{Gains -- des fissures manquées deviennent visibles}
+  \caserow{Khanhha bruité 2 : ligne fine et peu contrastée}{noisy2_gain}{success}{0,000 $\rightarrow$ 0,685}
+
+  \vspace{0.26cm}
+  \caserow{Facade390 : fissure verticale absente de la baseline}{facade_gain}{success}{0,000 $\rightarrow$ 0,539}
+
+  \vspace{0.18cm}
+  \centering\scriptsize
+  Dans les deux cas, la similarité apporte un support spatial que la baseline n'avait pas activé.
+  \source{Rapport Frangi milestones : gains Frangi maximaux, Khanhha bruité 2 et Facade390.}
+\end{frame}
+
+\begin{frame}{Gains -- l'apport existe aussi sur l'original et sous bruit}
+  \caserow{Khanhha original : fissure longue sous une ombre portée}{original_gain}{success}{0,276 $\rightarrow$ 0,592}
+
+  \vspace{0.26cm}
+  \caserow{Khanhha bruité 1 : la baseline manque entièrement la structure}{noisy1_gain}{success}{0,000 $\rightarrow$ 0,754}
+
+  \vspace{0.18cm}
+  \centering\scriptsize
+  Ces gains extrêmes prouvent que le signal géométrique peut être décisif localement, sans suffire à garantir un gain moyen.
+  \source{Rapport Frangi milestones : gains Frangi maximaux, Khanhha original et Khanhha bruité 1.}
+\end{frame}
+
+\begin{frame}{Perte -- Road420 : une bonne carte, mais un mauvais décodage}
+  \centering
+  \imagepanel{Entrée}{good_detector_bad_prompt_input.jpg}\hfill
+  \imagepanel{Vérité terrain}{good_detector_bad_prompt_gt.jpg}\hfill
+  \imagepanel{Frangi--similarité}{good_detector_bad_prompt_frangi.jpg}\hfill
+  \imagepanel{Baseline}{good_detector_bad_prompt_baseline.jpg}\hfill
+  \imagepanel{Avec Frangi}{good_detector_bad_prompt_guided.jpg}
+
+  \vspace{0.42cm}
+  \begin{columns}[c,onlytextwidth]
+    \begin{column}{0.70\textwidth}
+      \small La carte de similarité suit la fissure, mais son injection par \texttt{mask\_input} fait presque disparaître une prédiction baseline correcte : le problème n'est donc pas seulement la qualité du détecteur.
+    \end{column}
+    \begin{column}{0.26\textwidth}
+      \centering
+      {\scriptsize IoU baseline $\rightarrow$ Frangi}\\[2pt]
+      {\Large\bfseries\color{failure} 0,720 $\rightarrow$ 0,040}
+    \end{column}
+  \end{columns}
+  \source{Road420, \texttt{IMG\_6033} ; $\Delta\IoU=-0{,}6803$.}
+\end{frame}
+
+\begin{frame}{Pertes -- bruit et texture peuvent éteindre la prédiction}
+  \caserow{Khanhha bruité 2 : le prompt devient dominé par la texture}{noisy2_loss}{failure}{0,811 $\rightarrow$ 0,000}
+
+  \vspace{0.26cm}
+  \caserow{Facade390 : la carte diffuse épaissit fortement la sortie}{facade_loss}{failure}{0,750 $\rightarrow$ 0,294}
+
+  \vspace{0.18cm}
+  \centering\scriptsize
+  Une évidence dense non calibrée peut imposer du fond partout ou élargir une ligne déjà correctement segmentée.
+  \source{Rapport Frangi milestones : gains baseline maximaux, Khanhha bruité 2 et Facade390.}
+\end{frame}
+
+\begin{frame}{Deux autres régimes : ignorer les parasites ou échouer ensemble}
+  \caserow{Road420 : les deux variantes restent bonnes malgré la roue détectée}{road_both_good}{inkblue}{0,829 $\rightarrow$ 0,821}
+
+  \vspace{0.26cm}
+  \caserow{Facade390 : ni la baseline ni le prompt ne retrouvent la fissure}{facade_both_weak}{warning}{0,000 $\rightarrow$ 0,000}
+
+  \vspace{0.18cm}
+  \centering\scriptsize
+  Le décodeur peut parfois ignorer un faux support évident ; ailleurs, la similarité ne compense pas l'échec sémantique.
+  \source{Rapport Frangi milestones : cas \og les deux bons\fg{} et \og les deux faibles\fg{}.}
+\end{frame}
+
+\begin{frame}{Les gains existent, mais les pertes sont plus nombreuses}
+  \centering
+  \includegraphics[width=0.87\linewidth,height=0.62\textheight,keepaspectratio]{paired_delta_iou_distributions.png}
+
+  \vspace{0.08cm}
+  \begin{columns}[c,onlytextwidth]
+    \begin{column}{0.66\textwidth}
+      \small Sur 8\,895 observations appariées : \textbf{3\,300 gains}, \textbf{925 égalités} et \textbf{4\,670 pertes} pour Frangi--similarité.
+    \end{column}
+    \begin{column}{0.30\textwidth}
+      \centering
+      \statusbadge{failure}{$\Delta\IoU$ pondéré $=-0{,}0098$}
+    \end{column}
+  \end{columns}
+  \source{IC bootstrap 95\,\% du delta pondéré : $[-0{,}0120;-0{,}0078]$.}
+\end{frame}
+
+\begin{frame}{La causalité est claire : le signal est utile, l'interface ne l'est pas}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.60\textwidth}
       \centering
       \begin{tikzpicture}[x=5.0cm,y=0.83cm]
         \draw[->] (-0.18,0) -- (0.41,0) node[right,font=\scriptsize] {$\Delta\IoU$ macro};
@@ -461,278 +505,159 @@
         \node[anchor=east,font=\scriptsize] at (-0.16,1.55) {correct vs décalé};
         \node[anchor=west,font=\scriptsize\bfseries,text=success] at (0.31,1.55) {$+0{,}2700$};
         \fill[failure!78] (0,0.30) rectangle (-0.0122,0.80);
-        \node[anchor=east,font=\scriptsize] at (-0.16,0.55) {modèle entraîné vs baseline};
+        \node[anchor=east,font=\scriptsize] at (-0.16,0.55) {système final vs baseline};
         \node[anchor=west,font=\scriptsize\bfseries,text=failure] at (0.31,0.55) {$-0{,}0122$};
         \foreach \x in {-0.1,0.1,0.2,0.3}{
-          \draw (\x,0.06)--(\x,-0.06) node[below,font=\tiny] {\pgfmathprintnumber[fixed,precision=1]{\x}};
+          \draw (\x,0.06)--(\x,-0.06) node[below,font=\tiny]
+            {\pgfmathprintnumber[fixed,precision=1]{\x}};
         }
       \end{tikzpicture}
     \end{column}
-    \begin{column}{0.36\textwidth}
-      \vspace{0.25cm}
-      \textbf{Alignement spatial}\\[4pt]
-      {\small La carte correcte est nettement meilleure qu'une carte permutée ou décalée.}
+    \begin{column}{0.37\textwidth}
+      \vspace{0.20cm}
+      \textbf{Le bon alignement compte}\\[3pt]
+      {\small La carte correcte surclasse nettement une carte permutée ou décalée.}
 
-      \vspace{0.55cm}
-      \textbf{Effet global}\\[4pt]
-      {\small Elle reste inférieure à l'absence de prompt et à la baseline entraînée sans Frangi.}
+      \vspace{0.45cm}
+      \textbf{Mais \texttt{mask\_input} contraint trop}\\[3pt]
+      {\small Sur les poids baseline fixes, même la carte correcte reste sous l'absence de prompt.}
+
+      \vspace{0.45cm}
+      \statusbadge{failure}{Abandon du prompt dense}
     \end{column}
   \end{columns}
 
-  \vspace{0.25cm}
-  \centering
-  {\large\bfseries\color{failure} Le \texttt{mask\_input} dense n'est pas conservé.}
-  \source{Matrice causale : 8 895 images, bootstrap groupé, moyenne macro sur quatre familles.}
-\end{frame}
-
-\begin{frame}{Exemple 1 : les ombres déclenchent aussi Frangi}
-  \centering
-  \imagepanel{Entrée}{shadow_gain_input.jpg}\hfill
-  \imagepanel{Vérité terrain}{shadow_gain_gt.jpg}\hfill
-  \imagepanel{Frangi}{shadow_gain_frangi.jpg}\hfill
-  \imagepanel{Baseline}{shadow_gain_baseline.jpg}\hfill
-  \imagepanel{Avec prompt}{shadow_gain_guided.jpg}
-
-  \vspace{0.42cm}
-  \begin{columns}[c,onlytextwidth]
-    \begin{column}{0.72\textwidth}
-      \small Frangi répond à la fissure horizontale et aux trois bords d'ombre. Le prompt améliore cette image, mais il ne sélectionne pas les zones fiables.
-    \end{column}
-    \begin{column}{0.24\textwidth}
-      \centering
-      {\scriptsize IoU baseline $\rightarrow$ prompt}\\[2pt]
-      {\Large\bfseries\color{success} 0,190 $\rightarrow$ 0,685}
-    \end{column}
-  \end{columns}
-  \source{Road420, image \texttt{IMG\_6353}.}
-\end{frame}
-
-\begin{frame}{Exemple 2 : Frangi suit la fissure, SAM 2 la perd}
-  \centering
-  \imagepanel{Entrée}{good_detector_bad_prompt_input.jpg}\hfill
-  \imagepanel{Vérité terrain}{good_detector_bad_prompt_gt.jpg}\hfill
-  \imagepanel{Frangi}{good_detector_bad_prompt_frangi.jpg}\hfill
-  \imagepanel{Baseline}{good_detector_bad_prompt_baseline.jpg}\hfill
-  \imagepanel{Avec prompt}{good_detector_bad_prompt_guided.jpg}
-
-  \vspace{0.42cm}
-  \begin{columns}[c,onlytextwidth]
-    \begin{column}{0.72\textwidth}
-      \small La carte Frangi suit la fissure, mais son passage dans \texttt{mask\_input} fait presque disparaître la prédiction.
-    \end{column}
-    \begin{column}{0.24\textwidth}
-      \centering
-      {\scriptsize IoU baseline $\rightarrow$ prompt}\\[2pt]
-      {\Large\bfseries\color{failure} 0,720 $\rightarrow$ 0,040}
-    \end{column}
-  \end{columns}
-  \source{Road420, image \texttt{IMG\_6033}.}
-\end{frame}
-
-\begin{frame}{Le prompt dense baisse l'IoU moyenne}
-  \centering
-  \includegraphics[width=0.88\linewidth,height=0.64\textheight,keepaspectratio]{paired_delta_iou_distributions.png}
-
-  \vspace{0.12cm}
-  {\large IoU macro : \textbf{0,5563} avec Frangi contre \textbf{0,5675} pour la baseline.}
-
-  \vspace{0.1cm}
-  \small Les pertes les plus fortes apparaissent notamment sur Road420 et sur le niveau de bruit 2.
-  \source{Époque 25 sélectionnée sur validation ; deltas IoU par image, Frangi moins baseline.}
+  \vspace{0.18cm}
+  \centering\small
+  La géométrie est informative ; sa traduction en hypothèse de masque dense est le point de rupture.
+  \source{Matrice causale du prompt Frangi, 8\,895 images, bootstrap groupé sur quatre familles.}
 \end{frame}
 
 % -----------------------------------------------------------------------------
-\section{Une autre intégration de Frangi}
-\frame{\sectionpage}
+\section{Interprétation et suite}
 
-\begin{frame}{Une correction résiduelle à la place du prompt}
+\begin{frame}{Ce que les images nous apprennent}
   \centering
-  \begin{tikzpicture}[>=Latex,node distance=0.5cm and 0.62cm]
-    \node[rounded corners=5pt,draw=inkblue!55,fill=softblue,
-      minimum width=2.55cm,minimum height=1.35cm,align=center] (base) {
-      {\bfseries Baseline gelée}\\$z_0$ et Hiera};
-    \node[rounded corners=5pt,draw=warning!55,fill=warning!8,
-      minimum width=2.65cm,minimum height=1.35cm,align=center,right=of base] (res) {
-      {\bfseries Correcteur léger}\\Frangi $\rightarrow \widehat{\Delta z}$};
-    \node[rounded corners=5pt,draw=success!55,fill=softgreen,
-      minimum width=2.65cm,minimum height=1.35cm,align=center,right=of res] (candidate) {
-      {\bfseries Prédiction corrigée}\\$z_1=z_0+\widehat{\Delta z}$};
-    \node[diamond,aspect=1.7,draw=black!45,fill=softgray,
-      align=center,right=0.7cm of candidate] (gate) {sélection};
-    \node[rounded corners=4pt,draw=success!55,fill=softgreen,
-      align=center,above right=0.15cm and 0.62cm of gate] (accept) {$z_1$};
-    \node[rounded corners=4pt,draw=inkblue!55,fill=softblue,
-      align=center,below right=0.15cm and 0.62cm of gate] (reject) {$z_0$};
-    \draw[->,very thick] (base) -- (res);
-    \draw[->,very thick] (res) -- (candidate);
-    \draw[->,very thick] (candidate) -- (gate);
-    \draw[->,thick,success] (gate) -- (accept);
-    \draw[->,thick,inkblue] (gate) -- (reject);
-  \end{tikzpicture}
+  \vspace{0.12cm}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.23\textwidth}
+      \centering
+      \includegraphics[width=0.72\linewidth]{noisy2_gain_frangi.jpg}\\[4pt]
+      {\bfseries\color{success} Signal utile}\\[2pt]
+      {\scriptsize récupère des lignes fines et peu contrastées}
+    \end{column}
+    \begin{column}{0.23\textwidth}
+      \centering
+      \includegraphics[width=0.72\linewidth]{shadow_gain_frangi.jpg}\\[4pt]
+      {\bfseries\color{warning} Ambiguïté}\\[2pt]
+      {\scriptsize ombres, joints et bords ont la même géométrie locale}
+    \end{column}
+    \begin{column}{0.23\textwidth}
+      \centering
+      \includegraphics[width=0.72\linewidth]{good_detector_bad_prompt_frangi.jpg}\\[4pt]
+      {\bfseries\color{failure} Interface}\\[2pt]
+      {\scriptsize une bonne carte peut faire perdre une bonne baseline}
+    \end{column}
+    \begin{column}{0.23\textwidth}
+      \centering
+      \includegraphics[width=0.72\linewidth]{road_both_good_frangi.jpg}\\[4pt]
+      {\bfseries\color{inkblue} Sélection}\\[2pt]
+      {\scriptsize l'effet doit être décidé localement et rester révocable}
+    \end{column}
+  \end{columns}
 
-  \vspace{0.5cm}
-  \metriccard{success}{Correction toujours active}{+0,00503}{IC95 $[+0,00434;+0,00568]$}
-  \hspace{0.12cm}
-  \metriccard{inkblue}{Sélection globale}{+0,00257}{IC95 $[+0,00194;+0,00320]$}
-  \hspace{0.12cm}
-  \metriccard{warning}{Oracle par image}{+0,00787}{borne exploratoire}
-
-  \vspace{0.25cm}
-  \small Résultat préliminaire après trois époques ; la baseline n'était pas recalculée dans chaque pli.
-  \source{Pilote résiduel : 9 121 crops regroupés en 1 727 images physiques.}
+  \vspace{0.58cm}
+  \begin{block}{Conclusion méthodologique}
+    \centering\large Conserver Frangi--similarité comme \textbf{évidence auxiliaire}, pas comme masque imposé.
+  \end{block}
+  \source{Synthèse des cas qualitatifs et de la matrice causale.}
 \end{frame}
 
-\begin{frame}{Version actuelle : vérifier chaque zone avant de corriger}
+\begin{frame}{Suite : une correction locale qui peut s'abstenir}
   \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.52\textwidth}
+    \begin{column}{0.63\textwidth}
       \centering
-      \begin{tikzpicture}[x=0.52cm,y=0.58cm,>=Latex]
-        \draw[->] (0,0)--(8.2,0) node[right,font=\tiny]{profil normal à la ligne};
-        \draw[->] (0,0)--(0,4.4) node[above,font=\tiny]{luminance};
-        \draw[very thick,success,smooth] plot coordinates {(0.3,3.6)(1.3,3.5)(2.3,3.2)(3.1,1.1)(4.0,3.0)(5.0,3.5)(6.2,3.55)};
-        \node[text=success,font=\scriptsize\bfseries,anchor=east] at (3.05,0.55) {vallée sombre};
-        \draw[very thick,failure,smooth,dashed] plot coordinates {(0.3,3.3)(1.5,3.25)(2.5,3.2)(3.4,3.1)(4.0,1.3)(5.1,1.25)(6.2,1.2)};
-        \node[text=failure,font=\scriptsize\bfseries,anchor=west] at (4.25,0.55) {bord d'ombre};
-        \draw[dotted,black!45] (3.35,0)--(3.35,4.0);
+      \vspace{0.15cm}
+      \begin{tikzpicture}[>=Latex,node distance=0.25cm and 0.28cm]
+        \node[rounded corners=5pt,draw=inkblue!55,fill=softblue,
+          minimum width=1.80cm,minimum height=1.08cm,align=center] (base) {
+          {\bfseries\scriptsize Baseline gelée}\\[-1pt]
+          {\scriptsize $z_0$ + Hiera}};
+        \node[rounded corners=5pt,draw=success!55,fill=softgreen,
+          minimum width=2.05cm,minimum height=1.08cm,align=center,right=of base] (res) {
+          {\bfseries\scriptsize Correcteur léger}\\[-1pt]
+          {\scriptsize résidu borné $\widehat{\Delta z}$}};
+        \node[rounded corners=5pt,draw=warning!55,fill=warning!8,
+          minimum width=2.05cm,minimum height=0.82cm,align=center,below=of res] (evidence) {
+          {\bfseries\scriptsize Évidence locale}\\[-1pt]
+          {\tiny similarité, orientation, profil}};
+        \node[diamond,aspect=1.35,draw=black!45,fill=softgray,
+          inner sep=2pt,align=center,right=of res] (gate) {\scriptsize porte\\[-1pt]\scriptsize locale};
+        \node[rounded corners=4pt,draw=success!55,fill=softgreen,
+          minimum width=1.28cm,align=center,above right=0.08cm and 0.28cm of gate] (accept) {
+          {\scriptsize $z_0+\widehat{\Delta z}$}};
+        \node[rounded corners=4pt,draw=inkblue!55,fill=softblue,
+          minimum width=1.28cm,align=center,below right=0.08cm and 0.28cm of gate] (reject) {
+          {\scriptsize $z_0$ exact}};
+        \draw[->,very thick] (base) -- (res);
+        \draw[->,thick,warning] (evidence) -- (res);
+        \draw[->,very thick] (res) -- (gate);
+        \draw[->,thick,success] (gate) -- (accept);
+        \draw[->,thick,inkblue] (gate) -- (reject);
       \end{tikzpicture}
     \end{column}
-    \begin{column}{0.44\textwidth}
-      \vspace{0.1cm}
-      \textbf{Entrées du score local}
+    \begin{column}{0.34\textwidth}
+      \textbf{Contraintes de sécurité}
       \begin{itemize}
-        \item réponse et orientation Frangi ;
-        \item profil de luminance transversal ;
-        \item représentations Hiera et sortie $z_0$.
+        \item si la porte ferme : sortie baseline identique ;
+        \item score local, pas décision globale par image ;
+        \item test explicite des ombres et textures ;
+        \item comparaison à couverture égale.
       \end{itemize}
-
-      \vspace{0.15cm}
-      \[
-        z_1(x)=z_0(x)+B(x)\,\widehat{\Delta z}(x)
-      \]
-      \centering
-      \small $B(x)=0 \Rightarrow z_1(x)=z_0(x)$ exactement.
     \end{column}
   \end{columns}
 
-  \vspace{0.28cm}
+  \vspace{0.48cm}
   \centering
-  \statusbadge{warning}{Implémenté et testé sur CPU ; évaluation GPU à faire}
-
-  \vspace{0.25cm}
-  \small L'évaluation doit inclure des fissures traversant une ombre et comparer les méthodes à couverture égale.
-  \source{Méthode locale sélective, état au 25 juillet 2026.}
-\end{frame}
-
-% -----------------------------------------------------------------------------
-\section{Littérature et suite}
-\frame{\sectionpage}
-
-\begin{frame}{Pistes utiles de la littérature}
-  \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.48\textwidth}
-      \begin{block}{HQ-SAM \refmark{6}}
-        \small Features précoces et finales, avec un jeton de sortie dédié aux masques fins.
-      \end{block}
-      \vspace{0.25cm}
-      \begin{block}{SAM-Road \refmark{7}}
-        \small Un Transformer de graphe utilise les embeddings SAM pour vérifier les arêtes d'un réseau routier.
-      \end{block}
-    \end{column}
-    \begin{column}{0.48\textwidth}
-      \begin{block}{Adaptation des structures fines \refmark{8,11}}
-        \small Segment Any Crack et SACM utilisent des adaptations légères et des représentations multi-couches.
-      \end{block}
-      \vspace{0.25cm}
-      \begin{block}{Connectivité \refmark{9,10}}
-        \small clDice et Skeleton Recall mesurent ou optimisent la continuité des structures minces.
-      \end{block}
-    \end{column}
-  \end{columns}
-  \source{\refmark{6} Ke et al., 2023. \quad
-  \refmark{7} Hetang et al., 2024. \quad
-  \refmark{8} Rostami et al., 2025. \quad
-  \refmark{9} Shit et al., 2021. \quad
-  \refmark{10} Kirchhoff et al., 2024. \quad
-  \refmark{11} Zhu et al., CVPR 2026.}
-\end{frame}
-
-\begin{frame}{\hspace{0.08cm}Prochaines expériences}
-  \centering
-  \vspace{0.2cm}
-  \begin{tikzpicture}[>=Latex,node distance=0.48cm]
-    \node[rounded corners=6pt,draw=inkblue!55,fill=softblue,
-      text width=3.25cm,minimum height=2.25cm,align=center,inner sep=7pt] (p1) {
-      {\Large\bfseries\color{inkblue} 1}\\[3pt]
-      \textbf{Baseline SAM 2.1}\\
-      {\scriptsize adaptation plus proche de CrackSAM publié}};
-    \node[rounded corners=6pt,draw=success!55,fill=softgreen,
-      text width=3.25cm,minimum height=2.25cm,align=center,inner sep=7pt,right=of p1] (p2) {
-      {\Large\bfseries\color{success} 2}\\[3pt]
-      \textbf{Frangi local}\\
-      {\scriptsize 5 plis ; cartes nulle, décalée et permutée ; Shadow-Crack \refmark{12}}};
-    \node[rounded corners=6pt,draw=warning!55,fill=warning!8,
-      text width=3.25cm,minimum height=2.25cm,align=center,inner sep=7pt,right=of p2] (p3) {
-      {\Large\bfseries\color{warning} 3}\\[3pt]
-      \textbf{Graphe explicite}\\
-      {\scriptsize n\oe{}uds et arêtes comparés au raster à capacité égale}};
-    \draw[->,very thick,black!45] (p1) -- (p2);
-    \draw[->,very thick,black!45] (p2) -- (p3);
-  \end{tikzpicture}
-
-  \vspace{0.45cm}
-  \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.31\textwidth}
-      \centering
-      \textbf{IoU macro}\\
-      {\small gain $\geq +0{,}005$\\borne IC95 $>0$}
-    \end{column}
-    \begin{column}{0.31\textwidth}
-      \centering
-      \textbf{Ombres}\\
-      {\small moins de faux positifs\\sur les bords d'ombre}
-    \end{column}
-    \begin{column}{0.31\textwidth}
-      \centering
-      \textbf{Connectivité}\\
-      {\small perte de rappel squelette\\$\leq5$ points}
-    \end{column}
-  \end{columns}
-
-  \vspace{0.35cm}
-  \small SAM 3 sera évalué séparément, après le protocole Frangi sur SAM 2.
-  \source{\refmark{12} Fan et al., \emph{Pavement Cracks Coupled With Shadows}, IEEE/CAA JAS 2023.}
+  \metriccard{success}{Pilote résiduel}{+0,00503}{correction toujours active}
+  \hspace{0.16cm}
+  \metriccard{inkblue}{Sélection globale}{+0,00257}{résultat exploratoire}
+  \hspace{0.16cm}
+  \metriccard{warning}{Prochaine validation}{5 plis}{avec contrôles Frangi}
+  \source{Pilote FrangiGraph résiduel ; résultats préliminaires après trois époques.}
 \end{frame}
 
 \begin{frame}{Conclusion}
   \centering
-  \vspace{0.25cm}
+  \vspace{0.18cm}
   \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.30\textwidth}
+    \begin{column}{0.29\textwidth}
       \centering
-      {\Large\bfseries\color{inkblue} SAM 2}\\[6pt]
-      {\small convient à notre segmentation binaire et fournit la baseline actuelle.}
+      {\Large\bfseries\color{success} Oui, localement}\\[6pt]
+      {\small Frangi--similarité récupère des fissures totalement manquées, y compris sous bruit et en zero-shot.}
     \end{column}
-    \begin{column}{0.30\textwidth}
+    \begin{column}{0.29\textwidth}
       \centering
-      {\Large\bfseries\color{failure} Prompt dense}\\[6pt]
-      {\small baisse l'IoU, même si l'alignement de la carte Frangi apporte du signal.}
+      {\Large\bfseries\color{failure} Non, globalement}\\[6pt]
+      {\small le prompt dense baisse l'IoU macro de 0,0112 et produit davantage de pertes que de gains.}
     \end{column}
-    \begin{column}{0.30\textwidth}
+    \begin{column}{0.29\textwidth}
       \centering
-      {\Large\bfseries\color{success} Suite}\\[6pt]
-      {\small sélectionner localement les zones Frangi avant toute correction.}
+      {\Large\bfseries\color{inkblue} Donc, sélectif}\\[6pt]
+      {\small la géométrie doit corriger localement SAM 2 avec abstention et retour exact à la baseline.}
     \end{column}
   \end{columns}
 
-  \vspace{0.85cm}
-  {\large SAM 3 reste une piste distincte pour les invites texte et les exemples.}
-  \source{\refmark{2} Ravi et al., 2024. \quad
-  \refmark{3} Carion et al., ICLR 2026. \quad Résultats CrackSAM 2, juillet 2026.}
+  \vspace{0.72cm}
+  \begin{block}{Message central}
+    \centering\large Le signal Frangi--similarité est utile ; son injection doit devenir \textbf{locale, calibrée et révocable}.
+  \end{block}
+  \source{Résultats CrackSAM 2, rapports des 14 et 20 juillet 2026.}
 \end{frame}
 
 \appendix
 
-\begin{frame}{Références [1]--[6]}
+\begin{frame}{Références}
   \small
   \begin{itemize}
     \item[\textbf{[1]}] Kirillov et al.,
@@ -750,34 +675,14 @@
     \item[\textbf{[5]}] Frangi et al.,
       \emph{Multiscale Vessel Enhancement Filtering},
       MICCAI 1998.
-    \item[\textbf{[6]}] Ke et al.,
-      \href{https://arxiv.org/abs/2306.01567}{\emph{Segment Anything in High Quality}},
-      NeurIPS 2023.
   \end{itemize}
-\end{frame}
 
-\begin{frame}{Références [7]--[12]}
-  \small
-  \begin{itemize}
-    \item[\textbf{[7]}] Hetang et al.,
-      \href{https://arxiv.org/abs/2403.16051}{\emph{Segment Anything Model for Road Network Graph Extraction}},
-      2024.
-    \item[\textbf{[8]}] Rostami et al.,
-      \href{https://arxiv.org/abs/2504.14138}{\emph{Segment Any Crack}},
-      2025.
-    \item[\textbf{[9]}] Shit et al.,
-      \href{https://arxiv.org/abs/2003.07311}{\emph{clDice}},
-      CVPR 2021.
-    \item[\textbf{[10]}] Kirchhoff et al.,
-      \href{https://arxiv.org/abs/2404.03010}{\emph{Skeleton Recall Loss}},
-      2024.
-    \item[\textbf{[11]}] Zhu et al.,
-      \href{https://openaccess.thecvf.com/content/CVPR2026/html/Zhu_Dual-level_Adapter_Boosting_Prompt-free_Curvilinear_Structure_Segmentation_CVPR_2026_paper.html}{\emph{Dual-level Adapter Boosting Prompt-free Curvilinear Structure Segmentation}},
-      CVPR 2026.
-    \item[\textbf{[12]}] Fan et al.,
-      \href{https://doi.org/10.1109/JAS.2023.123447}{\emph{Pavement Cracks Coupled With Shadows}},
-      IEEE/CAA JAS 2023.
-  \end{itemize}
+  \vspace{0.35cm}
+  \begin{block}{Rapports internes utilisés pour les figures}
+    \small
+    \texttt{RAPPORT\_FRANGI\_MILESTONES.md} \quad et \quad
+    \texttt{RAPPORT\_MATRICE\_CAUSALE.md}.
+  \end{block}
 \end{frame}
 
 \end{document}

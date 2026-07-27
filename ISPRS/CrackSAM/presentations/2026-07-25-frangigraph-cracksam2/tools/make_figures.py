@@ -62,21 +62,61 @@ def main() -> None:
     crop(comparison, (5, 65, 585, 425), "find_visible.png")
     crop(comparison, (5, 505, 585, 870), "find_similarity.png")
     crop(comparison, (600, 505, 1185, 870), "find_centrality.png")
+    crop(comparison, (5, 945, 585, 1310), "find_hessian_sigma30.png")
 
-    # Cas appariés du rapport SAM 2 : un gain sous ombre et une forte perte.
+    # Cas appariés du rapport SAM 2. La sélection expose volontairement les
+    # gains, les pertes et les cas stables/difficiles sur plusieurs domaines.
+    cases = report / "figures/cases"
     crop_case_panels(
-        report
-        / "figures/cases/road420/gain_frangi__2023_11_01_20_33_IMG_6353.jpg.jpg",
+        cases / "road420/gain_frangi__2023_11_01_20_33_IMG_6353.jpg.jpg",
         "shadow_gain",
     )
     crop_case_panels(
-        report
-        / "figures/cases/road420/gain_baseline__2023_10_30_16_44_IMG_6033.jpg.jpg",
+        cases / "road420/gain_baseline__2023_10_30_16_44_IMG_6033.jpg.jpg",
         "good_detector_bad_prompt",
+    )
+    crop_case_panels(
+        cases / "khanhha_original/gain_frangi__Sylvie_Chambon_319.jpg.jpg",
+        "original_gain",
+    )
+    crop_case_panels(
+        cases
+        / "khanhha_noisy2/gain_frangi__Volker_DSC01646_226_19_1273_1645.jpg.jpg",
+        "noisy2_gain",
+    )
+    crop_case_panels(
+        cases
+        / "khanhha_noisy1/gain_frangi__CRACK500_20160329_093924_1921_721.jpg.jpg",
+        "noisy1_gain",
+    )
+    crop_case_panels(
+        cases / "facade390/gain_frangi__DJ_Wall_66.JPG.jpg",
+        "facade_gain",
+    )
+    crop_case_panels(
+        cases
+        / "khanhha_noisy2/gain_baseline__CRACK500_20160308_073532_1_361.jpg.jpg",
+        "noisy2_loss",
+    )
+    crop_case_panels(
+        cases / "facade390/gain_baseline__DJ_Wall_231.JPG.jpg",
+        "facade_loss",
+    )
+    crop_case_panels(
+        cases / "road420/both_good__2023_11_05_21_38_IMG_6516.jpg.jpg",
+        "road_both_good",
+    )
+    crop_case_panels(
+        cases / "facade390/both_weak__DJ_Wall_343.JPG.jpg",
+        "facade_both_weak",
     )
     copy_asset(
         report / "figures/paired_delta_iou_distributions.png",
         "paired_delta_iou_distributions.png",
+    )
+    copy_asset(
+        report / "figures/delta_iou_heatmap.png",
+        "delta_iou_heatmap.png",
     )
 
 
