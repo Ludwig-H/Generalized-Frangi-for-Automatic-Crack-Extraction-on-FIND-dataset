@@ -132,8 +132,6 @@
     \draw[->,very thick,black!45] (sam2) -- (sam3);
   \end{tikzpicture}
 
-  \vspace{0.52cm}
-  \statusbadge{warning}{Étude actuelle : SAM 2, images fixes, segmentation binaire}
   \source{\refmark{1} Kirillov et al., ICCV 2023. \quad
   \refmark{2} Ravi et al., 2024. \quad
   \refmark{3} Carion et al., ICLR 2026.}
@@ -170,10 +168,10 @@
           \textbf{SAM 2 Hiera-L}};
         \node[rounded corners=4pt,draw=warning!50,fill=warning!8,
           text width=4.5cm,align=center,inner sep=5pt,below=of sam2] (adapt2) {
-          \textbf{LoRA $q/v$, rang 4}};
+          \textbf{Adaptation LoRA}};
         \node[rounded corners=4pt,draw=success!45,fill=softgreen,
           text width=4.5cm,align=center,inner sep=5pt,below=of adapt2] (mask2) {
-          \textbf{Un logit fissure}};
+          \textbf{Masque binaire}\\{\scriptsize sigmoïde(logits) $> 0{,}5$}};
         \draw[->,thick] (sam2) -- (adapt2);
         \draw[->,thick] (adapt2) -- (mask2);
       \end{tikzpicture}
@@ -184,7 +182,8 @@
   \centering
   \begin{tabularx}{0.86\linewidth}{>{\bfseries}p{2.25cm}X}
     Entraînement & Khanhha \\
-    Tests & original, bruit 1, bruit 2 \\
+    Tests & original ; bruit 1 (assombrissement + flou $9{\times}9$) ;
+      bruit 2 (flou $21{\times}21$ + résolution ${\div}2$) \\
     Zero-shot & Road420, Facade390, Concrete3k \\
   \end{tabularx}
 
@@ -192,7 +191,6 @@
   \metriccard{inkblue}{CrackSAM publié}{0,5780}{référence externe, SAM 1}
   \hspace{0.28cm}
   \metriccard{success}{Baseline SAM 2}{0,5675}{IoU macro, 6 jeux}
-  \source{\refmark{4} Ge et al., Construction and Building Materials, 2024.}
 \end{frame}
 
 % -----------------------------------------------------------------------------
@@ -258,7 +256,6 @@
 
   \vspace{0.30cm}
   \caserow{Facade390}{facade_gain}{success}{0,000 $\rightarrow$ 0,539}
-  \source{Gains Frangi maximaux du rapport.}
 \end{frame}
 
 \begin{frame}{Khanhha -- gains}
@@ -266,7 +263,6 @@
 
   \vspace{0.30cm}
   \caserow{Khanhha bruité 1}{noisy1_gain}{success}{0,000 $\rightarrow$ 0,754}
-  \source{Gains Frangi maximaux du rapport.}
 \end{frame}
 
 \begin{frame}{Road420 -- perte}
@@ -289,7 +285,6 @@
 
   \vspace{0.30cm}
   \caserow{Facade390}{facade_loss}{failure}{0,750 $\rightarrow$ 0,294}
-  \source{Gains baseline maximaux du rapport.}
 \end{frame}
 
 \begin{frame}{Road420 et Facade390 -- autres cas}
@@ -297,40 +292,6 @@
 
   \vspace{0.30cm}
   \caserow{Facade390 : deux échecs}{facade_both_weak}{warning}{0,000 $\rightarrow$ 0,000}
-  \source{Cas \og les deux bons\fg{} et \og les deux faibles\fg{} du rapport.}
-\end{frame}
-
-\begin{frame}{Bilan}
-  \centering
-  \vspace{0.38cm}
-  \metriccard{inkblue}{Baseline SAM 2}{0,5675}{IoU macro}
-  \hspace{0.20cm}
-  \metriccard{warning}{Avec Frangi}{0,5563}{IoU macro}
-  \hspace{0.20cm}
-  \metriccard{failure}{Écart}{$-0,0112$}{Frangi moins baseline}
-
-  \vspace{0.75cm}
-  \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.29\textwidth}
-      \centering
-      {\large\bfseries\color{success} Gains locaux}\\[4pt]
-      {\small fissures manquées par la baseline}
-    \end{column}
-    \begin{column}{0.29\textwidth}
-      \centering
-      {\large\bfseries\color{failure} Pertes locales}\\[4pt]
-      {\small bruit, texture ou sortie éteinte}
-    \end{column}
-    \begin{column}{0.29\textwidth}
-      \centering
-      {\large\bfseries\color{inkblue} Décision}\\[4pt]
-      {\small prompt dense non retenu}
-    \end{column}
-  \end{columns}
-
-  \vspace{0.65cm}
-  \statusbadge{inkblue}{Suite : correction locale avec retour à la baseline}
-  \source{Meilleur checkpoint Frangi : époque 25, sélectionné sur la validation.}
 \end{frame}
 
 \appendix

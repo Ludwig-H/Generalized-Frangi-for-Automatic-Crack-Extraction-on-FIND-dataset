@@ -20,4 +20,4 @@ make
 ```
 
 `tools/make_figures.py` reconstruit tous les crops depuis les rapports et
-artefacts versionnés du dépôt. Le PDF final est `main.pdf` (12 diapositives).
+artefacts versionnés du dépôt. Le PDF final est `main.pdf` (11 diapositives).
