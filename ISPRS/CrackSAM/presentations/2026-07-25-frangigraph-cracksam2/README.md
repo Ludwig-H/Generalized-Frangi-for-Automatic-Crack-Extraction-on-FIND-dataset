@@ -3,15 +3,15 @@
 Présentation Beamer fondée sur le template Inria et sur la réunion
 Inria–Cerema du 10 juillet 2026.
 
-La narration révisée :
+La présentation suit quatre parties :
 
-- résume SAM, SAM 2, SAM 3 et la baseline CrackSAM 2 en deux diapositives ;
-- définit précisément le score pair-à-pair Frangi-similarité et sa
-  transformation en pseudo-logits ;
-- montre des cartes issues du rapport dans plusieurs régimes visuels ;
-- compare dix cas qualitatifs : gains, pertes, cas stable et échec commun ;
-- relie les images au bilan apparié et à la matrice causale ;
-- conclut sur une intégration locale, sélective et révocable.
+- SAM 1, SAM 2 et SAM 3 ;
+- CrackSAM et la baseline avec SAM 2 ;
+- l'idée du guidage par Frangi-similarité ;
+- des résultats illustrés : gains, pertes, cas stables et échecs communs.
+
+Les définitions détaillées et les analyses statistiques restent dans les
+rapports.
 
 Compilation reproductible :
 
@@ -20,4 +20,4 @@ make
 ```
 
 `tools/make_figures.py` reconstruit tous les crops depuis les rapports et
-artefacts versionnés du dépôt. Le PDF final est `main.pdf` (20 diapositives).
+artefacts versionnés du dépôt. Le PDF final est `main.pdf` (12 diapositives).

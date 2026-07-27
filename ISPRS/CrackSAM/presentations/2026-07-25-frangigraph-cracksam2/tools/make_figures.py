@@ -62,7 +62,6 @@ def main() -> None:
     crop(comparison, (5, 65, 585, 425), "find_visible.png")
     crop(comparison, (5, 505, 585, 870), "find_similarity.png")
     crop(comparison, (600, 505, 1185, 870), "find_centrality.png")
-    crop(comparison, (5, 945, 585, 1310), "find_hessian_sigma30.png")
 
     # Cas appariés du rapport SAM 2. La sélection expose volontairement les
     # gains, les pertes et les cas stables/difficiles sur plusieurs domaines.
@@ -113,10 +112,6 @@ def main() -> None:
     copy_asset(
         report / "figures/paired_delta_iou_distributions.png",
         "paired_delta_iou_distributions.png",
-    )
-    copy_asset(
-        report / "figures/delta_iou_heatmap.png",
-        "delta_iou_heatmap.png",
     )
 
 
