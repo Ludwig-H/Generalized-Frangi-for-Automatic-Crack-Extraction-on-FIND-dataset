@@ -1,0 +1,19 @@
+% Red markup used by latexdiff for the comparison PDF.
+\RequirePackage[normalem]{ulem}
+\RequirePackage{xcolor}
+
+\providecommand{\DIFadd}[1]{{\protect\color{red}\uwave{#1}}}
+\providecommand{\DIFdel}[1]{{\protect\color{red}\sout{#1}}}
+\providecommand{\DIFaddbegin}{\protect\color{red}}
+\providecommand{\DIFaddend}{\protect\color{black}}
+\providecommand{\DIFdelbegin}{\protect\color{red}}
+\providecommand{\DIFdelend}{\protect\color{black}}
+\providecommand{\DIFmodbegin}{}
+\providecommand{\DIFmodend}{}
+
+\providecommand{\DIFaddFL}[1]{\DIFadd{#1}}
+\providecommand{\DIFdelFL}[1]{\DIFdel{#1}}
+\providecommand{\DIFaddbeginFL}{\protect\color{red}}
+\providecommand{\DIFaddendFL}{\protect\color{black}}
+\providecommand{\DIFdelbeginFL}{\protect\color{red}}
+\providecommand{\DIFdelendFL}{\protect\color{black}}
