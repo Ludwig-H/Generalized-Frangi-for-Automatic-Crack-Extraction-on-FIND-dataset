@@ -42,7 +42,7 @@
 
 \begin{document}
 
-\title{Multi-Modal, Training-Free Crack Extraction {via} Generalized Frangi Graph}
+\title{Multi-Modal, Training-Free Crack Extraction {via} Generalized \Frangi{} Graph}
 
 \author{
 \IEEEauthorblockN{Louis \textsc{Hauseux}\IEEEauthorrefmark{1},
@@ -96,11 +96,11 @@ The contribution lies in coupling these established components through the pairw
 \section{Related Work}
 
 \subsection{Classical Curvilinear Filters}
-Multi-scale Hessian filters are a standard tool for enhancing curvilinear structures. The classical \Frangi{} vesselness filter \cite{Frangi1998} estimates whether a pixel belongs to a tubular structure from the eigenvalues of a smoothed Hessian matrix, following related work such as Sato's line filter \cite{Sato1998}. These methods are fast and interpretable, but they are local: they evaluate pixels independently and can fragment under noise or textured backgrounds. Our method keeps the Hessian geometry but moves the decision from isolated pixels to edges of a spatial graph.
+Multi-scale Hessian filters are a standard tool for enhancing curvilinear structures. The classical \Frangi{} vesselness filter \cite{Frangi1998} estimates whether a pixel belongs to a tubular structure from the eigenvalues of a smoothed Hessian matrix, following related work such as \textsc{Sato}'s line filter \cite{Sato1998}. These methods are fast and interpretable, but they are local: they evaluate pixels independently and can fragment under noise or textured backgrounds. Our method keeps the Hessian geometry but moves the decision from isolated pixels to edges of a spatial graph.
 Our preliminary study \cite{BibiStrasbourg} considered two single-modal geological images. Here we add normalized multi-modal fusion, evaluate clean and noisy FIND data, and include a second geological setting.
 
 \subsection{Deep Crack Segmentation}
-Deep learning architectures such as U-Net \cite{Unet2015}, DeepCrack \cite{DeepCrack2019}, CrackFormer \cite{CrackFormer2021} and recent diffusion models such as CrackSegDiff \cite{CrackSegDiff2024} have achieved strong crack segmentation results. Their main practical weakness is their dependence on annotations. A recent survey by Zhang \emph{et al}. \cite{Zhang2025Review} also emphasizes poor cross-domain robustness when sensors, materials or acquisition conditions change. This motivates training-free alternatives and hybrid strategies that can operate when annotations are not available.
+Deep learning architectures such as U-Net \cite{Unet2015}, DeepCrack \cite{DeepCrack2019}, CrackFormer \cite{CrackFormer2021} and recent diffusion models such as CrackSegDiff \cite{CrackSegDiff2024} have achieved strong crack segmentation results. Their main practical weakness is their dependence on annotations. A recent survey by \textsc{Zhang} \emph{et al}. \cite{Zhang2025Review} also emphasizes poor cross-domain robustness when sensors, materials or acquisition conditions change. This motivates training-free alternatives and hybrid strategies that can operate when annotations are not available.
 
 \subsection{Multi-Modal Fusion}
 In learned systems, multi-modal fusion is usually implemented by channel concatenation, intermediate feature fusion or late prediction fusion. These choices depend on the network architecture and on the modalities available at training time. Here, fusion is performed at the operator level: Each modality contributes a normalized Hessian, and the fused Hessian is processed by the same graph pipeline regardless of the number of modalities.
