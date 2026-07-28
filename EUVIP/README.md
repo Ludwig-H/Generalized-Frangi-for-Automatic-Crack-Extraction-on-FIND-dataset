@@ -78,11 +78,11 @@ elle ne doit pas être envoyée comme camera-ready.
 
 ## Autres modifications du papier
 
-- Rétablissement des cinq auteurs, des affiliations Inria/Cerema et de l’auteur
-  correspondant.
+- Rétablissement des cinq auteurs, avec les noms de famille en petites
+  capitales, des affiliations Inria/Cerema et de l’auteur correspondant.
 - Remplacement de l’institution anonymisée par Cerema.
 - Rétablissement des remerciements Bpifrance pour les auteurs Inria, ainsi que
-  des financements DS4H et 3IA de L. Hauseux.
+  des financements DS4H et 3IA du premier auteur.
 - Mise à jour de la section de disponibilité du code avec le dépôt public.
 - Suppression de la citation `chiu2026automated` placée à tort après
   CrackSegDiff.
