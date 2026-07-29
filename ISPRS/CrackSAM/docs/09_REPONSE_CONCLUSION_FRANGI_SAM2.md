@@ -1,175 +1,456 @@
-# Adapter le graphe de Frangi à SAM 2
+# Raccordement Frangi doublement ancré après SAM 2-LoRA
 
 > Date : 29 juillet 2026
 >
-> Statut : proposition courte, sans nouveau résultat expérimental
+> Statut : proposition révisée, sans nouveau résultat expérimental
+>
+> Cette version remplace la proposition antérieure « GNN vers points SAM ».
 >
 > Sources : [conclusion du papier soumis au European Workshop on Visual
 > Information Processing](../../../EUVIP/LaTeX/main.tex#L619) et
-> [dernier audit de CrackSAM 2](08_AUDIT_CRACKSAM2_FRANGIGRAPH_LORA.md)
+> [audit de CrackSAM 2](08_AUDIT_CRACKSAM2_FRANGIGRAPH_LORA.md)
 
 Dans ce rapport, **SAM 2** désigne *Segment Anything Model 2*, **LoRA** désigne
 l'adaptation par matrices de faible rang et **GNN** désigne un réseau neuronal
 de graphes. Ce sont les trois seuls sigles employés.
 
-## Recommandation
+## Décision
 
-La suite la plus simple et pertinente du papier est :
+La bonne séparation des rôles est :
 
-> **adapter SAM 2 aux fissures par LoRA, utiliser le graphe de Frangi pour
-> proposer quelques points, puis faire vérifier ces points par un petit GNN
-> avant de les transmettre à SAM 2.**
+> **SAM 2 décide si une fissure est présente ; le graphe de Frangi peut
+> seulement raccorder deux fragments que SAM 2 reconnaît déjà avec une forte
+> confiance.**
 
-Le graphe ne devient ni un masque, ni une probabilité de fissure. Il propose des
-positions plausibles ; SAM 2 réalise la segmentation.
+Frangi n'entre ni dans le transformer, ni dans l'entrée de masque dense, ni
+comme point positif. Il intervient après la segmentation, dans un raccordement
+géométrique contraint.
 
-Ce choix répond directement à l'audit. Le modèle de référence atteint `0,5675`
-d'intersection sur union moyenne, contre `0,5563` lorsque Frangi est injecté
-comme masque dense. La géométrie alignée contient de l'information, mais
-l'entrée de masque dense appelée `mask_input` lui donne la mauvaise
-signification.
+Cette solution est volontairement plus limitée que la proposition précédente.
+Elle ne retrouve pas une fissure entièrement manquée par SAM 2. En contrepartie,
+elle interdit à Frangi :
+
+- de créer une composante isolée ;
+- d'agir dans une région considérée comme du fond certain ;
+- d'étendre globalement un masque à partir d'un faux candidat ;
+- de modifier la sortie lorsqu'il ne relie pas deux fragments certains.
+
+Il faut la présenter comme une **réparation locale conservatrice de petites
+coupures**, et non comme une solution générale aux ombres.
+
+## Pourquoi abandonner les points et le GNN au premier essai
+
+Le résultat historique invalide déjà le masque Frangi dense :
+
+- SAM 2-LoRA sans Frangi : intersection sur union moyenne `0,5675` ;
+- Frangi injecté comme masque dense : `0,5563` ;
+- différence appariée : `−0,00985`.
+
+Un point positif est moins dense, mais sa signification reste forte : il dit à
+SAM 2 qu'un objet est présent à cet endroit. Une seule erreur de sélection sur
+une ombre peut donc commander une fausse segmentation.
+
+Un GNN n'apporte pas de protection structurelle. Une frontière d'ombre peut
+être longue, continue et bien orientée ; elle peut former un meilleur graphe
+qu'une fissure fragmentée. La propagation entre voisins risque alors de
+renforcer le faux signal.
+
+Enfin, réduire un graphe à quelques points détruit précisément les arêtes, les
+chemins et la continuité qui constituent l'apport géométrique de la méthode
+Frangi.
+
+## Architecture
 
 ```text
-Image ──► encodeur visuel adapté par LoRA ──► segmentation de référence
-  │                     │
-  │                     └── caractéristiques visuelles internes
-  │
-  └──► graphe de Frangi ──► GNN ──► huit points fiables au maximum
-                                          │
-                                          ▼
-                              décodeur de masque guidé par points
-
-Résultat final :
-- segmentation de référence si le graphe est rejeté ;
-- segmentation guidée près du graphe accepté ;
-- segmentation de référence partout ailleurs.
+Image ──► SAM 2 adapté par LoRA ──► score de fissure par pixel
+                                      │
+                         ┌────────────┼────────────┐
+                         │            │            │
+                  fissure certaine  indécis   fond certain
+                         │            │            │
+                  extrémités          │        zone interdite
+                         │            │
+Image ──► graphe de Frangi ──► chemins candidats dans la zone indécise
+                                      │
+                           pénalité vallée / marche d'ombre
+                                      │
+                        soutien de la profondeur si disponible
+                                      │
+                       chemin court entre deux extrémités compatibles
+                                      │
+                                      ▼
+                    ajout local au masque de référence, sinon aucun changement
 ```
 
-## Les trois composants
+Le transformer n'est exécuté qu'une fois et ne voit jamais Frangi.
 
-### SAM 2 adapté aux fissures
+## Méthode
 
-Deux LoRA sont séparées :
+### 1. Construire un modèle de référence
 
-1. une LoRA adapte l'encodeur et le décodeur aux fissures et produit la
-   segmentation de référence sans point ;
-2. une seconde LoRA, limitée au décodeur de masque, apprend à exploiter les
-   points du graphe. Sa dimension interne peut être fixée à quatre.
+SAM 2 est adapté aux fissures par LoRA, sans guidage Frangi. Cette adaptation
+doit apprendre l'apparence des fissures et des principaux faux positifs,
+notamment les ombres. Une fois le modèle choisi, ses paramètres sont gelés.
 
-L'encodeur et la première LoRA sont gelés pendant la seconde étape. Une seule
-analyse visuelle de l'image est donc nécessaire.
+LoRA apprend une adaptation générale du domaine. Elle ne doit pas transporter
+le graphe : ses poids sont fixes alors que la géométrie Frangi change pour
+chaque image.
 
-### GNN vérificateur
+### 2. Définir le masque de référence et trois zones de confiance
 
-Le GNN comporte deux couches. Chaque nœud combine ses informations avec celles
-de ses voisins. Il reçoit :
+Trois seuils ordonnés sont nécessaires :
 
-- courbure, échelle, orientation et similarité de Frangi ;
-- nombre de voisins, centralité et taille de la composante ;
-- longueur et accord d'orientation des arêtes ;
-- caractéristiques internes de SAM 2 et score de la segmentation de référence
-  à la position du nœud ;
-- accord entre intensité et profondeur lorsque les deux modalités existent ;
-- profil de luminosité de part et d'autre de la ligne.
+\[
+t_{\mathrm{fond}} < t_{\mathrm{masque}} < t_{\mathrm{certain}}.
+\]
 
-Le dernier point traite le principal risque d'ombre :
+Le seuil central produit le masque SAM de référence. Les deux autres
+définissent :
 
-- une fissure sombre ressemble généralement à une vallée, avec un centre
-  sombre et deux côtés plus clairs ;
-- une frontière d'ombre ressemble davantage à une marche, avec un côté clair
-  et l'autre sombre.
+1. **fissure certaine** : score supérieur à \(t_{\mathrm{certain}}\) ;
+2. **zone indécise** : score compris entre \(t_{\mathrm{fond}}\) et
+   \(t_{\mathrm{certain}}\) ;
+3. **fond certain** : score inférieur à \(t_{\mathrm{fond}}\).
 
-Le GNN apprend cette différence à plusieurs distances. Ce n'est jamais une
-règle absolue, car une fissure peut traverser une ombre. La couleur reste un
-indice facultatif : elle ne doit pas remplacer la luminosité, car le test local
-existant est moins bon avec la chrominance dans cinq des six cas étudiés.
+Le masque de référence n'est jamais remplacé par la seule zone très certaine.
 
-Le GNN produit la plausibilité d'une fissure et le risque de faux positif pour
-chaque nœud, puis pour chaque composante. Il peut rejeter tout le graphe.
+Les seuils ne doivent pas être choisis arbitrairement. Ils sont réglés
+sur des images de validation physiquement distinctes :
 
-### Guidage par points et retour sûr
+- \(t_{\mathrm{masque}}\) conserve le seuil de décision du modèle de référence ;
+- \(t_{\mathrm{certain}}\) privilégie une forte précision des ancrages ;
+- \(t_{\mathrm{fond}}\) conserve le rappel nécessaire pour ne pas interdire
+  tous les vrais raccords.
 
-Pour chaque composante acceptée :
+Le score brut de SAM 2 n'est pas nécessairement une probabilité fiable sur un
+nouveau domaine. Le réglage doit donc vérifier la précision réellement observée
+au-dessus du seuil haut.
 
-1. retenir les extrémités et les intersections fiables ;
-2. compléter avec les meilleurs nœuds encore éloignés des points choisis ;
-3. s'arrêter à huit points positifs ;
-4. transmettre leurs coordonnées à l'interface native de SAM 2.
+Chaque composante du masque de référence est réduite à sa ligne centrale. Une
+extrémité devient un **segment d'ancrage**, et non un simple pixel, seulement
+si :
 
-Les composantes reconnues comme des ombres sont simplement omises. Les
-transformer en points négatifs restera une expérience ultérieure, car un point
-négatif mal placé pourrait supprimer une vraie fissure.
+- la composante possède une longueur minimale ;
+- une courte portion derrière l'extrémité contient assez de pixels de fissure
+  certaine ;
+- sa direction locale est stable ;
+- sa largeur peut être mesurée sur la portion déjà reconnue.
 
-Si aucun point n'est accepté, le programme retourne directement la segmentation
-de référence. Sinon, la segmentation guidée n'est utilisée que dans une bande
-autour du graphe accepté, dont la largeur dépend de l'échelle Frangi. Un point
-erroné ne peut donc pas créer une grande région parasite ailleurs.
+### 3. Chercher uniquement des raccords doublement ancrés
 
-## Apprentissage
+Une paire d'extrémités devient candidate si :
 
-L'apprentissage se déroule en trois temps :
+- les deux segments d'ancrage appartiennent à des fragments distincts ;
+- leur distance reste sous une limite exprimée par rapport à leur largeur ;
+- les extrémités se font face et leurs directions annoncent le même raccord ;
+- leurs largeurs ne sont pas fortement incompatibles ;
+- un chemin existe dans le graphe de Frangi ;
+- ce chemin reste dans la zone indécise et ne traverse jamais le fond certain ;
+- l'intérieur du chemin reste hors du masque de référence, sauf au contact des
+  deux ancrages ;
+- le premier prototype ne crée ni intersection ni nouvelle jonction.
 
-1. adapter SAM 2 aux fissures, puis figer ce modèle ;
-2. apprendre au GNN quels nœuds et arêtes sont proches du squelette vrai ;
-3. apprendre la seconde LoRA avec une pénalité de recouvrement du masque et une
-   faible pénalité de continuité du squelette.
+Cette dernière exclusion est nécessaire parce que la zone indécise chevauche
+une partie du masque de référence. Sans elle, un chemin pourrait toucher une
+troisième composante.
 
-Les ombres synthétiques sont ajoutées avant de recalculer Frangi. Chaque image
-propre, sa version ombrée et leurs découpes restent dans le même groupe. Les
-arêtes créées sur la frontière d'ombre sont des exemples négatifs difficiles.
-Une pénalité demande au GNN de classer la composante de fissure au-dessus de la
-composante créée par l'ombre.
+Le chemin de moindre coût est recherché dans le graphe. Son coût augmente avec :
+
+- une faible similarité Frangi ;
+- un désaccord entre l'orientation de l'arête et celle du chemin ;
+- une forte courbure ;
+- la longueur du raccord ;
+- une apparence de marche d'ombre ;
+- un score SAM proche du fond certain.
+
+Un chemin ne possédant qu'un seul ancrage est rejeté. Le graphe Frangi peut être
+non vide sans que le système soit obligé d'agir.
+
+Pour limiter la recherche opportuniste, chaque extrémité ne conserve que son
+meilleur chemin. Celui-ci n'est accepté que s'il est nettement meilleur que le
+deuxième meilleur chemin et si sa longueur reste sous un multiple fixé de la
+largeur des deux segments SAM. Une extrémité ne peut être utilisée qu'une fois
+dans la première version.
+
+La magnitude Hessienne absolue doit également dépasser un seuil appris sur les
+données d'entraînement. La normalisation relative par image ne suffit pas :
+elle peut rendre artificiellement forte la meilleure structure d'une image
+sans fissure. Ce seuil n'est comparable entre images que si la luminosité et les
+échelles Frangi suivent une normalisation fixe définie sur l'apprentissage.
+
+### 4. Distinguer vallée sombre et marche d'ombre
+
+Pour chaque point du chemin et pour plusieurs distances liées à l'échelle
+Frangi, on mesure la luminosité au centre, notée \(Y_0\), et de chaque côté de
+la ligne, notées \(Y_-\) et \(Y_+\).
+
+La symétrie d'une vallée sombre est :
+
+\[
+v_r =
+\frac{
+2\min\left([Y_- - Y_0]_+,[Y_+ - Y_0]_+\right)
+}{
+|Y_- - Y_0| + |Y_+ - Y_0| + \varepsilon
+}.
+\]
+
+La force d'une marche d'éclairage est :
+
+\[
+m_r =
+\frac{
+|Y_- - Y_+|
+}{
+|Y_- - Y_0| + |Y_+ - Y_0| + \varepsilon
+}.
+\]
+
+Une fissure sombre tend à avoir \(v_r > m_r\). Une frontière d'ombre tend à
+avoir \(m_r > v_r\).
+
+Les deux valeurs doivent être calculées à la **même distance**, puis leur
+risque conjoint \(m_r(1-v_r)\) est agrégé par la médiane des distances. Prendre
+des maxima indépendants, comme dans le prototype actuel, pourrait combiner une
+vallée observée à une distance avec une marche observée à une autre.
+
+La notation \([a]_+\) signifie ici \(\max(a,0)\).
+
+Ce terme reste une pénalité douce, pas un veto. Une vraie fissure traversant une
+ombre peut devenir asymétrique ; un rejet absolu diminuerait son rappel.
+
+### 5. Utiliser la profondeur comme indice complémentaire lorsqu'elle existe
+
+Dans les données multimodales du papier, la profondeur peut fournir une
+vérification moins directement affectée par une ombre visible. Une frontière
+d'ombre présente dans l'intensité ne devrait pas former le même chemin dans la
+profondeur.
+
+La profondeur reste d'abord une variante expérimentale, pas une condition de la
+méthode principale. Lorsqu'elle est utilisée, elle ne peut confirmer un raccord
+que si elle est fiable, correctement alignée avec l'intensité et qu'elle
+présente un soutien proche d'orientation compatible. Sinon, cet indice est
+déclaré indisponible.
+
+Cette règle doit être comparée à une variante intensité seule, car la profondeur
+peut elle-même manquer les fissures très fines. Les deux ancrages SAM ne doivent
+pas être qualifiés de preuves indépendantes : une même ombre peut produire deux
+faux fragments SAM. Le soutien de profondeur ne sera conservé que s'il améliore
+le compromis entre précision des raccords et couverture.
+
+### 6. Ajouter seulement un pont local
+
+Un chemin accepté produit un squelette de raccordement. Le premier essai ajoute
+seulement une ligne d'un pixel, contenue dans la zone où SAM 2 reste indécis.
+
+L'échelle gagnante de Frangi n'est pas considérée comme une mesure fiable de
+largeur. Une extension ultérieure pourra épaissir le raccord, au plus jusqu'à
+la plus petite largeur observée sur les deux segments SAM.
+
+Le masque final est la sortie de référence augmentée de ce pont local. Aucun
+pixel extérieur au couloir accepté n'est modifié.
+
+La première version ajoute seulement des pixels. Elle ne tente pas de supprimer
+les faux positifs déjà produits par SAM 2 : cette responsabilité appartient à
+l'apprentissage de LoRA.
+
+## Garanties par construction
+
+Les propriétés suivantes doivent être testées automatiquement :
+
+1. moins de deux segments d'ancrage : sortie identique à la référence ;
+2. aucun chemin Frangi admissible : sortie identique à la référence ;
+3. chemin traversant le fond certain : rejet ;
+4. chemin avec un seul ancrage : rejet ;
+5. chemin trop long ou mal orienté : rejet ;
+6. hors du couloir retenu : sortie identique à la référence ;
+7. aucune composante entièrement nouvelle ne peut apparaître ;
+8. un pont accepté fusionne exactement deux fragments sans en toucher un
+   troisième.
+
+Ces propriétés ne garantissent pas une amélioration moyenne. Elles bornent la
+manière dont Frangi peut dégrader la segmentation.
+
+## Apprentissage et réglage
+
+Le premier essai ne nécessite ni GNN ni seconde LoRA.
+
+### Étape zéro : vérifier que le problème est réellement raccordable
+
+Avant toute implémentation complète, utiliser les annotations d'une partie
+d'apprentissage réservée à l'analyse, jamais celles du test final, pour
+mesurer :
+
+- la longueur de fissure manquée qui se trouve entre deux bons segments SAM ;
+- la fraction de ces coupures qui possède un chemin Frangi admissible ;
+- le meilleur gain possible si seuls les raccords corrects étaient acceptés.
+
+Si même ce meilleur sélecteur connaissant l'annotation ne permet pas un gain
+utile, la piste doit être arrêtée. Aucun sélecteur limité aux mêmes candidats et
+aux mêmes contraintes ne pourra dépasser ce plafond.
+
+### Place de LoRA
+
+La première expérience de raccordement réutilise exactement la LoRA de
+référence déjà gelée. Elle ne doit pas modifier à la fois la segmentation SAM
+et le raccordement, car leurs effets deviendraient impossibles à séparer.
+
+Dans une campagne ultérieure, le modèle de référence adapté par LoRA pourra être
+renforcé avec des paires propres et ombrées partageant la même annotation. Les
+ombres synthétiques devront varier en largeur, orientation, opacité et douceur
+de frontière. Le raccordement sera alors réévalué avec ce nouveau modèle gelé.
+
+### Recalcul obligatoire de Frangi
+
+Frangi est recalculé après l'ajout de chaque ombre. Réutiliser le graphe de
+l'image propre supprimerait précisément les faux candidats que l'expérience
+doit mesurer.
+
+### Réglage du raccordement
+
+Les trois seuils SAM, la longueur maximale et les poids du coût de chemin sont
+réglés sur les seules images d'apprentissage et de validation. Toutes les
+versions d'une même image physique restent dans le même groupe.
+
+Une version initiale peut employer quelques poids scalaires et une recherche de
+chemin classique. Un GNN ne sera envisagé que si les vraies arêtes battent des
+arêtes mélangées à couverture identique.
 
 ## Expérience décisive
 
+Comparer exactement le même SAM 2-LoRA gelé :
+
 | Variante | Question |
 |---|---|
-| Graphe de Frangi seul | Que vaut la méthode sans apprentissage ? |
-| SAM 2 gelé avec points Frangi bruts | Les points natifs suffisent-ils ? |
-| SAM 2 adapté par LoRA, sans graphe | Quel est le gain de l'adaptation seule ? |
-| Modèle adapté avec points Frangi bruts | La vérification est-elle nécessaire ? |
-| Classificateur indépendant par nœud | Les informations locales suffisent-elles ? |
-| GNN avec vraies arêtes | La topologie apporte-t-elle un gain ? |
-| Même GNN avec arêtes mélangées | Le gain vient-il vraiment des connexions ? |
+| SAM 2-LoRA seul | référence |
+| union directe avec Frangi | contrôle volontairement non sûr |
+| segment droit entre les mêmes ancrages | Frangi fait-il mieux qu'un raccord géométrique trivial ? |
+| raccordement doublement ancré sans terme d'ombre | valeur des contraintes topologiques |
+| raccordement doublement ancré avec vallée contre marche | solution proposée |
+| même méthode avec graphe décalé | la bonne position est-elle nécessaire ? |
+| même méthode avec arêtes mélangées, après conservation du vrai graphe | les vraies connexions sont-elles utiles ? |
 
-Il faut mesurer l'intersection sur union, le coefficient de Dice, la continuité
-du squelette, les indices de Jaccard et de Tversky, la distance de Wasserstein,
-les faux positifs près des frontières d'ombre et le rappel lorsqu'une ombre
-traverse une fissure.
+Les mesures principales sont :
 
-Le GNN n'est conservé que si les vraies arêtes font mieux que le classificateur
-indépendant et que les arêtes mélangées.
+- intersection sur union et coefficient de Dice ;
+- indice de Tversky et distance de Wasserstein pour rester comparable au
+  papier ;
+- rappel et précision du squelette ;
+- précision des seuls pixels ajoutés ;
+- longueur de fissure manquée récupérée ;
+- longueur fausse ajoutée ;
+- nombre de ruptures réparées et de connexions incorrectes créées ;
+- faux positifs dans une bande autour des frontières d'ombre ;
+- rappel lorsqu'une ombre traverse une fissure ;
+- proportion d'images laissées exactement inchangées ;
+- fréquence et amplitude des pertes sévères ;
+- résultat global avec et sans la famille `cracktree200`.
 
-## Mise en œuvre minimale
+La méthode n'est retenue que si :
 
-Le premier prototype demande seulement :
+1. l'étape zéro montre un plafond de gain suffisant ;
+2. le vrai graphe bat le segment droit et les graphes décalés ou mélangés à
+   longueur totale de raccordement acceptée identique ;
+3. la borne basse de l'incertitude du gain, calculée par image physique, reste
+   positive ;
+4. le gain moyen reste positif lorsque `cracktree200` est retiré ;
+5. les faux positifs près des ombres n'augmentent pas ;
+6. le rappel aux traversées d'ombre ne diminue pas fortement ;
+7. les garanties logicielles d'identité exacte sont toutes satisfaites ;
+8. une évaluation sur des images physiques jamais utilisées confirme le gain.
 
-1. d'étendre
-   [`decode_features`](../cracksam2/model.py#L278) pour accepter les coordonnées
-   et les étiquettes des points ;
-2. de réutiliser les profils vallée contre marche déjà présents dans
-   [`evidence_selection.py`](../cracksam2/evidence_selection.py) ;
-3. d'ajouter `graph_points.py` pour le GNN, la sélection des points et le retour
-   exact au modèle de référence.
+La mesure prioritaire du raccordement est la précision des pixels qu'il ajoute,
+pas seulement la variation moyenne du masque complet.
 
-Pour ce premier test, les arêtes peuvent relier les pixels voisins du squelette
-déjà précalculé. Si le résultat est positif, il faudra conserver directement
-les nœuds et les arêtes actuellement calculés puis abandonnés dans
-[`graph_extraction.py`](../../src/graph_extraction.py).
+## Mise en œuvre minimale dans le dépôt
 
-Cette première version représente environ trois à quatre cents lignes de code,
-tests compris. Elle ne modifie ni l'encodeur visuel, ni l'entrée de masque
-dense.
+Le prototype peut réutiliser les éléments existants :
 
-## Conclusion
+- [`evaluate_sam2.py`](../evaluate_sam2.py) peut déjà enregistrer les scores
+  bruts de SAM 2-LoRA avec l'option `--save-logits` ;
+- [`frangi.py`](../cracksam2/frangi.py) produit la similarité, l'échelle,
+  l'orientation et la distance au squelette Frangi ;
+- [`graph_types.py`](../cracksam2/graph_types.py) décrit leur format et
+  [`graph_cache.py`](../cracksam2/graph_cache.py) les enregistre ;
+- [`evidence_selection.py`](../cracksam2/evidence_selection.py) calcule déjà les
+  profils vallée et marche. Le raccordement doit ajouter son propre calcul à
+  distances appariées sans modifier l'agrégation utilisée par le prototype
+  existant ;
+- [`graph_extraction.py`](../../src/graph_extraction.py) construit déjà les
+  nœuds, les arêtes et l'arbre couvrant de poids minimal.
 
-Cette solution répond à la perspective du papier avec peu de modifications :
-le graphe de Frangi propose, le GNN vérifie, LoRA adapte et SAM 2 segmente. Le
-chemin de référence est retrouvé exactement lorsque le graphe est incertain.
+Ajouter `frangi_bridge.py` dans `cracksam2` suffit pour le cœur de la méthode :
 
-Une fusion plus profonde du graphe dans SAM 2 pourra être étudiée seulement si
-ce guidage simple démontre que les vraies connexions de Frangi apportent une
-information complémentaire.
+1. construire les trois zones SAM ;
+2. extraire les extrémités des fragments certains ;
+3. reconstruire un graphe à huit voisins depuis le squelette Frangi
+   précalculé ;
+4. calculer les coûts d'ombre et d'orientation ;
+5. rechercher et filtrer les chemins ;
+6. produire le masque final et les diagnostics.
+
+Un petit évaluateur séparé, `evaluate_frangi_bridge.py`, peut relire les scores
+déjà enregistrés. Tous les réglages sont alors comparés sans réexécuter SAM 2
+et sans modifier `model.py`.
+
+Le premier test peut utiliser les pixels où la distance au squelette vaut zéro,
+à condition que le fichier ait été produit avec le calcul de centralité et la
+configuration d'arbre couvrant `K=1`. Il faut toutefois le présenter comme une
+approximation : le fichier actuel contient la distance à un arbre rasterisé,
+pas les identifiants des nœuds et des arêtes. Deux lignes qui se croisent
+peuvent ainsi devenir artificiellement connectées. La conservation explicite
+du vrai graphe ne devient nécessaire que si ce test passe.
+
+Les tests minimaux vérifient :
+
+- aucun graphe ou un seul ancrage : identité exacte ;
+- deux ancrages et une coupure courte : raccord ;
+- structure Frangi isolée : rejet ;
+- fond certain, détour, mauvaise orientation ou marche d'ombre : rejet ;
+- chaque pixel ajouté appartient à un chemin reliant deux composantes
+  antérieures.
+
+La confirmation multimodale devra en plus conserver séparément le soutien
+Frangi de l'intensité et celui de la profondeur. Une fusion préalable des deux
+modalités ne permettrait plus de savoir si le chemin est réellement confirmé
+par la profondeur.
+
+## Limites assumées
+
+- Une fissure entièrement manquée par SAM 2 ne sera pas récupérée.
+- Une fausse fissure déjà prédite avec forte confiance par SAM 2 ne sera pas
+  supprimée.
+- Deux faux fragments SAM proches d'une ombre peuvent encore fournir deux
+  ancrages erronés.
+- Une ombre étroite ou entourée de texture peut ressembler à une vallée sombre.
+- Une vraie fissure traversant une ombre peut recevoir une pénalité trop forte.
+- Sans profondeur, le rejet des ombres repose sur des indices moins
+  indépendants.
+- Deux fissures distinctes mais proches peuvent être raccordées à tort.
+- Le squelette rasterisé peut créer une connexion artificielle à un croisement.
+- Des seuils mal réglés peuvent rendre le système inactif ou trop permissif.
+
+Ces limites doivent apparaître dans les résultats, pas être masquées par une
+seule moyenne.
+
+## Recommandation finale
+
+La réponse la plus crédible à la conclusion du papier n'est pas d'insérer
+Frangi plus profondément dans SAM 2. Elle consiste à intégrer les deux méthodes
+selon leurs rôles naturels :
+
+> **LoRA adapte SAM 2 à la sémantique des fissures ; le graphe de Frangi répare
+> uniquement leur continuité, sous double ancrage SAM et pénalité d'ombre.**
+
+Cette proposition est plus simple que le GNN vers points, conserve réellement
+les chemins du graphe et laisse le transformer intact. Si elle n'améliore pas
+la continuité face aux graphes décalés et mélangés, il faudra conclure que
+Frangi n'apporte pas de valeur complémentaire exploitable dans ce cadre.
+
+Si la version déterministe se révèle trop prudente malgré un plafond de gain
+suffisant, un GNN pourra seulement classer les chemins déjà doublement ancrés.
+Il ne devra ni produire des points pour SAM 2, ni traverser le fond certain, ni
+créer une composante.
 
 ## Références
 
@@ -181,11 +462,8 @@ information complémentaire.
 3. Ge et collaborateurs,
    [article adaptant le premier SAM aux fissures](https://arxiv.org/abs/2312.04233),
    2023.
-4. Hetang et collaborateurs,
-   [article combinant SAM et GNN pour les routes](https://arxiv.org/abs/2403.16051),
-   2024.
-5. Fan et collaborateurs,
+4. Fan et collaborateurs,
    [article sur les fissures de chaussée couplées aux ombres](https://www.ieee-jas.net/article/doi/10.1109/JAS.2023.123447),
    2023.
-6. Hu et collaborateurs,
+5. Hu et collaborateurs,
    [article présentant LoRA](https://arxiv.org/abs/2106.09685), 2021.
