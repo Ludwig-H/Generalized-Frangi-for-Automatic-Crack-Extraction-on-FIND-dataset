@@ -1,6 +1,6 @@
 # EUVIP 2026 — mise à jour camera-ready
 
-Mise à jour réalisée le 28 juillet 2026 à partir de l’archive
+Mise à jour finalisée le 30 juillet 2026 à partir de l’archive
 `EUVIP_2026_Generalized_Frangi_Multimodality.zip`, des revues CMT et des deux
 courriels fournis. Les PDF d’origine dans `Reviews/` n’ont pas été modifiés.
 
@@ -14,6 +14,11 @@ courriels fournis. Les PDF d’origine dans `Reviews/` n’ont pas été modifi�
 - `LaTeX/` : source camera-ready et figures. Le fichier principal est
   `LaTeX/main.tex`. Le fichier `LaTeX/latexdiff-red-preamble.tex` fixe le
   balisage rouge de la version comparative.
+- `code/` : dossier autonome prêt à copier dans
+  `https://github.com/Ayana-Inria/Frangi-EUVIP`, avec notebooks, paquet Python,
+  scripts, README, citation et licence GNU GPL-3.0-only.
+- `Frangi-EUVIP.zip` : archive du même dossier, avec un répertoire racine
+  `Frangi-EUVIP/`, prête à extraire ou à importer.
 
 La version « différences » est un document de travail. Elle fait 8 pages parce
 qu’elle conserve les passages supprimés et montre les déplacements de figures ;
@@ -83,7 +88,9 @@ elle ne doit pas être envoyée comme camera-ready.
 - Remplacement de l’institution anonymisée par Cerema.
 - Rétablissement des remerciements Bpifrance pour les auteurs Inria, ainsi que
   des financements DS4H et 3IA du premier auteur.
-- Mise à jour de la section de disponibilité du code avec le dépôt public.
+- Mise à jour de la section de disponibilité du code et des données avec le
+  dépôt public `Ayana-Inria/Frangi-EUVIP`, le jeu FIND public et le dossier
+  Drive fourni pour les données non publiques.
 - Suppression de la citation `chiu2026automated` placée à tort après
   CrackSegDiff.
 - Correction des types BibTeX de FIND et de la revue Zhang afin de supprimer
@@ -119,12 +126,11 @@ avec le texte ancien du manuscrit :
   \(s_a=0{,}125\), \(\Sigma=\{1,3,5,7,9\}\), \(R=3\) et
   \(\tau=0{,}30\), valeurs recoupées avec l’étude préliminaire GRETSI.
 
-Le script GPU exact qui a produit les deux figures Vaches Noires n’est pas
-présent dans ce dépôt. Les valeurs ci-dessus sont documentées dans les sources
-du manuscrit, de la thèse et de l’article GRETSI. Le papier ne prétend pas
-qu’elles ont été choisies sans consultation de la vérité terrain. Une
-confirmation des auteurs reste souhaitable avant le dépôt si une traçabilité
-exécutable complète est exigée.
+Le dossier `code/` conserve l’export Colab historique des expériences Vaches
+Noires et de la comparaison U-Net, ainsi qu’une conversion mécanique en
+notebook. Les chemins Google Drive historiques restent visibles dans cet
+artefact afin de préserver sa traçabilité ; le README indique comment retrouver
+les données dans le dossier compagnon.
 
 ## Compilation et contrôles
 

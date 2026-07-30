@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "frangi-euvip"
+version = "1.0.0"
+description = "Training-free multi-modal crack extraction via generalized Frangi graphs."
+readme = "README.md"
+license = { text = "GPL-3.0-only" }
+authors = [
+  { name = "Louis Hauseux" },
+  { name = "Raphaël Antoine" },
+  { name = "Philippe Foucher" },
+  { name = "Pierre Charbonnier" },
+  { name = "Josiane Zerubia" },
+]
+requires-python = ">=3.10"
+dependencies = [
+  "numpy",
+  "scipy",
+  "scikit-image",
+  "scikit-learn",
+  "matplotlib",
+  "joblib",
+  "tqdm",
+  "tqdm-joblib",
+  "hdbscan",
+  "networkx",
+  "gdown",
+  "tifffile",
+  "imageio",
+  "pandas",
+  "Pillow",
+  "POT",
+  "h5py",
+  "gudhi",
+]
+
+[project.urls]
+Repository = "https://github.com/Ayana-Inria/Frangi-EUVIP"
+Data = "https://drive.google.com/drive/folders/1iC7QrdB2vZmaunjjPrIcu9r5wMeBPMlk"
+
+[project.scripts]
+frangi-find-batch = "frangi_fusion.cli:main"
