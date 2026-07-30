@@ -9,8 +9,8 @@ courriels fournis. Les PDF d’origine dans `Reviews/` n’ont pas été modifi�
 - `EUVIP_2026_Generalized_Frangi_Multimodality.pdf` : version propre à déposer.
 - `EUVIP_2026_Generalized_Frangi_Multimodality_differences.pdf` : comparaison
   avec le manuscrit de l’archive. Les ajouts et modifications sont signalés en
-  rouge — soulignés dans le corps du texte — et les suppressions sont barrées
-  en rouge.
+  rouge, sans soulignement des formules mathématiques, et les suppressions sont
+  barrées en rouge.
 - `LaTeX/` : source camera-ready et figures. Le fichier principal est
   `LaTeX/main.tex`. Le fichier `LaTeX/latexdiff-red-preamble.tex` fixe le
   balisage rouge de la version comparative.
@@ -50,9 +50,9 @@ elle ne doit pas être envoyée comme camera-ready.
   d’élagage sont expliqués. Le texte distingue les paramètres de sensibilité
   choisis empiriquement des paramètres liés à la largeur attendue des fissures,
   aux lacunes à franchir et au compromis parcimonie–rappel.
-- Les deux conventions de seuillage réellement utilisées sont distinguées :
-  quantile 0,60 pour FIND et le Palais des Papes, et niveau de filtration
-  \(\tau=0{,}30\) de l’arbre hiérarchique pour Vaches Noires.
+- Le facteur de rétention \(\tau\) est défini de la même façon pour les arêtes
+  et les nœuds : \(0{,}25\) pour FIND et le Palais des Papes, et
+  \(0{,}30\) pour Vaches Noires.
 - `Test1` et `Test2` sont définis comme deux patchs UAV visibles annotés de
   \(512\times512\) pixels, acquis aux Vaches Noires à Villers-sur-Mer. Le texte
   précise qu’ils sont distincts de l’image de \(3760\times2058\) utilisée pour
@@ -110,12 +110,11 @@ Les valeurs ont été recoupées avec le notebook et ses sorties, et pas seuleme
 avec le texte ancien du manuscrit :
 
 - FIND et Palais des Papes : \(s_s=2\), \(s_i=0{,}25\),
-  \(s_a=0{,}125\), \(\Sigma=\{1,3,5,7\}\), \(R=12\). La configuration exécutée
-  et le nom de sortie `Batch_beta2_R12...` confirment \(R=12\). L’ancien
-  `main.tex` à la racine du dépôt indiquait encore \(R=10\).
-- Pour ces deux jeux, `threshold_mask=0.6` correspond à une coupure au
-  60e percentile sur la courbure, puis sur la similarité maximale par nœud :
-  environ 40 % des candidats sont conservés à chacune des deux étapes.
+  \(s_a=0{,}125\), \(\Sigma=\{1,3,5,7\}\), \(R=3\) et
+  \(\tau=0{,}25\).
+- Le même facteur \(\tau\) fixe la fraction des arêtes puis des nœuds
+  conservés ; aucune expérience décrite dans le papier n’emploie une
+  rétention de 40 %.
 - Vaches Noires : \(s_s=0{,}5\), \(s_i=0{,}25\),
   \(s_a=0{,}125\), \(\Sigma=\{1,3,5,7,9\}\), \(R=3\) et
   \(\tau=0{,}30\), valeurs recoupées avec l’étude préliminaire GRETSI.
@@ -141,12 +140,13 @@ pdflatex main.tex
 La version comparative a été régénérée avec `latexdiff` entre le `main.tex`
 contenu dans l’archive d’origine et `LaTeX/main.tex`. Le préambule
 `latexdiff-red-preamble.tex` impose le rouge pour les ajouts comme pour les
-suppressions. Pour garder un document compilable, les tableaux modifiés sont
-traités comme des blocs et apparaissent entièrement en rouge. Le bloc auteurs
-est affiché dans sa version finale sans balisage ; la comparaison porte sur le
-contenu scientifique du manuscrit. Les corrections du fichier BibTeX sont
-consignées dans ce README, mais ne sont pas balisées dans la bibliographie
-générée par `latexdiff`.
+suppressions, sans souligner les mathématiques ; les équations modifiées sont
+traitées comme des blocs avec l’option `--math-markup=1`. Pour garder un
+document compilable, le contenu des tableaux modifiés est lui aussi traité
+comme un bloc rouge. Le bloc auteurs est affiché dans sa version finale sans
+balisage ; la comparaison porte sur le contenu scientifique du manuscrit. Les
+corrections du fichier BibTeX sont consignées dans ce README, mais ne sont pas
+balisées dans la bibliographie générée par `latexdiff`.
 
 Contrôles effectués :
 

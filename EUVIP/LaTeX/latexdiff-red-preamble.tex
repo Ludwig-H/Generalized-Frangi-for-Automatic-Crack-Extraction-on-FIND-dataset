@@ -2,8 +2,8 @@
 \RequirePackage[normalem]{ulem}
 \RequirePackage{xcolor}
 
-\providecommand{\DIFadd}[1]{{\protect\color{red}\uwave{#1}}}
-\providecommand{\DIFdel}[1]{{\protect\color{red}\sout{#1}}}
+\providecommand{\DIFadd}[1]{{\protect\color{red}#1}}
+\providecommand{\DIFdel}[1]{{\protect\color{red}\ifmmode #1\else\sout{#1}\fi}}
 \providecommand{\DIFaddbegin}{\protect\color{red}}
 \providecommand{\DIFaddend}{\protect\color{black}}
 \providecommand{\DIFdelbegin}{\protect\color{red}}

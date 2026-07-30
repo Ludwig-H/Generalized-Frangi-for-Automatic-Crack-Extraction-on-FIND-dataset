@@ -42,7 +42,7 @@
 
 \begin{document}
 
-\title{Multi-Modal, Training-Free Crack Extraction {via} Generalized \Frangi{} Graph}
+\title{Multi-Modal, Training-Free Crack Extraction {via} Generalized Frangi Graph}
 
 \author{
 \IEEEauthorblockN{Louis \textsc{Hauseux}\IEEEauthorrefmark{1},
@@ -64,7 +64,7 @@ We address the problem of extracting a crack network from one or several scalar 
 To do so, we generalize the classical \Frangi{} vesselness filter from a pixel-wise operator to a pairwise spatial graph. While the standard filter is limited to independent pixel-wise geometry, our formulation enriches this description by explicitly encoding the orientation alignment between neighboring pixels, alongside elongation and contrast. The final crack network is then extracted through a graph pipeline combining minimum spanning tree reduction and similarity-weighted tree centrality.
 
 
-While supervised models perform best on clean, in-distribution data, our geometry-driven framework degrades more slowly than CrackSegDiff under the tested synthetic perturbations. The geological experiments are limited in size and should be read as initial transfer tests rather than broad evidence of cross-domain generalization.
+While supervised models perform best on clean, in-distribution data, our geometry-driven framework degrades more slowly than CrackSegDiff under the tested synthetic perturbations.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -242,10 +242,10 @@ then include spatial distance in the graph similarity and dissimilarity:
 \end{equation}
 Thus the graph edge is strong only when both pixels are elongated, have the correct curvature sign and share a compatible orientation. The factor $\rho_{ij}$ in \eqref{eq:distance} regularizes the later tree extraction.
 
-For FIND and the Palais des Papes, we use $s_{\mathrm{s}}=2$, $s_{\mathrm{i}}=1/4$, $s_{\mathrm{a}}=1/8$, $\Sigma=\{1,3,5,7\}$ and $R=12$. For the Vaches Noires images, the single-modal implementation uses $s_{\mathrm{s}}=1/2$, $s_{\mathrm{i}}=1/4$, $s_{\mathrm{a}}=1/8$, $\Sigma=\{1,3,5,7,9\}$ to cover wider visible fractures, while $R=3$ follows the preliminary study.
+For FIND and the Palais des Papes, we use $s_{\mathrm{s}}=2$, $s_{\mathrm{i}}=1/4$, $s_{\mathrm{a}}=1/8$, $\Sigma=\{1,3,5,7\}$ and $R=3$. For the Vaches Noires images, the single-modal implementation uses $s_{\mathrm{s}}=1/2$, $s_{\mathrm{i}}=1/4$, $s_{\mathrm{a}}=1/8$, $\Sigma=\{1,3,5,7,9\}$ to cover wider visible fractures, with the same radius $R=3$ as in the preliminary study.
 
 \subsection{Graph Extraction}
-The extraction pipeline has four steps. First, thresholding removes low-confidence elements: Pixels are filtered by curvature, then low-similarity graph elements are pruned. The pruning rules used in the experiments are detailed below.
+The extraction pipeline has four steps. First, thresholding removes low-confidence elements. A single retention factor $\tau$ is applied to both graph elements: the strongest fraction $\tau$ of edges is retained according to $S_{ij}$; nodes are then ranked by their maximum incident similarity, and the strongest fraction $\tau$ is retained.
 
 Second, connected components are obtained from the remaining graph. On FIND, where the annotation targets one main crack, we retain the largest component. When several independent networks are of interest, the next two steps are applied to each retained component.
 
@@ -289,7 +289,7 @@ The summary in Table~\ref{tab:components} makes explicit which failure mode each
 
 The sensitivity parameters were selected empirically, starting from our preliminary study \cite{BibiStrasbourg}. We retained $s_{\mathrm{i}}$ and $s_{\mathrm{a}}$ and increased $s_{\mathrm{s}}$ from $1/2$ to $2$ for FIND and the Palais des Papes, allowing more variation in the \Frangi{} ratio, which is less stable than the curvature and orientation terms.
 
-The scale set, radius and pruning cutoff are fixed per dataset. We set $\Sigma$ from the expected crack-width range and $R$ from the largest gap that should be bridged; the cutoff controls the sparsity--recall trade-off. For FIND and the Palais des Papes, the reproduction notebook applies the $0.60$ quantile separately to curvature magnitude and node-wise maximum similarity, retaining the upper $40\%$ at each step. For Vaches Noires, the hierarchical-tree filtration level is fixed \emph{ad hoc} at $\tau=0.30$, following the preliminary study \cite{BibiStrasbourg}.
+The scale set, radius and retention factor are fixed per dataset. We set $\Sigma$ from the expected crack-width range and $R$ from the largest gap that should be bridged; $\tau$ controls the sparsity--recall trade-off. We use $\tau=0.25$ for FIND and the Palais des Papes, and $\tau=0.30$ for Vaches Noires, following the preliminary study \cite{BibiStrasbourg}.
 
 
 \section{Experiments}
