@@ -39,6 +39,7 @@
 \newcommand{\Hess}{\mathcal{H}}
 \newcommand{\nom}[1]{\textsc{#1}}
 \newcommand{\matnorm}[1]{\left\lvert\mkern-2mu\left\lvert\mkern-2mu\left\lvert #1 \right\rvert\mkern-2mu\right\rvert\mkern-2mu\right\rvert}
+\newcommand{\ceremamark}{\raisebox{0pt}[0pt][0pt]{\textsuperscript{\footnotesize\textdegree}}}
 
 \begin{document}
 
@@ -46,12 +47,12 @@
 
 \author{
 \IEEEauthorblockN{Louis \textsc{Hauseux}\IEEEauthorrefmark{1},
-Raphaël \textsc{Antoine}\IEEEauthorrefmark{2},
-Philippe \textsc{Foucher}\IEEEauthorrefmark{2},
-Pierre \textsc{Charbonnier}\IEEEauthorrefmark{2}, and
+Raphaël \textsc{Antoine}\ceremamark,
+Philippe \textsc{Foucher}\ceremamark,
+Pierre \textsc{Charbonnier}\ceremamark, and
 Josiane \textsc{Zerubia}\IEEEauthorrefmark{1}}
 \IEEEauthorblockA{\IEEEauthorrefmark{1}\textit{Inria, Université Côte d'Azur, Ayana team, France}\\
-\IEEEauthorrefmark{2}\textit{Cerema, ENDSUM research team, France}\\
+\ceremamark\textit{Cerema, ENDSUM research team, France}\\
 Corresponding author: louis.hauseux@inria.fr}
 }
 
@@ -614,7 +615,7 @@ We also apply the method to a fractured limestone wall at the Palais des Papes, 
 \end{figure}
 
 \section*{Code and Data Availability}
-The code and reproduction notebooks are available in the \href{https://github.com/Ayana-Inria/Frangi-EUVIP}{project repository}. The FIND benchmark is publicly available \cite{FIND2022}. The non-public data used in our experiments are available in the \href{https://drive.google.com/drive/folders/1iC7QrdB2vZmaunjjPrIcu9r5wMeBPMlk}{companion data folder}.
+The code and reproduction notebooks are available at \url{https://github.com/Ayana-Inria/Frangi-EUVIP}. The FIND benchmark is publicly available \cite{FIND2022}. The non-public data used in our experiments are available at \url{https://drive.google.com/drive/folders/1iC7QrdB2vZmaunjjPrIcu9r5wMeBPMlk}.
 
 \section{Conclusion}
 We presented a geometric, training-free method for multi-modal crack skeletonization. On clean FIND data, the supervised model performs better; under added noise, our graph method degrades more slowly. The geological results show that the method can be applied without retraining, but the evaluation is limited to two annotated patches and one qualitative case.

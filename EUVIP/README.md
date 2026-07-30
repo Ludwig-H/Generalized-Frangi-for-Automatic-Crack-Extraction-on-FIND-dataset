@@ -85,12 +85,15 @@ elle ne doit pas être envoyée comme camera-ready.
 
 - Rétablissement des cinq auteurs, avec les noms de famille en petites
   capitales, des affiliations Inria/Cerema et de l’auteur correspondant.
+- Remplacement du marqueur obélisque de l’affiliation Cerema par un rond de type
+  degré.
 - Remplacement de l’institution anonymisée par Cerema.
 - Rétablissement des remerciements Bpifrance pour les auteurs Inria, ainsi que
   des financements DS4H et 3IA du premier auteur.
 - Mise à jour de la section de disponibilité du code et des données avec le
   dépôt public `Ayana-Inria/Frangi-EUVIP`, le jeu FIND public et le dossier
-  Drive fourni pour les données non publiques.
+  Drive fourni pour les données non publiques. Les deux URL sont imprimées
+  explicitement dans le papier.
 - Suppression de la citation `chiu2026automated` placée à tort après
   CrackSegDiff.
 - Correction des types BibTeX de FIND et de la revue Zhang afin de supprimer
