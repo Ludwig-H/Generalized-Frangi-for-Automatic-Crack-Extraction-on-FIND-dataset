@@ -1,7 +1,7 @@
 # EUVIP 2026 — mise à jour camera-ready
 
-Mise à jour finalisée le 30 juillet 2026 à partir de l’archive
-`EUVIP_2026_Generalized_Frangi_Multimodality.zip`, des revues CMT et des deux
+Mise à jour finalisée le 31 juillet 2026 à partir de l’archive
+`EUVIP_2026_Generalized_Frangi_Multimodality.zip`, des revues CMT et des
 courriels fournis. Les PDF d’origine dans `Reviews/` n’ont pas été modifiés.
 
 ## Fichiers livrés
@@ -23,6 +23,22 @@ courriels fournis. Les PDF d’origine dans `Reviews/` n’ont pas été modifi�
 La version « différences » est un document de travail. Elle fait 8 pages parce
 qu’elle conserve les passages supprimés et montre les déplacements de figures ;
 elle ne doit pas être envoyée comme camera-ready.
+
+## Corrections finales demandées par Josiane
+
+- Vérification de toutes les occurrences visibles des deux-points dans le texte
+  anglais et passage en majuscule du mot qui les suit, y compris dans les
+  légendes. Les adresses, URL et expressions mathématiques ne sont pas
+  concernées par cette règle éditoriale.
+- Explication du parcours en largeur au-dessus de l’équation 13 : le parcours
+  visite l’arbre niveau par niveau, mémorise les parents, puis son ordre inversé
+  permet d’accumuler les masses des sous-arbres en temps linéaire.
+- Reformulation de la perspective SAM/CrackSAM dans la conclusion au futur : la
+  comparaison directe « will therefore be our priority » n’est plus présentée
+  comme une priorité déjà réalisée.
+- Ajout au bas de la première page du copyright exact demandé pour les articles
+  hors gouvernements américain, britannique et européen :
+  `979-8-3195-3697-6/26/$31.00 ©2026 IEEE`.
 
 ## Réponses apportées aux revues
 
@@ -77,9 +93,9 @@ elle ne doit pas être envoyée comme camera-ready.
 ### Modèles de fondation
 
 - La conclusion nomme explicitement les modèles de fondation comme des
-  baselines incontournables et fait de la comparaison directe avec SAM et son
-  adaptation CrackSAM une priorité. Aucun résultat nouveau n’est revendiqué :
-  il s’agit d’une perspective clairement identifiée.
+  baselines incontournables et indique que la comparaison directe avec SAM et
+  son adaptation CrackSAM sera la priorité des travaux futurs. Aucun résultat
+  nouveau n’est revendiqué : il s’agit d’une perspective clairement identifiée.
 
 ## Autres modifications du papier
 
@@ -161,10 +177,13 @@ Contrôles effectués :
 
 - PDF A4 de 6 pages ;
 - page 6 réservée aux références ;
+- copyright EUVIP/IEEE visible au bas de la première page ;
+- aucune minuscule après deux-points dans le texte extrait du PDF, bibliographie
+  comprise ;
 - aucune citation ou référence croisée non résolue ;
 - aucun dépassement de boîte (`Overfull \hbox`) ;
 - polices de texte incorporées en Type 1 ;
-- vérification visuelle des six pages et de la version annotée.
+- vérification visuelle des six pages et des huit pages de la version annotée.
 
 Il reste un avertissement non bloquant de `caption` lié à l’emploi historique
 de `subcaption` avec `IEEEtran`. Il n’a pas d’effet visible sur le document.
@@ -175,10 +194,18 @@ aux passages conservés et barrés ; elle ne présente aucun débordement.
 ## Points administratifs à ne pas oublier
 
 - Date limite camera-ready : **5 août 2026, 23 h 59 AoE**.
-- Le courriel d’acceptation annonce que les instructions finales de dépôt
-  suivront séparément ; vérifier CMT avant l’envoi.
-- Chaque article accepté doit être couvert par l’inscription requise par la
-  conférence.
+- Les [instructions camera-ready officielles EUVIP 2026](https://euvip2026.github.io/information/camera-ready/)
+  demandent le copyright sur la première page, puis une validation avec IEEE
+  PDF eXpress, identifiant de conférence **72486X**. Le PDF ne doit plus être
+  modifié après cette validation.
+- Déposer ensuite le PDF validé dans CMT avec « Create Camera Ready
+  Submission » ; le passage dans PDF eXpress ne vaut pas dépôt à la conférence.
+- Louis doit remplir et signer l’IEEE electronic Copyright Form pour l’ensemble
+  des coauteurs, sélectionner l’option académique/gouvernement indiquée par
+  Josiane, télécharger `CopyrightReceipt.pdf`, puis téléverser ce reçu dans CMT.
+  En cas de doute sur ce choix juridique, demander confirmation à Martina.
+- Le papier doit être couvert par une inscription **Full** IEEE/EURASIP ou
+  non-membre, et être présenté sur place par un auteur ou un remplaçant autorisé.
 - Josiane a demandé un accusé de réception et propose une relecture jeudi ou
   vendredi. Cette réponse par courriel reste à faire hors du dépôt.
 
