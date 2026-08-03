@@ -21,12 +21,17 @@
 \hypersetup{hidelinks}
 \usepackage{multirow}
 \usepackage{mathtools}
+\usepackage{flushend}
 \usepackage{pgfplots}
 \pgfplotsset{compat=newest}
-\usetikzlibrary{arrows.meta,positioning}
+\usetikzlibrary{arrows.meta,calc,positioning}
 
 \definecolor{myred}{HTML}{D62728}
 \definecolor{mygreen}{HTML}{2CA02C}
+\definecolor{methodpurple}{HTML}{6F4C9B}
+\definecolor{methodblue}{HTML}{2F6DAE}
+\definecolor{methodorange}{HTML}{D97904}
+\definecolor{methodgreen}{HTML}{2B8A6E}
 
 %\hyphenation{op-tical net-works semi-conduc-tor}
 
@@ -41,8 +46,27 @@
 \newcommand{\matnorm}[1]{\left\lvert\mkern-2mu\left\lvert\mkern-2mu\left\lvert #1 \right\rvert\mkern-2mu\right\rvert\mkern-2mu\right\rvert}
 \newcommand{\ceremamark}{\raisebox{0pt}[0pt][0pt]{\textsuperscript{\footnotesize\textdegree}}}
 
+\ifdefined\CameraReadyVersion
+\makeatletter
+\def\ps@IEEEtitlepagestyle{%
+  \def\@oddfoot{\mycopyrightnotice}%
+  \def\@evenfoot{}%
+}
+\def\mycopyrightnotice{%
+  {\footnotesize 979-8-3195-3697-6/26/\$31.00~\copyright~2026 IEEE\hfill}
+  \gdef\mycopyrightnotice{}%
+}
+\makeatother
+\fi
 
 \begin{document}
+
+\ifdefined\CameraReadyVersion
+\pagestyle{empty}
+\else
+\pagenumbering{arabic}
+\pagestyle{plain}
+\fi
 
 \title{Multi-Modal, Training-Free Crack Extraction {via} Generalized Frangi Graph}
 
@@ -58,6 +82,9 @@ Corresponding author: Louis Hauseux (louis.hauseux@inria.fr)}
 }
 
 \maketitle
+\ifdefined\CameraReadyVersion\else
+\thispagestyle{plain}
+\fi
 
 \begin{abstract}
 Automatic crack extraction is essential for both infrastructure inspection and geosciences, but annotated crack data remain scarce and domain shifts are frequent.
@@ -66,7 +93,7 @@ We address the problem of extracting a crack network from one or several scalar 
 To do so, we generalize the classical \Frangi{} vesselness filter from a pixel-wise operator to a pairwise spatial graph. While the standard filter is limited to independent pixel-wise geometry, our formulation enriches this description by explicitly encoding the orientation alignment between neighboring pixels, alongside elongation and contrast. The final crack network is then extracted through a graph pipeline combining minimum spanning tree reduction and similarity-weighted tree centrality.
 
 
-While supervised models perform best on clean, in-distribution data, our geometry-driven framework degrades more slowly than CrackSegDiff under the tested synthetic perturbations.
+While supervised models perform best on clean, in-distribution data, our geometry-driven framework degrades more slowly than a state-of-the-art deep-learning method under the tested synthetic perturbations.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -78,7 +105,7 @@ Crack detection, multi-modal fusion, \Frangi{} filter, graph, minimum spanning t
 Reliable crack mapping is needed for civil infrastructure inspection and for monitoring geological hazards such as landslides, faults and subsidence \cite{bird2016coastal}. In practice, many crack maps are still produced or corrected manually, which is slow, subjective and difficult to scale. Automatic extraction is difficult because cracks are thin, discontinuous, and are often low-contrast structures whose appearance varies with the sensor, material, illumination, surface roughness and acquisition geometry.
 
 Deep learning methods have become the dominant approach for crack segmentation. They perform well when training and test images follow the same distribution, but they require annotated data and may fail under sensor or domain shifts \cite{JosianeGANCrack2020,SOTACrack2020, Zhang2025Review}. 
-This limitation is especially relevant for multi-modal crack analysis, where public benchmarks with clean, well-aligned visible, depth or thermal modalities are still rare.
+This limitation is especially relevant for multi-modal crack analysis, where public benchmarks with clean, well-aligned visible, depth or thermal modalities remain rare.
 
 
 This paper takes a complementary direction: % Rather than strictly competing with learned architectures on narrow training domains,
@@ -98,14 +125,14 @@ The contribution lies in coupling these established components through the pairw
 \section{Related Work}
 
 \subsection{Classical Curvilinear Filters}
-Multi-scale Hessian filters are a standard tool for enhancing curvilinear structures. The classical \Frangi{} vesselness filter \cite{Frangi1998} estimates whether a pixel belongs to a tubular structure from the eigenvalues of a smoothed Hessian matrix, following related work such as \textsc{Sato}'s line filter \cite{Sato1998}. These methods are fast and interpretable, but they are local: They evaluate pixels independently and can fragment under noise or textured backgrounds. Our method keeps the Hessian geometry but moves the decision from isolated pixels to edges of a spatial graph.
+Multi-scale Hessian filters are a standard tool for enhancing curvilinear structures. The classical \Frangi{} vesselness filter \cite{Frangi1998} uses the eigensystem of a smoothed Hessian matrix to assess whether a pixel belongs to a tubular structure, following related work such as \textsc{Sato}'s line filter \cite{Sato1998}. These methods are fast and interpretable, but they are local: They evaluate pixels independently and can fragment under noise or textured backgrounds. Our method keeps the Hessian geometry but moves the decision from isolated pixels to edges of a spatial graph.
 Our preliminary study \cite{BibiStrasbourg} considered two single-modal geological images. Here we add normalized multi-modal fusion, evaluate clean and noisy FIND data, and include a second geological setting.
 
 \subsection{Deep Crack Segmentation}
 Deep learning architectures such as U-Net \cite{Unet2015}, DeepCrack \cite{DeepCrack2019}, CrackFormer \cite{CrackFormer2021} and recent diffusion models such as CrackSegDiff \cite{CrackSegDiff2024} have achieved strong crack segmentation results. Their main practical weakness is their dependence on annotations. A recent survey by \textsc{Zhang} \emph{et al}. \cite{Zhang2025Review} also emphasizes poor cross-domain robustness when sensors, materials or acquisition conditions change. This motivates training-free alternatives and hybrid strategies that can operate when annotations are not available.
 
 \subsection{Multi-Modal Fusion}
-In learned systems, multi-modal fusion is usually implemented by channel concatenation, intermediate feature fusion or late prediction fusion. These choices depend on the network architecture and on the modalities available at training time. Here, fusion is performed at the operator level: Each modality contributes a normalized Hessian, and the fused Hessian is processed by the same graph pipeline regardless of the number of modalities.
+In machine learning, multi-modal fusion is usually implemented by channel concatenation, intermediate feature fusion or late prediction fusion. These choices depend on the network architecture and on the modalities available at training time. Here, fusion is performed at the operator level: Each modality contributes a normalized Hessian, and the fused Hessian is processed by the same graph pipeline regardless of the number of modalities.
 
 \section{Methodology}
 
@@ -124,36 +151,48 @@ Figure~\ref{fig:method_overview} summarizes the processing chain.
     \centering
     \begin{tikzpicture}[
         stage/.style={
-            draw,
+            draw=black!65,
             rounded corners=1pt,
-            fill=blue!6,
             align=center,
-            text width=1.55cm,
-            minimum height=0.72cm,
-            inner sep=1.5pt,
+            text width=1.10cm,
+            minimum height=0.82cm,
+            inner sep=1.1pt,
             font=\scriptsize
         },
-        flow/.style={-{Latex[length=1.5mm]}, line width=0.35pt},
-        node distance=2mm and 2mm
+        problem/.style={stage, draw=methodpurple!85, fill=methodpurple!10},
+        features/.style={stage, draw=methodblue!85, fill=methodblue!10},
+        similarity/.style={stage, draw=methodorange!90, fill=methodorange!12},
+        extraction/.style={stage, draw=methodgreen!90, fill=methodgreen!11},
+        flow/.style={-{Latex[length=1.6mm]}, line width=0.45pt, draw=black!90},
+        optional/.style={-{Latex[length=1.5mm]}, line width=0.38pt, draw=black!35},
+        node distance=2mm and 4.3mm
     ]
-        \node[stage] (inputs) {Scalar\\modalities};
-        \node[stage, right=of inputs] (hessians) {Multi-scale\\Hessians};
-        \node[stage, right=of hessians] (fusion) {Normalize\\and fuse};
-        \node[stage, right=of fusion] (graph) {Pairwise graph\\shape, curvature,\\alignment};
-        \node[stage, below=2mm of graph] (pruning) {Threshold and\\components};
-        \node[stage, left=of pruning] (mst) {Minimum\\spanning tree};
-        \node[stage, left=of mst] (centrality) {Weighted\\centrality};
-        \node[stage, left=of centrality] (skeleton) {Crack\\skeleton};
+        \node[problem] (inputs) {Scalar\\modalities};
+        \node[features, right=of inputs] (hessians) {Multi-scale\\Hessians};
+        \node[features, right=of hessians] (fusion) {Normalize\\and fuse};
+        \node[similarity, text width=1.25cm, right=of fusion] (graph) {Pairwise \Frangi{}\\similarity graph};
+        \node[extraction, text width=1.24cm, right=of graph] (pruning) {Edge and node\\thresholding};
+        \node[extraction, text width=1.18cm, below=of pruning] (components) {Connected\\components};
+        \node[extraction, text width=1.20cm, left=of components] (mst) {Minimum\\spanning trees};
+        \node[extraction, text width=1.24cm, left=of mst] (centrality) {Similarity-\\weighted\\centrality};
+        \node[problem, left=of centrality] (skeleton) {Crack\\skeleton};
 
-        \draw[flow] (inputs) -- (hessians);
-        \draw[flow] (hessians) -- (fusion);
+        \draw[optional] ([yshift=3pt]inputs.east) -- ([yshift=3pt]hessians.west);
+        \draw[flow] (inputs.east) -- (hessians.west);
+        \draw[optional] ([yshift=-3pt]inputs.east) -- ([yshift=-3pt]hessians.west);
+        \draw[optional] ([yshift=3pt]hessians.east) -- ([yshift=3pt]fusion.west);
+        \draw[flow] (hessians.east) -- (fusion.west);
+        \draw[optional] ([yshift=-3pt]hessians.east) -- ([yshift=-3pt]fusion.west);
         \draw[flow] (fusion) -- (graph);
         \draw[flow] (graph) -- (pruning);
-        \draw[flow] (pruning) -- (mst);
-        \draw[flow] (mst) -- (centrality);
-        \draw[flow] (centrality) -- (skeleton);
+        \draw[flow] (pruning) -- (components);
+        \draw[optional] ([yshift=3pt]components.west) -- ([yshift=3pt]mst.east);
+        \draw[flow] (components.west) -- (mst.east);
+        \draw[optional] ([yshift=-3pt]components.west) -- ([yshift=-3pt]mst.east);
+        \draw[flow] (mst.west) -- (centrality.east);
+        \draw[flow] (centrality.west) -- (skeleton.east);
     \end{tikzpicture}
-    \caption{Method overview. Local Hessian cues are fused across modalities and lifted to pairwise graph similarities; graph reduction and weighted centrality return the crack skeleton.}
+    \caption{Method overview. Colors follow Secs.~III-A--D (purple/blue/orange/green); Sec.~III-E summarizes their roles. Parallel black/gray arrows denote multiple modalities and retained components.}
     \label{fig:method_overview}
 \end{figure}
 
@@ -172,7 +211,7 @@ Equivalently, the derivatives are computed by convolution with derivatives of th
 \partial_{ab}(G_\sigma*I^{(m)})=(\partial_{ab}G_\sigma)*I^{(m)},\qquad a,b\in\{x,y\}.
 \end{equation}
 Since the Hessian matrix in \eqref{eq:hessian} is real and symmetric, we compute its eigenvalues $\lambda_1^\sigma(x),\lambda_2^\sigma(x)$, ordered as $|\lambda_1^\sigma(x)|\le |\lambda_2^\sigma(x)|$. The eigenvector associated with $\lambda_1^\sigma(x)$ gives the local longitudinal direction of the ridge.
-For an elongated ridge, transverse curvature dominates longitudinal curvature, so $R_B=|\lambda_1^\sigma|/|\lambda_2^\sigma|$ is near zero; for a blob-like structure, the two magnitudes are comparable and $R_B$ approaches one. Classical \Frangi{} vesselness combines this geometry with curvature magnitude and sign at each pixel. Our graph retains these local cues while requiring compatible evidence and longitudinal directions at neighboring pixels.
+For an elongated ridge, transverse curvature dominates longitudinal curvature, so $R_B^\sigma(x)=|\lambda_1^\sigma(x)|/|\lambda_2^\sigma(x)|$ is near zero; for a blob-like structure, the two magnitudes are comparable and $R_B^\sigma(x)$ approaches one. Classical \Frangi{} vesselness combines this geometry with curvature magnitude and sign at each pixel. Our graph retains these local cues while requiring compatible evidence and longitudinal directions at neighboring pixels.
 
 For multi-modal inputs, each Hessian is normalized by the largest spectral norm \cite{Horn2012Matrix} in the image,
 \begin{equation}
@@ -206,53 +245,56 @@ Pixels $x_i,x_j\in V$ are connected when
 \end{equation}
 The radius $R$ allows short interruptions caused by noise or local loss of contrast to be bridged, while $\rho_{ij}$ discourages long accidental jumps.
 
-For a scale $\sigma\in\Sigma$, an edge $(i,j)$ is assigned a similarity $S_{ij}^\sigma\in[0,1]$ as a product of three soft constraints.
+For a scale $\sigma\in\Sigma$, an edge $(i,j)$ is assigned a base similarity $S_{ij}^\sigma\in[0,1]$ as a product of three soft constraints.
 
-\emph{Elongation.} Both endpoints must have a small \Frangi{} ratio:
-\begin{equation}
-S_{\mathrm{shape}}^\sigma(i,j)=
-\exp\left[-\frac12\left(\frac{R_B(x_i)+R_B(x_j)}{s_{\mathrm{s}}}\right)^2\right].
-\end{equation}
-
-\emph{Positive curvature.} For dark ridges, the useful transverse curvature is $C_\sigma(x)=\lambda_2^\sigma(x)\mathbf 1_{\lambda_2^\sigma(x)>0}$. The intensity term is
+\emph{Curvature evidence.} For dark ridges, the useful transverse curvature is $C_\sigma(x)=\max\{\lambda_2^\sigma(x),0\}$. The intensity term is
 \begin{equation}
 S_{\mathrm{int}}^\sigma(i,j)=
 1-\exp\left[-\frac12\left(\frac{\sqrt{C_\sigma(x_i)C_\sigma(x_j)}}{s_{\mathrm{i}}}\right)^2\right].
 \end{equation}
-The geometric mean makes the edge weak when either endpoint has weak curvature.
+It requires strong positive transverse curvature at both endpoints; the geometric mean makes the edge weak when either endpoint lacks this evidence. This term carries the dominant information of the classical \Frangi{} response.
 
-\emph{Orientation alignment.} If $\theta^\sigma(x)$ is the angle of the longitudinal eigenvector, direction compatibility is modeled by
+\emph{Shape refinement.} On the structures detected by $S_{\mathrm{int}}^\sigma$, both endpoints should also have a small \Frangi{} ratio. Blob-like responses are therefore down-weighted by
+\begin{equation}
+S_{\mathrm{shape}}^\sigma(i,j)=
+\exp\left[-\frac12\left(\frac{R_B^\sigma(x_i)+R_B^\sigma(x_j)}{s_{\mathrm{s}}}\right)^2\right].
+\end{equation}
+
+\emph{Alignment refinement.} If $\theta^\sigma(x)$ is the angle of the longitudinal eigenvector, locally incompatible directions on that same curvature support are down-weighted by
 \begin{equation}
 S_{\mathrm{align}}^\sigma(i,j)=
 \exp\left[-\frac12\left(\frac{\sin(\theta^\sigma(x_i)-\theta^\sigma(x_j))}{s_{\mathrm{a}}}\right)^2\right].
 \end{equation}
 The sine accounts for the fact that crack directions are unoriented: $\theta$ and $\theta+\pi$ describe the same local axis.
 
-We first take the strongest similarity across scales,
+Thus $S_{\mathrm{shape}}^\sigma$ and $S_{\mathrm{align}}^\sigma$ refine, rather than replace, the curvature structures identified by $S_{\mathrm{int}}^\sigma$. We first take the strongest base similarity across scales,
 \begin{equation}
-\overline S_{ij}=\max_{\sigma\in\Sigma}
-S_{\mathrm{shape}}^\sigma(i,j)
+S_{ij}^{(0)}=\max_{\sigma\in\Sigma}
 S_{\mathrm{int}}^\sigma(i,j)
+S_{\mathrm{shape}}^\sigma(i,j)
 S_{\mathrm{align}}^\sigma(i,j),
 \end{equation}
-then include spatial distance in the graph similarity and dissimilarity:
+which compares the local appearance and geometry without yet penalizing separation. We then define the graph dissimilarity as the $[0,1]$-clipped value of $\rho_{ij}(1-S_{ij}^{(0)})$, and its complementary similarity:
 \begin{equation}
-    S_{ij}=\max\{0,1-(1-\overline S_{ij})\rho_{ij}\},
-    \qquad
-    d_{ij}=1-S_{ij}.
+\begin{aligned}
+    d_{ij}
+    &=\operatorname{clip}_{[0,1]}\!\left(\rho_{ij}(1-S_{ij}^{(0)})\right)\\
+    &=\min\!\left\{1,\rho_{ij}(1-S_{ij}^{(0)})\right\},
+    \qquad S_{ij}=1-d_{ij}.
+\end{aligned}
 \label{eq:distance}
 \end{equation}
-Thus the graph edge is strong only when both pixels are elongated, have the correct curvature sign and share a compatible orientation. The factor $\rho_{ij}$ in \eqref{eq:distance} regularizes the later tree extraction.
+For unit-distance neighbors ($\rho_{ij}=1$), dissimilarity is simply the complement of the base similarity. Across a short gap, $\rho_{ij}>1$ raises the cost, discouraging an accidental long connection while still allowing a strongly supported interruption to be bridged; clipping keeps the result bounded. In the subsequent pipeline, $S_{ij}$ is used for graph thresholding and centrality, whereas $d_{ij}$ supplies the costs for the subsequent minimum spanning trees.
 
-For FIND and the Palais des Papes, we use $s_{\mathrm{s}}=2$, $s_{\mathrm{i}}=1/4$, $s_{\mathrm{a}}=1/8$, $\Sigma=\{1,3,5,7\}$ and $R=3$. For the Vaches Noires images, the single-modal implementation uses $s_{\mathrm{s}}=1/2$, $s_{\mathrm{i}}=1/4$, $s_{\mathrm{a}}=1/8$, $\Sigma=\{1,3,5,7,9\}$ to cover wider visible fractures, with the same radius $R=3$ as in the preliminary study.
+For FIND and the Palais des Papes (\emph{cf.} Sec.~\ref{sec:datasets}), we use $s_{\mathrm{s}}=2$, $s_{\mathrm{i}}=1/4$, $s_{\mathrm{a}}=1/8$, $\Sigma=\{1,3,5,7\}$ and $R=3$. For the Vaches Noires images (\emph{cf.} Sec.~\ref{sec:datasets}), the single-modal implementation uses $s_{\mathrm{s}}=1/2$, $s_{\mathrm{i}}=1/4$, $s_{\mathrm{a}}=1/8$, $\Sigma=\{1,3,5,7,9\}$ to cover wider visible fractures, with the same radius $R=3$ as in the preliminary study.
 
 \subsection{Graph Extraction}
-The extraction pipeline has four steps. First, thresholding applies one retention factor $\tau$ to both graph elements: It keeps the strongest fraction $\tau$ of edges by $S_{ij}$, ranks nodes by maximum incident similarity, and keeps their strongest fraction $\tau$.
+The extraction pipeline consists of four steps. First, edge thresholding keeps the strongest fraction $\tau_E$ of edges, ranked by $S_{ij}$. On this retained edge set, each node is scored by its maximum incident similarity; node thresholding then keeps the strongest fraction $\tau_V$ of nodes. To reduce tuning, all experiments tie the two retention factors, $\tau_E=\tau_V=\tau$.
 
-Second, connected components are obtained from the remaining graph. On FIND, where the annotation targets one main crack, we retain the largest component. When several independent networks are of interest, the next two steps are applied to each retained component.
+Second, connected components are obtained from the remaining graph. FIND provides the prior that only one crack structure is of interest, so we retain the component with the largest number of pixels. Without this prior, we retain every component whose pixel count exceeds a prescribed fraction $\eta|\Omega|$ of the image pixels; $\eta$ is chosen from the minimum size of the structures one wishes to extract. The next two steps are applied separately to every retained component.
 
 
-Third, a minimum spanning tree $\mathcal T$ \cite{Prim1957} is computed using the dissimilarity $d_{ij}$. The tree preserves the ``cheapest'' coherent connections and turns the locally thick response into a structure suitable for centerline extraction. 
+Third, a minimum spanning tree $\mathcal T$ \cite{Prim1957} is computed for each retained component using the dissimilarity $d_{ij}$. Each tree preserves the ``cheapest'' coherent connections and turns the locally thick response into a structure suitable for centerline extraction.
 
 Fourth, we compute a similarity-weighted tree centrality \cite{Freeman1977}, unlike general-graph betweenness \cite{Brandes2001}. It takes $O(|V|)$: Breadth-first traversal records parents level by level; its reverse order accumulates subtree masses. Each vertex receives the weight
 \begin{equation}
@@ -270,20 +312,20 @@ Figure~\ref{fig:GlobalAnalysis} shows the intermediate maps for a FIND example. 
 \subsection{Role of the Components}
 \label{sec:role_components}
 %The pixel-wise curvature term corresponds to the classical Hessian evidence; the graph construction adds pairwise compatibility; the tree and centrality steps convert a locally thick response into a centerline. 
-The summary in Table~\ref{tab:components} makes explicit which failure mode each term is intended to control.
+The construction starts with $S_{\mathrm{int}}$, which imposes strong positive transverse curvature $\lambda_2$ at both endpoints and contains the dominant \Frangi{} evidence. The other pairwise terms act on these detected structures as refinements: They discourage shapes and connections that do not match the crack prior. Table~\ref{tab:components} summarizes this progression.
 
 \begin{table}[!ht]
     \centering
-    \caption{Role of the components in the extraction chain.}
+    \caption{The \Frangi{} evidence and its graph refinements.}
     \label{tab:components}
     \begin{tabular}{p{0.27\linewidth}p{0.63\linewidth}}
         \toprule
         \textbf{Component} & \textbf{Role in the extraction chain} \\
         \midrule
-        $S_{\mathrm{shape}}$ & Penalizes blob-like responses and favors elongated local structures. \\
-        $S_{\mathrm{int}}$ & Strong positive curvature; closest part to classical \Frangi{} evidence. \\
-        $S_{\mathrm{align}}$ & Penalizes locally incompatible directions and accidental bridges. \\
-        $\rho_{ij}$ & Discourages long links between distant but visually similar pixels. \\
+        $S_{\mathrm{int}}$ & Detects strong positive transverse curvature at both endpoints; provides the dominant classical \Frangi{} evidence. \\
+        $S_{\mathrm{shape}}$ & On that support, penalizes blob-like responses and favors elongated structures. \\
+        $S_{\mathrm{align}}$ & On that support, penalizes incompatible directions and accidental bridges. \\
+        $\rho_{ij}$ & In $d_{ij}$, discourages long links between otherwise similar pixels. \\
         Weighted centrality & Selects pixels lying on the main centerline of the retained graph. \\
         \bottomrule
     \end{tabular}
@@ -291,12 +333,13 @@ The summary in Table~\ref{tab:components} makes explicit which failure mode each
 
 The sensitivity parameters were selected empirically, starting from our preliminary study \cite{BibiStrasbourg}. We retained $s_{\mathrm{i}}$ and $s_{\mathrm{a}}$ and increased $s_{\mathrm{s}}$ from $1/2$ to $2$ for FIND and the Palais des Papes, allowing more variation in the \Frangi{} ratio, which is less stable than the curvature and orientation terms.
 
-The scale set, radius and retention factor are fixed per dataset. We set $\Sigma$ from the expected crack-width range and $R$ from the largest gap that should be bridged; $\tau$ controls the sparsity--recall trade-off. We use $\tau=0.25$ for FIND and the Palais des Papes, and $\tau=0.30$ for Vaches Noires, following the preliminary study \cite{BibiStrasbourg}.
+The scale set, radius and tied retention factor are fixed per dataset. We set $\Sigma$ from the expected crack-width range and $R$ from the largest gap that should be bridged; $\tau=\tau_E=\tau_V$ controls the sparsity--recall trade-off. We use $\tau=0.25$ for FIND and the Palais des Papes, and $\tau=0.30$ for Vaches Noires, following the preliminary study \cite{BibiStrasbourg}.
 
 
 \section{Experiments}
 
 \subsection{Datasets and Protocol}
+\label{sec:datasets}
 The quantitative evaluation uses FIND \cite{FIND2022}, a public benchmark with aligned intensity ($I$) and range ($R$) images for road-crack detection (and a third modality, ``filtered'' $F$, which is a clean post-processing of the range modality). We compare against CrackSegDiff \cite{CrackSegDiff2024}, a supervised diffusion model for multi-modal crack segmentation. For both compared methods, the same evaluation protocol is used: Dense masks are skeletonized before comparison and overlap metrics are computed with a fixed spatial tolerance.
 
 We also report experiments on two geological image sets provided by Cerema. The first contains two annotated $512\times512$ visible UAV patches from the Vaches Noires landslide at Villers-sur-Mer (France). We call these evaluation patches \texttt{Test1} and \texttt{Test2}; they are separate from the $3760\times2058$ image used to adapt the U-Net baseline. The second set is a photogrammetric intensity-range pair acquired on the retaining wall of the Palais des Papes in Avignon (France).
@@ -311,7 +354,7 @@ and the \textsc{Tversky} index \cite{Tversky1977},
 \begin{equation}
 T(A,B)=\frac{\module{A\cap B}}{\module{A\cap B}+\alpha\module{A\setminus B}+\beta\module{B\setminus A}},
 \end{equation}
-with $\alpha=1$ and $\beta=0.5$, so missed cracks are penalized more than over-detections. Since skeletons are one-pixel-wide, we dilate both skeletons by $3$ pixels before computing these overlap scores. This tolerance is empirical and only compensates for small localization shifts at the $256\times256$ FIND resolution. We also report a discrete \textsc{Wasserstein} distance \cite{Wasserstein, POT2017}, which measures spatial displacement between predicted and reference skeleton pixels.
+with $\alpha=1$ and $\beta=0.5$, so missed cracks are penalized more than false alarms. Since skeletons are one-pixel-wide, we dilate both skeletons by $3$ pixels before computing these overlap scores. This tolerance is empirical and only compensates for small localization shifts at the $256\times256$ FIND resolution. We also report a discrete \textsc{Wasserstein} distance \cite{Wasserstein, POT2017}, which measures spatial displacement between predicted and reference skeleton pixels.
 
 \begin{figure}[!ht]
     \centering
@@ -348,7 +391,7 @@ with $\alpha=1$ and $\beta=0.5$, so missed cracks are penalized more than over-d
     \begin{subfigure}[b]{0.24\linewidth}
         \centering
         \includegraphics[width=\linewidth]{Int_1FIND.png}
-        \caption{$\lambda_2>0$}
+        \caption{$\max(\lambda_2,0)$}
         \label{fig:frangi}
     \end{subfigure}
     \hfill
@@ -403,9 +446,11 @@ with $\alpha=1$ and $\beta=0.5$, so missed cracks are penalized more than over-d
         \label{fig:Overlay}
     \end{subfigure}
 
-    \caption{FIND example. \textbf{Top:} Intensity, Range, \Frangi{} ratio and orientation. \textbf{Middle:} Positive curvature, similarity, largest component and weighted centrality. \textbf{Bottom:} Ground truth, CrackSegDiff, ours (63\% \textsc{Jaccard}, 71\% \textsc{Tversky}, 8\,px \textsc{Wasserstein}) and overlay.}
+    \caption{FIND example. \textbf{Top:} Intensity, Range, \Frangi{} ratio and orientation. \textbf{Middle:} Positive curvature, similarity, largest component and weighted centrality. \textbf{Bottom:} Ground truth, CrackSegDiff, ours (63\% \textsc{Jaccard}, 71\% \textsc{Tversky}, 8\,px \textsc{Wasserstein}) and overlay. At each $x\in V$, $|\lambda_2|$ selects the scale $\sigma$ at which $R_B$, $\theta$ and $\max(\lambda_2,0)$ are reported; pairwise similarity is the maximum over incident edges, each already maximized over $\sigma$.}
     \label{fig:GlobalAnalysis}
 \end{figure}
+
+\input{noise-curves.tex}
 
 \subsection{FIND: Clean and Noisy Data}
 
@@ -463,7 +508,7 @@ $N(x),N'(x) \sim \mathcal N(0,s^2)$ are independent Gaussian random variables wh
 This protocol evaluates the robustness of our operator-level fusion to controlled sensor perturbations.
 
 %To test robustness outside the clean training distribution, we add multiplicative speckle noise to intensity and additive Gaussian noise to range. 
-Figure~\ref{fig:RobustesseNoisy} shows an example at a strong noise level; Figure~\ref{fig:Results_noisy} reports the degradation curves. CrackSegDiff initially performs better, but its score decreases rapidly as noise increases. The proposed method starts lower but degrades more smoothly because the graph uses multi-scale curvature and orientation compatibility instead of learned appearance statistics alone.
+Figure~\ref{fig:Results_noisy} reports the degradation curves, and Figure~\ref{fig:RobustesseNoisy} shows an example at a strong noise level. CrackSegDiff initially performs better, but its score decreases rapidly as noise increases. The proposed method starts lower but degrades more smoothly because the graph uses multi-scale curvature and orientation compatibility instead of learned appearance statistics alone.
 
 \begin{figure}[!tb]
     \centering
@@ -498,53 +543,6 @@ Figure~\ref{fig:RobustesseNoisy} shows an example at a strong noise level; Figur
     \label{fig:RobustesseNoisy}
 \end{figure}
 
-\begin{figure*}[!t]
-    \centering
-    \begin{subfigure}[b]{0.315\textwidth}
-        \centering
-        \begin{tikzpicture}
-            \node[anchor=south west, inner sep=0pt] (img) at (0,0) {\includegraphics[width=0.84\linewidth]{Jaccard_noisy.png}};
-            \useasboundingbox (img.south west) rectangle (img.north east);
-            \draw[-latex, thin] (img.south west) -- (img.south east) -- ++(12pt,0) node[above left, inner sep=1pt, font=\scriptsize] {Noise};
-            \draw[-latex, thin] (img.south west) -- (img.north west) -- ++(0,12pt) node[above, font=\scriptsize] {Score (\%)};
-            \node[below left, font=\scriptsize] at (img.south west) {$0$};
-            \node[below, font=\scriptsize] at (img.south east) {$0.5$};
-            \node[left, font=\scriptsize] at (img.north west) {$100$};
-        \end{tikzpicture}
-        \caption{\textsc{Jaccard}}
-    \end{subfigure}
-    \hfill
-    \begin{subfigure}[b]{0.315\textwidth}
-        \centering
-        \begin{tikzpicture}
-            \node[anchor=south west, inner sep=0pt] (img) at (0,0) {\includegraphics[width=0.84\linewidth]{Tversky_noisy.png}};
-            \useasboundingbox (img.south west) rectangle (img.north east);
-            \draw[-latex, thin] (img.south west) -- (img.south east) -- ++(12pt,0) node[above left, inner sep=1pt, font=\scriptsize] {Noise};
-            \draw[-latex, thin] (img.south west) -- (img.north west) -- ++(0,12pt) node[above, font=\scriptsize] {Score (\%)};
-            \node[below left, font=\scriptsize] at (img.south west) {$0$};
-            \node[below, font=\scriptsize] at (img.south east) {$0.5$};
-            \node[left, font=\scriptsize] at (img.north west) {$100$};
-        \end{tikzpicture}
-        \caption{\textsc{Tversky}}
-    \end{subfigure}
-    \hfill
-    \begin{subfigure}[b]{0.315\textwidth}
-        \centering
-        \begin{tikzpicture}
-            \node[anchor=south west, inner sep=0pt] (img) at (0,0) {\includegraphics[width=0.84\linewidth]{Wasserstein_noisy.png}};
-            \useasboundingbox (img.south west) rectangle (img.north east);
-            \draw[-latex, thin] (img.south west) -- (img.south east) -- ++(12pt,0) node[above left, inner sep=1pt, font=\scriptsize] {Noise};
-            \draw[-latex, thin] (img.south west) -- (img.north west) -- ++(0,12pt) node[above, font=\scriptsize] {Dist. (px)};
-            \node[below left, font=\scriptsize] at (img.south west) {$0$};
-            \node[below, font=\scriptsize] at (img.south east) {$0.5$};
-            \node[left, font=\scriptsize] at (img.north west) {$100$};
-        \end{tikzpicture}
-        \caption{\textsc{Wasserstein}}
-    \end{subfigure}
-    \caption{Performance degradation on noisy FIND. Red: Proposed method; Green: CrackSegDiff. Shaded regions show standard deviation. The horizontal axis is the noise level $s$ (standard deviation of the Gaussians).}
-    \label{fig:Results_noisy}
-\end{figure*}
-
 \subsection{Geological Domain Shift}
 
 The Vaches Noires data differ markedly from the road-crack FIND images and contain only a visible modality. We use $\Sigma=\{1,3,5,7,9\}$, $R=3$ and $\tau=0.3$ for both evaluation patches.
@@ -573,16 +571,21 @@ We compare against a U-Net baseline adapted by transfer learning \cite{UNetTrans
 
 \begin{figure}[!tb]
     \centering
-    \includegraphics[width=0.80\linewidth]{Test1_512_512_result.png}
-    \caption{Vaches Noires \texttt{Test1}. Ground truth: Green; Ours: Red; U-Net + transfer learning: Blue.}
-    \label{fig:vaches_resultats1}
-\end{figure}
-
-\begin{figure}[!tb]
-    \centering
-    \includegraphics[width=0.80\linewidth]{Test2_512_512_result.png}
-    \caption{Vaches Noires \texttt{Test2}. Ground truth: Green; Ours: Red; U-Net + transfer learning: Blue.}
-    \label{fig:vaches_resultats2}
+    \begin{subfigure}[b]{0.485\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{Test1_512_512_result.png}
+        \caption{\texttt{Test1}}
+        \label{fig:vaches_resultats1}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.485\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{Test2_512_512_result.png}
+        \caption{\texttt{Test2}}
+        \label{fig:vaches_resultats2}
+    \end{subfigure}
+    \caption{Vaches Noires patches. Ground truth: Green; ours: Red; U-Net with transfer learning: Blue.}
+    \label{fig:vaches_resultats}
 \end{figure}
 
 The supervised baseline gives slightly higher overlap scores on both patches, which is expected because it was adapted on a nearby annotated image. Our method uses no annotation and gives a lower \textsc{Wasserstein} distance on \texttt{Test1}. These two patches are useful transfer tests, but they are not enough to establish performance across domains.
@@ -616,15 +619,15 @@ We also apply the method to a fractured limestone wall at the Palais des Papes, 
 \end{figure}
 
 \section*{Code and Data Availability}
-The code and reproduction notebooks are available at \url{https://github.com/Ayana-Inria/Frangi-EUVIP}. The FIND benchmark is publicly available \cite{FIND2022}. The non-public data used in our experiments are available at \url{https://drive.google.com/drive/folders/1iC7QrdB2vZmaunjjPrIcu9r5wMeBPMlk}.
+Code, notebooks and non-public data are available in the provided Frangi-EUVIP GitHub repository: \url{https://github.com/Ayana-Inria/Frangi-EUVIP}. FIND is public \cite{FIND2022}.
 
 \section{Conclusion}
 We presented a geometric, training-free method for multi-modal crack skeletonization. On clean FIND data, the supervised model performs better; under added noise, our graph method degrades more slowly. The geological results show that the method can be applied without retraining, but the evaluation is limited to two annotated patches and one qualitative case.
 
-The editable spatial-graph output supports semi-automatic annotation. Vision foundation models are now essential baselines for crack segmentation; a direct comparison with SAM \cite{Kirillov2023SAM} and its crack-specific adaptation CrackSAM \cite{Ge2024CrackSAM} will therefore be our priority. We will also test sensitivity on established datasets \cite{shi2016automatic} and higher-order graph variants \cite{BibiAppliedNetworkScience}.
+The editable graph supports semi-automatic annotation. Future priorities are direct comparisons with SAM \cite{Kirillov2023SAM} and CrackSAM \cite{Ge2024CrackSAM}, sensitivity tests on established datasets \cite{shi2016automatic}, and higher-order graph variants \cite{BibiAppliedNetworkScience}.
 
 \section*{Acknowledgment}
-The work of the Inria authors was partially supported by Bpifrance through the LiChIE contract (2020--2025). The first author was supported by Université Côte d'Azur through DS4H (ANR-17-EURE-0004) and 3IA (ANR-19-P3IA-0002).
+The Inria authors were supported by Bpifrance (LiChIE, 2020--2025); the first author by Université Côte d'Azur through DS4H (ANR-17-EURE-0004) and 3IA (ANR-19-P3IA-0002).
 
 \clearpage
 \bibliographystyle{IEEEtran}

@@ -1,215 +1,135 @@
-# EUVIP 2026 — mise à jour camera-ready
+# EUVIP 2026 — versions finales
 
-Mise à jour finalisée le 31 juillet 2026 à partir de l’archive
+Ce dossier conserve l'historique de la camera-ready préparée à partir de
 `EUVIP_2026_Generalized_Frangi_Multimodality.zip`, des revues CMT et des
-courriels fournis. Les PDF d’origine dans `Reviews/` n’ont pas été modifiés.
+remarques successives de Josiane et Pierre Charbonnier. Les documents d'origine
+de `Reviews/` n'ont pas été modifiés.
 
-## Fichiers livrés
+## Livrables
 
-- `EUVIP_2026_Generalized_Frangi_Multimodality.pdf` : version propre à déposer.
-- `EUVIP_2026_Generalized_Frangi_Multimodality_differences.pdf` : comparaison
-  avec le manuscrit de l’archive. Les ajouts et modifications sont signalés en
-  rouge, sans soulignement des formules mathématiques, et les suppressions sont
-  barrées en rouge.
-- `LaTeX/` : source camera-ready et figures. Le fichier principal est
-  `LaTeX/main.tex`. Le fichier `LaTeX/latexdiff-red-preamble.tex` fixe le
-  balisage rouge de la version comparative.
-- `code/` : dossier autonome prêt à copier dans
-  `https://github.com/Ayana-Inria/Frangi-EUVIP`, avec notebooks, paquet Python,
-  scripts, README, citation et licence GNU GPL-3.0-only.
-- `Frangi-EUVIP.zip` : archive du même dossier, avec un répertoire racine
-  `Frangi-EUVIP/`, prête à extraire ou à importer.
+- `EUVIP_2026_Generalized_Frangi_Multimodality_camera-ready.pdf` est destiné à
+  EUVIP et à IEEE Xplore ; son wrapper est `LaTeX/camera-ready.tex`.
+- `EUVIP_2026_Generalized_Frangi_Multimodality_author-version.pdf` est destiné
+  à HAL ; son wrapper est `LaTeX/author-version.tex`.
+- `LaTeX/main.tex` contient le corps commun aux deux variantes afin d'éviter
+  toute divergence scientifique.
+- `modifications_pierre_charbonnier.txt` résume succinctement les changements
+  de cette révision.
+- `EUVIP_2026_Generalized_Frangi_Multimodality_differences.pdf` reste une
+  comparaison historique de travail et ne doit pas être déposée.
+- `code/` et `Frangi-EUVIP.zip` contiennent l'artefact logiciel autonome,
+  également publié dans le dépôt GitHub `Ayana-Inria/Frangi-EUVIP`.
 
-La version « différences » est un document de travail. Elle fait 8 pages parce
-qu’elle conserve les passages supprimés et montre les déplacements de figures ;
-elle ne doit pas être envoyée comme camera-ready.
+Les deux versions finales ont le même contenu et respectent la règle officielle
+EUVIP : six pages au total, références comprises, avec une page 6 contenant
+uniquement des références. Il ne faut donc pas déplacer les acknowledgments
+après la bibliographie s'ils apparaissent sur la sixième page. Aucune page
+supplémentaire payante n'est annoncée par EUVIP 2026.
 
-## Corrections finales demandées par Josiane
+### Différences administratives entre les variantes
 
-- Vérification de toutes les occurrences visibles des deux-points dans le texte
-  anglais et passage en majuscule du mot qui les suit, y compris dans les
-  légendes. Les adresses, URL et expressions mathématiques ne sont pas
-  concernées par cette règle éditoriale.
-- Explication du parcours en largeur au-dessus de l’équation 13 : le parcours
-  visite l’arbre niveau par niveau, mémorise les parents, puis son ordre inversé
-  permet d’accumuler les masses des sous-arbres en temps linéaire.
-- Reformulation de la perspective SAM/CrackSAM dans la conclusion au futur : la
-  comparaison directe « will therefore be our priority » n’est plus présentée
-  comme une priorité déjà réalisée.
-- Ajout au bas de la première page du copyright exact demandé pour les articles
-  hors gouvernements américain, britannique et européen :
+- **Camera-ready** : aucun numéro de page, aucun en-tête et aucun pied de page
+  hormis, au bas de la première page, la mention
   `979-8-3195-3697-6/26/$31.00 ©2026 IEEE`.
+- **Author-version** : aucun copyright EUVIP/IEEE et pagination arabe visible
+  de 1 à 6.
+- Le paquet `flushend` est chargé dans la source commune pour équilibrer les
+  colonnes de la dernière page dans les deux variantes.
 
-## Réponses apportées aux revues
+Sources officielles : [Paper Submission EUVIP 2026](https://euvip2026.github.io/information/paper-submission/),
+[Paper Kit & Guidelines](https://euvip2026.github.io/information/paper-kit-guidelines/)
+et [instructions camera-ready](https://euvip2026.github.io/information/camera-ready/).
 
-### Reviewer 1 — présentation de Frangi et vue d’ensemble
+## Corrections de Pierre Charbonnier — 3 août 2026
 
-- Ajout d’un schéma global au début de la méthodologie. Il montre la chaîne
-  complète : modalités scalaires, Hessiennes multi-échelles, normalisation et
-  fusion, graphe de similarité, composantes, arbre couvrant, centralité et
-  squelette final.
-- Ajout d’une explication courte de l’interprétation du rapport de Frangi
-  \(R_B\) : valeur proche de zéro pour une structure allongée, proche de un pour
-  une structure de type « blob », rôle du signe de la courbure et de
-  l’orientation locale.
-- La grande figure FIND est désormais présentée comme une vue détaillée des
-  cartes intermédiaires, et non comme le schéma général de la méthode.
+- L'abstract ne nomme plus CrackSegDiff et parle d'une méthode de deep learning
+  état de l'art ; `are still rare` est devenu `remain rare`.
+- Les formulations `from the eigenvalues` et `In learned systems` ont été
+  remplacées respectivement par une formulation fondée sur l'eigensystème et
+  par `In machine learning`.
+- Le schéma de la Fig. 1 a été élargi et coloré selon les sous-parties de la
+  Section III. Des flèches parallèles noires et grises matérialisent les
+  modalités et les composantes multiples ; `minimum spanning trees` est au
+  pluriel.
+- La similarité de base, la dissimilarité
+  \(d_{ij}=\operatorname{clip}_{[0,1]}[\rho_{ij}(1-S_{ij}^{(0)})]\) et le rôle
+  pénalisant de \(\rho_{ij}\) sont désormais expliqués. La similarité sert au
+  seuillage et à la centralité ; la dissimilarité fournit le coût des arbres
+  couvrants minimum.
+- Les seuils d'arêtes \(\tau_E\) et de nœuds \(\tau_V\) sont introduits
+  séparément avant de préciser le choix expérimental
+  \(\tau=\tau_E=\tau_V\).
+- La Fig. 2 précise que les cartes affichent, en chaque pixel, la réponse de
+  Frangi maximale sur les arêtes ou les échelles pertinentes. La courbure utile
+  est écrite \(\max(\lambda_2,0)\).
+- Les benchmarks évoqués en III-C renvoient à leur section de présentation avec
+  `\emph{cf.}`. Les formulations demandées emploient désormais `false alarms`,
+  `subsequent tree` et `consists of four steps`.
+- Le Tableau I commence par \(S_{\mathrm{int}}\), présenté comme le support de
+  forte courbure qui porte l'essentiel de l'information de Frangi. Les termes
+  de forme et d'alignement sont ensuite décrits comme des raffinements qui
+  découragent les réponses indésirables sur ce support.
+- Le choix des composantes connexes est explicité : FIND contient une seule
+  structure d'intérêt, donc la plus grande composante est gardée ; sans cet a
+  priori, les composantes sont retenues au-dessus d'une fraction de la taille
+  de l'image adaptée aux structures recherchées.
+- La section de disponibilité ne donne plus d'adresse de stockage séparée : les
+  données non publiques sont disponibles dans le dépôt `Frangi-EUVIP` fourni.
 
-### Reviewer 2 et méta-review — nouveauté
+## Historique utile des révisions précédentes
 
-- La contribution est formulée plus précisément. Les Hessiennes, l’arbre
-  couvrant minimum et la centralité ne sont pas revendiqués comme nouveaux
-  séparément ; l’apport est leur couplage dans un graphe de Frangi par paires,
-  avec fusion multimodale au niveau des Hessiennes.
-- La relation avec l’étude préliminaire GRETSI est explicitée, ainsi que ce qui
-  est ajouté ici : fusion multimodale normalisée, expériences FIND propres et
-  bruitées, et second cas géologique.
-
-### Reviewer 5 — paramètres, données et lisibilité
-
-- Les rôles de \(s_s\), \(s_i\), \(s_a\), \(\Sigma\), \(R\) et du seuil
-  d’élagage sont expliqués. Le texte distingue les paramètres de sensibilité
-  choisis empiriquement des paramètres liés à la largeur attendue des fissures,
-  aux lacunes à franchir et au compromis parcimonie–rappel.
-- Le facteur de rétention \(\tau\) est défini de la même façon pour les arêtes
-  et les nœuds : \(0{,}25\) pour FIND et le Palais des Papes, et
-  \(0{,}30\) pour Vaches Noires.
-- `Test1` et `Test2` sont définis comme deux patchs UAV visibles annotés de
-  \(512\times512\) pixels, acquis aux Vaches Noires à Villers-sur-Mer. Le texte
-  précise qu’ils sont distincts de l’image de \(3760\times2058\) utilisée pour
-  adapter le U-Net.
-- Le tableau des composants suit maintenant l’ordre du texte : forme,
-  intensité/courbure, alignement, distance, centralité.
-- Le facteur de distance a reçu une notation propre,
-  \(\rho_{ij}=\lVert x_i-x_j\rVert_2\), réutilisée dans la définition de
-  \(d_{ij}\) et dans le tableau récapitulatif. La définition distingue
-  désormais la similarité locale multi-échelle de la similarité du graphe,
-  qui inclut la pénalisation spatiale employée dans le code.
-- Les conclusions hors domaine ont été tempérées. Les deux patchs géologiques
-  annotés et le cas qualitatif du Palais des Papes sont décrits comme des tests
-  de transfert initiaux, pas comme une validation générale sur plusieurs
-  domaines.
-
-### Modèles de fondation
-
-- La conclusion nomme explicitement les modèles de fondation comme des
-  baselines incontournables et indique que la comparaison directe avec SAM et
-  son adaptation CrackSAM sera la priorité des travaux futurs. Aucun résultat
-  nouveau n’est revendiqué : il s’agit d’une perspective clairement identifiée.
-
-## Autres modifications du papier
-
-- Rétablissement des cinq auteurs, avec les noms de famille en petites
-  capitales, des affiliations Inria/Cerema et de l’auteur correspondant.
-- Remplacement du marqueur obélisque de l’affiliation Cerema par un rond de type
-  degré.
-- Remplacement de l’institution anonymisée par Cerema.
-- Rétablissement des remerciements Bpifrance pour les auteurs Inria, ainsi que
-  des financements DS4H et 3IA du premier auteur.
-- Mise à jour de la section de disponibilité du code et des données avec le
-  dépôt public `Ayana-Inria/Frangi-EUVIP`, le jeu FIND public et le dossier
-  Drive fourni pour les données non publiques. Les deux URL sont imprimées
-  explicitement dans le papier.
-- Suppression de la citation `chiu2026automated` placée à tort après
-  CrackSegDiff.
-- Correction des types BibTeX de FIND et de la revue Zhang afin de supprimer
-  les avertissements bibliographiques, ainsi que de l’ordre des auteurs de la
-  revue Zhang d’après la version primaire.
-- Reformulation de plusieurs passages trop affirmatifs sur la généralisation,
-  le bruit intermodal et les changements de domaine.
-- Réécriture légère de l’abstract, des contributions, de la partie sur les
-  données géologiques et de la conclusion. Le contenu scientifique et les
-  résultats numériques ont été conservés.
-- Alignement des équations de distance et de centralité sur l’implémentation
-  du notebook : similarité corrigée par la distance, poids d’un nœud défini
-  par sa meilleure similarité incidente, puis masse de sous-arbre.
-- Simplification de quelques légendes, suppression de dépendances LaTeX
-  inutilisées et correction des tableaux qui dépassaient des colonnes.
-- Réorganisation des trois courbes de bruit sur une ligne à deux colonnes afin
-  de dégager de la place sans changer les marges, la police ou le gabarit IEEE.
-- Ajout d’un saut de page avant la bibliographie pour que la page 6 ne contienne
-  que les références, conformément à l’appel à communications EUVIP.
-
-## Vérification des paramètres
-
-Les valeurs ont été recoupées avec le notebook et ses sorties, et pas seulement
-avec le texte ancien du manuscrit :
-
-- FIND et Palais des Papes : \(s_s=2\), \(s_i=0{,}25\),
-  \(s_a=0{,}125\), \(\Sigma=\{1,3,5,7\}\), \(R=3\) et
-  \(\tau=0{,}25\).
-- Le même facteur \(\tau\) fixe la fraction des arêtes puis des nœuds
-  conservés ; aucune expérience décrite dans le papier n’emploie une
-  rétention de 40 %.
-- Vaches Noires : \(s_s=0{,}5\), \(s_i=0{,}25\),
-  \(s_a=0{,}125\), \(\Sigma=\{1,3,5,7,9\}\), \(R=3\) et
-  \(\tau=0{,}30\), valeurs recoupées avec l’étude préliminaire GRETSI.
-
-Le dossier `code/` conserve l’export Colab historique des expériences Vaches
-Noires et de la comparaison U-Net, ainsi qu’une conversion mécanique en
-notebook. Les chemins Google Drive historiques restent visibles dans cet
-artefact afin de préserver sa traçabilité ; le README indique comment retrouver
-les données dans le dossier compagnon.
+- Le manuscrit rétablit les cinq auteurs, les affiliations Inria/Cerema,
+  l'auteur correspondant et les acknowledgments Bpifrance, DS4H et 3IA.
+- La passe éditoriale de Josiane a harmonisé les majuscules après deux-points et
+  ajouté l'explication du parcours en largeur puis de l'accumulation inversée
+  des masses de sous-arbres pour la centralité.
+- Les réponses aux reviewers ont ajouté une vue d'ensemble de la méthode,
+  clarifié l'interprétation de Frangi et précisé la nouveauté : couplage des
+  Hessiennes multimodales normalisées, du graphe par paires, des arbres
+  couvrants et de la centralité.
+- Le lien avec l'étude GRETSI, les expériences FIND propres et bruitées, les
+  deux patchs des Vaches Noires et le cas du Palais des Papes sont distingués.
+  Les essais hors domaine sont présentés comme des transferts initiaux, non
+  comme une validation générale.
+- Les paramètres ont été recoupés avec les notebooks : FIND et Palais des Papes
+  utilisent \(s_s=2\), \(s_i=0{,}25\), \(s_a=0{,}125\),
+  \(\Sigma=\{1,3,5,7\}\), \(R=3\), \(\tau=0{,}25\) ; Vaches Noires utilise
+  \(s_s=0{,}5\), \(\Sigma=\{1,3,5,7,9\}\) et \(\tau=0{,}30\), les autres
+  valeurs étant identiques.
+- La conclusion présente les comparaisons SAM/CrackSAM comme des travaux futurs
+  et ne revendique aucun résultat supplémentaire.
+- Les entrées BibTeX, plusieurs formulations trop affirmatives, les légendes et
+  la disposition des courbes de bruit ont été corrigées sans changer les
+  résultats numériques.
 
 ## Compilation et contrôles
 
-La version propre a été compilée avec :
+Compiler chaque variante depuis `EUVIP/LaTeX/` :
 
 ```text
-pdflatex main.tex
-bibtex main
-pdflatex main.tex
-pdflatex main.tex
+pdflatex camera-ready.tex
+bibtex camera-ready
+pdflatex camera-ready.tex
+pdflatex camera-ready.tex
+
+pdflatex author-version.tex
+bibtex author-version
+pdflatex author-version.tex
+pdflatex author-version.tex
 ```
 
-La version comparative a été régénérée avec `latexdiff` entre le `main.tex`
-contenu dans l’archive d’origine et `LaTeX/main.tex`. Le préambule
-`latexdiff-red-preamble.tex` impose le rouge pour les ajouts comme pour les
-suppressions, sans souligner les mathématiques ; les équations modifiées sont
-traitées comme des blocs avec l’option `--math-markup=1`. Pour garder un
-document compilable, le contenu des tableaux modifiés est lui aussi traité
-comme un bloc rouge. Le bloc auteurs est affiché dans sa version finale sans
-balisage ; la comparaison porte sur le contenu scientifique du manuscrit. Les
-corrections du fichier BibTeX sont consignées dans ce README, mais ne sont pas
-balisées dans la bibliographie générée par `latexdiff`.
+Contrôles attendus avant livraison :
 
-Contrôles effectués :
+- deux PDF A4 de six pages et page 6 réservée aux références ;
+- colonnes finales équilibrées ;
+- copyright visible uniquement dans la version `camera-ready` ;
+- pagination 1–6 visible uniquement dans la version `author-version` ;
+- aucune référence ou citation non résolue, aucun `Overfull \hbox` et toutes les
+  polices incorporées ;
+- vérification visuelle des flèches, couleurs, équations, tableaux et légendes.
 
-- PDF A4 de 6 pages ;
-- page 6 réservée aux références ;
-- copyright EUVIP/IEEE visible au bas de la première page ;
-- aucune minuscule après deux-points dans le texte extrait du PDF, bibliographie
-  comprise ;
-- aucune citation ou référence croisée non résolue ;
-- aucun dépassement de boîte (`Overfull \hbox`) ;
-- polices de texte incorporées en Type 1 ;
-- vérification visuelle des six pages et des huit pages de la version annotée.
-
-Il reste un avertissement non bloquant de `caption` lié à l’emploi historique
-de `subcaption` avec `IEEEtran`. Il n’a pas d’effet visible sur le document.
-Le remplacer aurait demandé une reprise inutile de toutes les sous-figures.
-La version comparative émet en plus des avertissements `Underfull \hbox` dus
-aux passages conservés et barrés ; elle ne présente aucun débordement.
-
-## Points administratifs à ne pas oublier
-
-- Date limite camera-ready : **5 août 2026, 23 h 59 AoE**.
-- Les [instructions camera-ready officielles EUVIP 2026](https://euvip2026.github.io/information/camera-ready/)
-  demandent le copyright sur la première page, puis une validation avec IEEE
-  PDF eXpress, identifiant de conférence **72486X**. Le PDF ne doit plus être
-  modifié après cette validation.
-- Déposer ensuite le PDF validé dans CMT avec « Create Camera Ready
-  Submission » ; le passage dans PDF eXpress ne vaut pas dépôt à la conférence.
-- Louis doit remplir et signer l’IEEE electronic Copyright Form pour l’ensemble
-  des coauteurs, sélectionner l’option académique/gouvernement indiquée par
-  Josiane, télécharger `CopyrightReceipt.pdf`, puis téléverser ce reçu dans CMT.
-  En cas de doute sur ce choix juridique, demander confirmation à Martina.
-- Le papier doit être couvert par une inscription **Full** IEEE/EURASIP ou
-  non-membre, et être présenté sur place par un auteur ou un remplaçant autorisé.
-- Josiane a demandé un accusé de réception et propose une relecture jeudi ou
-  vendredi. Cette réponse par courriel reste à faire hors du dépôt.
-
-Les nouveaux essais SAM 2/SAM 3 et Khanhha n’ont pas été ajoutés. Le courriel
-indique qu’ils ne sont pas encore concluants et qu’ils doivent être discutés le
-11 août, après la date limite. Les intégrer maintenant aurait ajouté des
-résultats fragiles sans répondre à une demande des reviewers.
+Le PDF camera-ready doit ensuite être validé dans IEEE PDF eXpress avec
+l'identifiant de conférence **72486X**, puis déposé dans CMT sans nouvelle
+modification. La camera-ready et l'IEEE electronic Copyright Form sont attendus
+le **5 août 2026 à 23 h 59 AoE**. Le papier doit être couvert par une inscription
+Full et présenté sur place.

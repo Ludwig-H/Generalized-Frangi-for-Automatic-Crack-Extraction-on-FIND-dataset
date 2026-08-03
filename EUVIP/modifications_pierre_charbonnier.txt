@@ -1,0 +1,15 @@
+Mise à jour du 3 août 2026
+
+- Abstract anonymisé au niveau de la méthode SOTA et reformulations anglaises demandées.
+- Figure 1 élargie, colorée par sous-section, avec flèches multimodales et multi-composantes.
+- Présentation pédagogique de S_ij, d_ij = clip_[0,1](rho_ij(1-S_ij^(0))), et de leurs usages.
+- Introduction successive de tau_E et tau_V, puis choix tau = tau_E = tau_V.
+- Explication développée du choix des composantes connexes, avec et sans a priori FIND.
+- Table I réorganisée à partir de S_int; rôle des raffinements de Frangi explicité.
+- Figure 2 corrigée avec max(lambda_2,0) et convention des maxima par échelle/arête.
+- Renvois, terminologie et disponibilité des données corrigés; lien Drive supprimé.
+- Test1/Test2 regroupés pour conserver acknowledgments en page 5 et références seules en page 6.
+- Deux PDF générés: camera-ready avec copyright IEEE, et author-version numérotée 1--6.
+- Package flushend ajouté pour équilibrer les colonnes de la bibliographie.
+
+Règle EUVIP 2026 vérifiée: six pages au total; la page 6 doit contenir uniquement les références.
