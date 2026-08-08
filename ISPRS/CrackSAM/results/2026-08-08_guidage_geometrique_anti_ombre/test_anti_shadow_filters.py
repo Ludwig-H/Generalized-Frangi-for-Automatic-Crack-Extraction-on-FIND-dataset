@@ -15,6 +15,7 @@ if str(HERE) not in sys.path:
 from anti_shadow_filters import (  # noqa: E402
     compute_filter_bank,
     dark_phase_symmetry,
+    line_step_bic,
     log_luminance,
     oriented_flux_symmetry,
     paired_profile,
@@ -60,11 +61,14 @@ def test_line_is_preferred_to_step_by_symmetry_filters() -> None:
     step_ofs, _ = oriented_flux_symmetry(step_signal)
     line_profile, _ = paired_profile(line_signal)
     step_profile, _ = paired_profile(step_signal)
+    line_bic, _ = line_step_bic(line_signal)
+    step_bic, _ = line_step_bic(step_signal)
     line_phase, _ = dark_phase_symmetry(line_signal)
     step_phase, _ = dark_phase_symmetry(step_signal)
 
     assert _center_band_mean(line_ofs) > _center_band_mean(step_ofs) + 0.08
     assert _center_band_mean(line_profile) > _center_band_mean(step_profile) + 0.08
+    assert _center_band_mean(line_bic) > _center_band_mean(step_bic) + 0.08
     assert _center_band_mean(line_phase) > _center_band_mean(step_phase) + 0.04
 
 

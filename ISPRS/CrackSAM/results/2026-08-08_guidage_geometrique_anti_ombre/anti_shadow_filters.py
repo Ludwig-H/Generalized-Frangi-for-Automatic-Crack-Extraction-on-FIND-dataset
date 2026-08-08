@@ -27,6 +27,7 @@ from typing import Iterable
 
 import numpy as np
 from scipy import ndimage as ndi
+from scipy import special
 from skimage.filters import frangi
 from skimage.morphology import disk
 
@@ -165,7 +166,15 @@ def historical_frangi_similarity_cpu(
 
     if radius < 1 or not 0.0 < retained_fraction <= 1.0:
         raise ValueError("Rayon positif et fraction retenue dans ]0, 1] requis")
-    signal = linear_luminance(image)
+    # Le wrapper CrackSAM historique travaille dans le gris sRGB (et non en
+    # luminance linéaire). Garder exactement cette convention est essentiel
+    # pour que ce contrôle reste comparable aux prompts archivés de juillet.
+    rgb = _as_float_rgb(image)
+    signal = np.tensordot(
+        rgb,
+        np.array((0.2989, 0.5870, 0.1140), dtype=np.float32),
+        axes=([-1], [0]),
+    ).astype(np.float32)
     scale_geometry: list[tuple[np.ndarray, np.ndarray, np.ndarray]] = []
     strongest_curvature = np.zeros_like(signal, dtype=np.float32)
     for sigma in tuple(float(value) for value in scales):
@@ -390,6 +399,139 @@ def paired_profile(
             np.stack(depth_maps), best_index[None], axis=0
         )[0],
         "profile_scale": scale_array[best_index].astype(np.float32),
+    }
+
+
+def line_step_bic(
+    signal: np.ndarray,
+    sigmas: Iterable[float] = (0.8, 1.2, 1.8, 2.6, 3.8),
+    profile_samples: int = 13,
+) -> tuple[np.ndarray, dict[str, np.ndarray]]:
+    """Compare illumination seule et illumination plus ligne sombre.
+
+    Un profil de log-luminance est échantillonné selon la normale Hessienne.
+    ``H0`` contient un polynôme quadratique et une marche gaussienne lissée ;
+    ``H1`` ajoute une tranchée gaussienne sombre centrée sur le candidat. Les
+    paramètres non linéaires sont parcourus sur une petite grille et les
+    coefficients linéaires sont résolus par moindres carrés. Le coefficient de
+    tranchée est contraint positif.
+
+    Le score est le gain ``BIC(H0) - BIC(H1)``, pondéré par la profondeur
+    absolue et l'anisotropie. Il reste une vérification géométrique douce, et
+    non un classificateur appris.
+    """
+
+    if profile_samples < 9 or profile_samples % 2 == 0:
+        raise ValueError("profile_samples doit être impair et >= 9")
+    scales = tuple(float(value) for value in sigmas)
+    if not scales or min(scales) <= 0.0:
+        raise ValueError("Les échelles doivent être strictement positives")
+
+    signal = np.asarray(signal, dtype=np.float32)
+    height, width = signal.shape
+    rows, cols = np.indices(signal.shape, dtype=np.float32)
+    coordinates = np.linspace(-3.0, 3.0, profile_samples, dtype=np.float32)
+    polynomial = np.stack(
+        (np.ones_like(coordinates), coordinates, coordinates**2), axis=1
+    )
+    identity = np.eye(profile_samples, dtype=np.float64)
+    noise = _noise_from_highpass(signal)
+    noise_floor = profile_samples * (0.35 * noise) ** 2 + 1e-10
+
+    scores: list[np.ndarray] = []
+    delta_maps: list[np.ndarray] = []
+    depth_maps: list[np.ndarray] = []
+    for sigma in scales:
+        _, _, normal_x, normal_y, anisotropy, _, _ = _hessian_geometry(signal, sigma)
+        tangent_x = -normal_y
+        tangent_y = normal_x
+        profile_planes: list[np.ndarray] = []
+        for coordinate in coordinates:
+            tangent_samples: list[np.ndarray] = []
+            for tangent_offset in (-1.0, 0.0, 1.0):
+                sample_rows = (
+                    rows
+                    + coordinate * sigma * normal_y
+                    + tangent_offset * tangent_y
+                )
+                sample_cols = (
+                    cols
+                    + coordinate * sigma * normal_x
+                    + tangent_offset * tangent_x
+                )
+                tangent_samples.append(
+                    ndi.map_coordinates(
+                        signal,
+                        (sample_rows, sample_cols),
+                        order=1,
+                        mode="reflect",
+                    )
+                )
+            profile_planes.append(np.mean(tangent_samples, axis=0))
+        profiles = np.stack(profile_planes, axis=-1).reshape(-1, profile_samples).astype(
+            np.float64
+        )
+
+        best_sse_h0 = np.full(profiles.shape[0], np.inf, dtype=np.float64)
+        best_sse_h1 = np.full(profiles.shape[0], np.inf, dtype=np.float64)
+        best_depth = np.zeros(profiles.shape[0], dtype=np.float64)
+        for step_center in (-0.8, 0.0, 0.8):
+            for step_softness in (0.05, 0.5, 1.0):
+                step = special.ndtr((coordinates - step_center) / step_softness)
+                design_h0 = np.column_stack((polynomial, step)).astype(np.float64)
+                residual_projection = identity - design_h0 @ np.linalg.pinv(design_h0)
+                residuals_h0 = profiles @ residual_projection
+                sse_h0 = np.einsum("ij,ij->i", residuals_h0, residuals_h0)
+                best_sse_h0 = np.minimum(best_sse_h0, sse_h0)
+
+                for line_width in (0.45, 0.8, 1.2):
+                    dark_line = -np.exp(-0.5 * (coordinates / line_width) ** 2)
+                    residual_line = residual_projection @ dark_line
+                    line_norm = float(np.dot(residual_line, residual_line))
+                    if line_norm <= 1e-10:
+                        continue
+                    depth = np.maximum(
+                        (residuals_h0 @ residual_line) / line_norm,
+                        0.0,
+                    )
+                    sse_h1 = np.maximum(sse_h0 - depth**2 * line_norm, 0.0)
+                    improved = sse_h1 < best_sse_h1
+                    best_sse_h1[improved] = sse_h1[improved]
+                    best_depth[improved] = depth[improved]
+
+        delta_bic = (
+            profile_samples
+            * np.log((best_sse_h0 + noise_floor) / (best_sse_h1 + noise_floor))
+            - np.log(float(profile_samples))
+        )
+        bic_confidence = 1.0 - np.exp(-np.maximum(delta_bic, 0.0) / 6.0)
+        depth_confidence = _confidence(best_depth, 2.5 * noise)
+        score = (
+            bic_confidence.reshape(height, width)
+            * depth_confidence.reshape(height, width)
+            * anisotropy
+        )
+        scores.append(score.astype(np.float32))
+        delta_maps.append(delta_bic.reshape(height, width).astype(np.float32))
+        depth_maps.append(best_depth.reshape(height, width).astype(np.float32))
+
+    stack = np.stack(scores)
+    if stack.shape[0] > 1:
+        persistent = np.max(
+            np.sqrt(np.maximum(stack[:-1] * stack[1:], 0.0)), axis=0
+        )
+    else:
+        persistent = stack[0]
+    best_index = np.argmax(stack, axis=0)
+    scale_array = np.asarray(scales, dtype=np.float32)
+    return persistent.clip(0.0, 1.0).astype(np.float32), {
+        "line_step_delta_bic": np.take_along_axis(
+            np.stack(delta_maps), best_index[None], axis=0
+        )[0],
+        "line_step_depth": np.take_along_axis(
+            np.stack(depth_maps), best_index[None], axis=0
+        )[0],
+        "line_step_scale": scale_array[best_index].astype(np.float32),
     }
 
 
@@ -622,6 +764,7 @@ def compute_filter_bank(image: np.ndarray) -> FilterBankResult:
 
     derivative, derivative_diag = even_odd_derivative_pair(log_signal)
     profile, profile_diag = paired_profile(log_signal)
+    model_bic, model_bic_diag = line_step_bic(log_signal)
     ofs, ofs_diag = oriented_flux_symmetry(log_signal)
     phase, phase_diag = dark_phase_symmetry(log_signal)
     tophat, tophat_diag = multiscale_black_tophat(log_signal)
@@ -635,12 +778,21 @@ def compute_filter_bank(image: np.ndarray) -> FilterBankResult:
         "black_tophat": tophat,
         "derivative_pair": derivative,
         "paired_profile": profile,
+        "line_step_bic": model_bic,
         "phase_symmetry": phase,
         "ofs": ofs,
         "ofs_reflectance": ofs_reflectance,
         "fusion_ofs_profile": geometric_mean((ofs, profile)),
         "fusion_precision": geometric_mean((ofs, profile, phase)),
         "fusion_reflectance": geometric_mean((ofs_reflectance, profile_reflectance, phase)),
+        "verified_frangi_ofs": geometric_mean((historical_similarity, ofs)),
+        "verified_frangi_bic": geometric_mean((historical_similarity, model_bic)),
+        "verified_frangi_v2": geometric_mean(
+            (historical_similarity, derivative, model_bic)
+        ),
+        "verified_frangi_consensus": geometric_mean(
+            (historical_similarity, ofs, profile, phase)
+        ),
     }
     diagnostics = {
         "luminance": luminance,
@@ -648,6 +800,7 @@ def compute_filter_bank(image: np.ndarray) -> FilterBankResult:
         "reflectance": reflectance,
         **derivative_diag,
         **profile_diag,
+        **model_bic_diag,
         **ofs_diag,
         **phase_diag,
         **tophat_diag,
@@ -666,6 +819,7 @@ __all__ = [
     "geometric_mean",
     "historical_frangi_similarity_cpu",
     "linear_luminance",
+    "line_step_bic",
     "log_luminance",
     "morphological_reflectance",
     "multiscale_black_tophat",

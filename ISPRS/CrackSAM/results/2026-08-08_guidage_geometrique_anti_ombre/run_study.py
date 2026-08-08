@@ -37,7 +37,7 @@ os.environ.setdefault("MPLBACKEND", "Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 from matplotlib.colors import ListedColormap  # noqa: E402
 import pandas as pd  # noqa: E402
-from skimage.morphology import binary_dilation, disk, skeletonize  # noqa: E402
+from skimage.morphology import dilation, disk, skeletonize  # noqa: E402
 
 
 HERE = Path(__file__).resolve().parent
@@ -53,10 +53,10 @@ from ISPRS.CrackSAM.cracksam2.data import apply_noise_perturbation  # noqa: E402
 
 CONDITIONS = ("original", "noisy1", "noisy2")
 MANDATORY_PRESENTATION_CASES = {
-    "Sylvie_Chambon_319.jpg",
-    "CRACK500_20160329_093924_1921_721.jpg",
-    "Volker_DSC01646_226_19_1273_1645.jpg",
-    "CRACK500_20160308_073532_1_361.jpg",
+    "Sylvie_Chambon_319.jpg": "original",
+    "CRACK500_20160329_093924_1921_721.jpg": "noisy1",
+    "Volker_DSC01646_226_19_1273_1645.jpg": "noisy2",
+    "CRACK500_20160308_073532_1_361.jpg": "noisy2",
 }
 EXTERNAL_PRESENTATION_CASES = (
     ("road420", "2023_11_01_20_33_IMG_6353.jpg", "gain_frangi_ombre"),
@@ -72,12 +72,17 @@ DISPLAY_MAPS = (
     "black_tophat",
     "derivative_pair",
     "paired_profile",
+    "line_step_bic",
     "phase_symmetry",
     "ofs",
     "ofs_reflectance",
     "fusion_ofs_profile",
     "fusion_precision",
     "fusion_reflectance",
+    "verified_frangi_ofs",
+    "verified_frangi_bic",
+    "verified_frangi_v2",
+    "verified_frangi_consensus",
 )
 MAP_LABELS = {
     "frangi_similarity_historical": "Frangi-sim. hist.",
@@ -85,12 +90,17 @@ MAP_LABELS = {
     "black_tophat": "Black top-hat",
     "derivative_pair": "Paire/impair",
     "paired_profile": "Profil bilatéral",
+    "line_step_bic": "H0/H1 (ΔBIC)",
     "phase_symmetry": "Phase-symétrie",
     "ofs": "OFS",
     "ofs_reflectance": "OFS + réflectance",
     "fusion_ofs_profile": "OFS × profil",
     "fusion_precision": "Fusion précision",
     "fusion_reflectance": "Fusion réflectance",
+    "verified_frangi_ofs": "Frangi vérifié OFS",
+    "verified_frangi_bic": "Frangi vérifié BIC",
+    "verified_frangi_v2": "Frangi vérifié v2",
+    "verified_frangi_consensus": "Frangi vérifié consensus",
 }
 
 
@@ -315,7 +325,7 @@ def _topk_mask(score: np.ndarray, fraction: float) -> np.ndarray:
 def _map_metrics(mask: np.ndarray, score: np.ndarray, tolerance: int = 2) -> dict[str, float]:
     mask = np.asarray(mask, dtype=bool)
     score = np.nan_to_num(np.asarray(score, dtype=np.float32), nan=0.0).clip(0.0, 1.0)
-    tolerant = binary_dilation(mask, footprint=disk(tolerance)) if np.any(mask) else mask
+    tolerant = dilation(mask, footprint=disk(tolerance)) if np.any(mask) else mask
     skeleton = skeletonize(mask) if np.any(mask) else mask
     total_mass = float(np.sum(score))
     result = {
@@ -335,7 +345,7 @@ def _map_metrics(mask: np.ndarray, score: np.ndarray, tolerance: int = 2) -> dic
         suffix = str(fraction).replace("0.", "p")
         result[f"precision_top_{suffix}"] = float(np.mean(tolerant[selected]))
         if np.any(skeleton):
-            reached = binary_dilation(selected, footprint=disk(tolerance))
+            reached = dilation(selected, footprint=disk(tolerance))
             result[f"skeleton_recall_top_{suffix}"] = float(np.mean(reached[skeleton]))
         else:
             result[f"skeleton_recall_top_{suffix}"] = math.nan
@@ -392,7 +402,7 @@ def _synthetic_shadow(
     attenuation_float = attenuation.astype(np.float32)
     grad_y, grad_x = np.gradient(attenuation_float)
     edge = np.hypot(grad_x, grad_y) > 0.005
-    boundary = binary_dilation(edge, footprint=disk(3))
+    boundary = dilation(edge, footprint=disk(3))
     return shadowed, shadow_region, boundary
 
 
@@ -402,7 +412,7 @@ def _shadow_metrics(
     target: np.ndarray,
     boundary: np.ndarray,
 ) -> dict[str, float]:
-    target_band = binary_dilation(target, footprint=disk(2)) if np.any(target) else target
+    target_band = dilation(target, footprint=disk(2)) if np.any(target) else target
     background_boundary = boundary & ~target_band
     skeleton = skeletonize(target) if np.any(target) else target
     clean_crack = float(np.mean(clean_score[skeleton])) if np.any(skeleton) else math.nan
@@ -623,10 +633,15 @@ def main() -> None:
             )
         if spec.qualitative and not args.skip_case_figures:
             _case_figure(output, spec, image, mask, bank.maps)
+        if (
+            spec.dataset == "khanhha"
+            and MANDATORY_PRESENTATION_CASES.get(spec.case_name) == spec.condition
+        ):
+            mandatory_atlas.append((
+                f"{spec.condition}\n{spec.case_name}", image, mask, bank.maps
+            ))
         if spec.dataset == "khanhha" and spec.condition == "original":
             clean_cache[spec.case_name] = (image, mask, bank.maps)
-            if spec.case_name in MANDATORY_PRESENTATION_CASES:
-                mandatory_atlas.append((spec.case_name, image, mask, bank.maps))
         elif spec.dataset != "khanhha":
             external_atlas.append((f"{spec.dataset}\n{spec.case_name}", image, mask, bank.maps))
 
@@ -634,7 +649,21 @@ def main() -> None:
     summary_rows = _summaries(metric_rows, args.bootstrap, args.seed)
     _atomic_csv(output / "tables/generated/summary_metrics.csv", summary_rows)
 
-    shadow_names = sorted(clean_cache, key=lambda name: _stable_hash("shadow", name))[
+    anchor_names = {
+        spec.case_name
+        for spec in cases
+        if spec.dataset == "khanhha" and spec.role == "anchor"
+    }
+    mandatory_shadow_names = sorted(set(MANDATORY_PRESENTATION_CASES) & set(clean_cache))
+    other_anchor_names = sorted(
+        (anchor_names - set(mandatory_shadow_names)) & set(clean_cache),
+        key=lambda name: _stable_hash("shadow-anchor", name),
+    )
+    complementary_names = sorted(
+        set(clean_cache) - anchor_names,
+        key=lambda name: _stable_hash("shadow-complement", name),
+    )
+    shadow_names = (mandatory_shadow_names + other_anchor_names + complementary_names)[
         : max(0, int(args.shadow_cases))
     ]
     shadow_atlas: list[tuple[str, np.ndarray, np.ndarray, Mapping[str, np.ndarray]]] = []
@@ -669,17 +698,35 @@ def main() -> None:
     _atlas(
         output / "figures/generated/atlas_presentation_khanhha.png",
         mandatory_atlas,
-        ("frangi_similarity_historical", "ofs", "phase_symmetry", "fusion_precision"),
+        (
+            "frangi_similarity_historical",
+            "ofs",
+            "line_step_bic",
+            "verified_frangi_v2",
+            "verified_frangi_consensus",
+        ),
     )
     _atlas(
         output / "figures/generated/atlas_presentation_external.png",
         external_atlas,
-        ("frangi_similarity_historical", "ofs", "phase_symmetry", "fusion_precision"),
+        (
+            "frangi_similarity_historical",
+            "ofs",
+            "line_step_bic",
+            "verified_frangi_v2",
+            "verified_frangi_consensus",
+        ),
     )
     _atlas(
         output / "figures/generated/atlas_ombres_synthetiques.png",
         shadow_atlas,
-        ("frangi_similarity_historical", "ofs", "phase_symmetry", "fusion_precision"),
+        (
+            "frangi_similarity_historical",
+            "ofs",
+            "line_step_bic",
+            "verified_frangi_v2",
+            "verified_frangi_consensus",
+        ),
     )
     _summary_figure(output / "figures/generated/metric_overview.png", summary_rows)
 
