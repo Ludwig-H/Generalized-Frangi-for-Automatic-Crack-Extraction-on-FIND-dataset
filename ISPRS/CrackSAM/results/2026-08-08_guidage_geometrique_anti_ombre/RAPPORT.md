@@ -292,6 +292,70 @@ Ces travaux motivent des ablations, pas une addition aveugle de modules. En
 particulier, une suppression d'ombre irréversible peut aussi supprimer une
 fissure qui traverse l'ombre.
 
+### 3.7 Guidage géométrique récent de SAM et SAM 2
+
+Une recherche complémentaire arrêtée au 8 août 2026 trouve plusieurs travaux
+récents beaucoup plus proches de notre objectif que les adaptations génériques
+par LoRA. Aucun ne teste Frangi/OFS sur Khánh Hà et leurs performances ne sont
+donc pas directement transposables. Ils convergent néanmoins vers une idée
+forte : pour une structure curviligne, la géométrie est plus utile comme
+**suite de prompts clairsemés, correction itérative ou feature auxiliaire
+multi-échelle** que comme pseudo-masque dense supposé déjà juste.
+
+| Travail | Interface géométrique | Leçon transposable |
+|---|---|---|
+| Wong et al., *ScribblePrompt*, ECCV 2024, [DOI 10.1007/978-3-031-73661-2_12](https://doi.org/10.1007/978-3-031-73661-2_12) | Entraîne notamment une variante SAM avec des scribbles de ligne centrale ou de contour, positifs et négatifs ; les corrections suivantes ciblent les faux négatifs et faux positifs de la prédiction précédente. | Représenter un fragment de fissure par son axe ordonné et apprendre des corrections signées, plutôt que rasteriser cet axe en masque certain. |
+| Zhou et al., *SepSAM*, Advanced Engineering Informatics 2025, [DOI 10.1016/j.aei.2025.103626](https://doi.org/10.1016/j.aei.2025.103626) | Un petit détecteur de fissures guide un SAM gelé par des prompts placés **le long de l'axe** ; un dialogue cyclique et une analyse de conflit corrigent les deux modèles. | C'est le précédent le plus proche d'un arbitre révocable : le filtre propose une trajectoire, SAM répond, puis le désaccord génère une correction au lieu d'un produit logique dur. |
+| Wu et al., *TPP-SAM*, IEEE JSTARS 2025, [DOI 10.1109/JSTARS.2025.3548688](https://doi.org/10.1109/JSTARS.2025.3548688) | Des points de trajectoire sont filtrés par une contrainte de ligne centrale puis sous-échantillonnés ; des centroïdes de toits servent de contraintes négatives pour extraire les routes sans affiner SAM. | Échantillonner les composantes par distance géodésique ou `k`-médoïdes, et non par top-K raster ; sélectionner aussi des points négatifs explicites sur les distracteurs d'ombre vérifiés. |
+| Ye et al., *SAM4Tun*, Tunnelling and Underground Space Technology 2025, [DOI 10.1016/j.tust.2025.106401](https://doi.org/10.1016/j.tust.2025.106401) | Sans entraînement, combine des points positifs/négatifs et des logits de masque grossier construits à partir de gabarits polylignes pour segmenter des voussoirs de tunnel. Le [code est public](https://github.com/zxy239/SAM4Tun). | Fournit une ablation immédiate `points signés` / `corridor mince` / `les deux`. Sa géométrie de tunnel est connue a priori : elle ne prouve pas qu'un corridor Frangi incertain sera bénéfique. |
+| Chen et al., *CaPro*, AAAI 2026, [DOI 10.1609/aaai.v40i5.37315](https://doi.org/10.1609/aaai.v40i5.37315) | Détecte des sous-courbes par boîtes orientées, filtre les détections peu fiables par appariement de représentations, puis les convertit en points pour un SAM non affiné. Le détecteur auxiliaire reste appris sur des courbes synthétiques adaptées au domaine. | Découper le graphe en courts fragments orientés et ne convertir en points que les fragments vérifiés, au lieu d'envoyer toute la carte. Le code est [public](https://github.com/xmed-lab/CaPro). |
+| Yu et al., *Automated crack annotation with weakly-supervised prompt generator and SAM*, Structures 2026, [DOI 10.1016/j.istruc.2026.112475](https://doi.org/10.1016/j.istruc.2026.112475) | Une CAM de fissure est binarisée, squelettisée et filtrée spatialement pour produire plusieurs points SAM ; le générateur ne demande que des labels image au niveau du nouveau domaine. | La squelettisation et l'espacement des points constituent une interface publiée et directement testable avec nos graphes, sans prétendre que leur amplitude est une probabilité de masque. |
+| Li et al., *TopoSAM*, Engineering Applications of Artificial Intelligence 2026, [DOI 10.1016/j.engappai.2025.113688](https://doi.org/10.1016/j.engappai.2025.113688) | Une branche de convolutions déformables « serpentine » extrait les détails topologiques puis fusionne ses features avec l'encodeur SAM. L'apprentissage par jumeaux conserve la même fissure tout en changeant fond, illumination, texture et taches. | Injecter la géométrie comme branche auxiliaire et entraîner une invariance propre/ombré est plus cohérent que supprimer l'ombre en prétraitement irréversible. |
+| Chen et al., *SAM2-Adapter*, rapport technique 2024, [arXiv:2408.04579](https://doi.org/10.48550/arXiv.2408.04579) | Quatre adapters adaptés aux quatre résolutions hiérarchiques de SAM 2 reçoivent une information spécifique qui peut être fréquentielle, texturale, issue de règles manuelles ou composée de plusieurs sources. | C'est un point d'injection naturel pour garder séparés Frangi, OFS/OFA, phase, orientation et échelle. Cette publication reste un préprint et ne valide pas les fissures. |
+| Xie et al., *PA-SAM*, ICME 2024, [arXiv:2401.13051](https://doi.org/10.48550/arXiv.2401.13051) | Un adapter **parallèle** encode image et gradient comme prompt dense, enrichit les prompts clairsemés, prédit raffinement et incertitude, puis extrait des points difficiles positifs/négatifs. Le [code est public](https://github.com/xzz2/pa-sam). | Architecture très proche du besoin futur : nos cartes alimentent un adapter séparé, et seules les zones d'erreur confiantes corrigent SAM ; elles ne sont jamais présentées comme ses logits de masque. |
+| Podvin et al., *SAMUSA*, MICCAI 2025, [DOI 10.1007/978-3-032-05141-7_49](https://doi.org/10.1007/978-3-032-05141-7_49) | Étend SAM 2 avec un type d'embedding distinct pour les points de frontière et une perte d'adhérence au bord, au lieu de demander aux points régionaux ordinaires de porter cette sémantique. | Si SAM 2 ignore encore nos points d'axe ou de bord, distinguer leurs rôles dans le prompt encoder est une ablation plus propre que renforcer arbitrairement les logits. |
+| Ping et al., *SCISSR*, préprint 2026, [arXiv:2603.18544](https://arxiv.org/abs/2603.18544) | Encode un raster à deux canaux de scribbles positifs/négatifs en prompt dense SAM 2, puis injecte la correction la plus récente dans la memory attention par une fusion spatiale dont le gain est initialisé à zéro. | C'est l'architecture la plus proche de notre correction signée et révocable ; elle reste toutefois non évaluée sur les fissures et sans code public vérifié à cette date. |
+| Xie et al., *Learnable Morphological Skeleton with SAM*, IEEE TGRS 2025, [DOI 10.1109/TGRS.2025.3581458](https://doi.org/10.1109/TGRS.2025.3581458) | Rend un prior de squelette morphologique différentiable, ajoute son token au mask decoder et modifie la décision finale pour préserver la structure fine. | Un squelette peut devenir un objet/token explicite plutôt qu'un masque basse résolution ; cette option appartient à la phase entraînée, car elle modifie le décodeur. |
+| Zhu et al., *SACM*, [CVPR 2026](https://openaccess.thecvf.com/content/CVPR2026/html/Zhu_Dual-level_Adapter_Boosting_Prompt-free_Curvilinear_Structure_Segmentation_CVPR_2026_paper.html), et Feng et al., *SAM2-RoadNet*, [DOI 10.3390/rs18060913](https://doi.org/10.3390/rs18060913) | SACM fusionne des adapters internes/externes et raffine deux fois la connectivité ; SAM2-RoadNet fusionne les niveaux de Hiera et ajoute une perte de squelette `soft-clDice`. Les deux deviennent des segmentateurs automatiques et n'utilisent plus l'interface interactive standard. | À l'étape entraînée seulement, superviser explicitement la continuité et réinjecter les hautes résolutions ; ces résultats ne justifient pas, à eux seuls, un prompt géométrique dense. |
+
+Les prompts de frontière demandent une prudence particulière dans notre cas.
+*COMPrompter* ([DOI 10.1007/s11432-024-4233-9](https://doi.org/10.1007/s11432-024-4233-9),
+[code officiel](https://github.com/guobaoxiao/COMPrompter)) montre qu'un
+encodeur de frontière peut aider SAM, mais distingue explicitement sa frontière
+parfaite dérivée du GT de la frontière estimée, moins performante. Une carte de
+gradient brute n'est donc pas une preuve : chez nous, elle réintroduirait
+précisément les limites d'ombre. Tout gain devra survivre aux contrôles
+frontière correcte, décalée et permutée.
+
+Une étude contrôlée récente apporte aussi un avertissement utile : Zhang et al.,
+*Quantifying the Limits of Segmentation Foundation Models*,
+[WACV 2026](https://openaccess.thecvf.com/content/WACV2026/html/Zhang_Quantifying_the_Limits_of_Segmentation_Foundation_Models_Modeling_Challenges_in_WACV_2026_paper.html),
+mesure sur SAM, SAM 2 et HQ-SAM une dégradation liée au caractère arborescent et
+au faible contraste textural ; leurs essais indiquent que l'affinage ciblé ne
+fait pas disparaître ce mode d'échec. Cela concorde avec nos contre-exemples
+flous et granuleux et renforce l'intérêt d'une preuve géométrique explicite,
+sans démontrer qu'une preuve particulière est suffisante.
+
+La traduction la plus directe pour CrackSAM 2 est donc un protocole en trois
+étapes. **Sans entraînement**, commencer par une ablation factorielle entre
+points signés seuls, corridor faible seul et combinaison des deux, toujours face
+à `None`; le corridor reste expérimental et ne doit pas redevenir le
+pseudo-masque Frangi historique. Chaque composante vérifiée devient une polyligne
+ordonnée ; on échantillonne géodésiquement ou par `k`-médoïdes des points
+positifs le long de son axe, avec ses extrémités et jonctions, tandis que les
+marches OFA/impaires non soutenues par OFS fournissent quelques points négatifs.
+SAM 2 standard n'accepte pas un scribble natif : une polyligne doit d'abord
+être représentée par une suite de points, ce qui permet une ablation honnête
+sans modifier le réseau. **En
+correction**, une ou deux itérations ajoutent un point positif là où une courbe
+fortement soutenue manque à SAM, et un point négatif là où SAM suit une marche
+sans symétrie de ligne ; la sortie `None` reste la baseline exacte. **Lors d'un
+futur entraînement**, comparer un token/encodeur de squelette ou de scribble à
+des canaux géométriques séparés injectés par adapters résiduels initialisés à
+zéro aux quatre niveaux Hiera, avec cohérence propre/ombré et éventuellement
+`soft-clDice`. Cette hiérarchie est testable causalement et évite précisément
+le produit Frangi × veto qui échoue dans la présente étude.
+
 ## 4. Méthodes comparées dans l'étude filtre-seul
 
 Toutes les cartes sont continues dans `[0, 1]`. À l'exception des deux contrôles
