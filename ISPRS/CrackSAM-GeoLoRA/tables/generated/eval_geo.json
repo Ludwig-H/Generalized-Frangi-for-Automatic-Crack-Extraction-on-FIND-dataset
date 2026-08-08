@@ -1,0 +1,25 @@
+{
+  "variant": "geo",
+  "checkpoint": "/home/louis_hauseux_gmail_com/geolora-run/ckpt/geo_best.pt",
+  "images": 1695,
+  "gamma": 0.0018329693702980876,
+  "with_evidence": {
+    "precision": 0.6742165138548796,
+    "recall": 0.8589578737827039,
+    "dice": 0.73482961312978,
+    "iou": 0.6083458646970402,
+    "components_pred": 2.5233038348082597,
+    "components_true": 57.48436578171091,
+    "skeleton_covered": 0.826310925813478
+  },
+  "no_evidence": {
+    "precision": 0.6864787113656509,
+    "recall": 0.8484815863915868,
+    "dice": 0.7395827069634541,
+    "iou": 0.6137553346792192,
+    "components_pred": 2.6100294985250736,
+    "components_true": 57.48436578171091,
+    "skeleton_covered": 0.8113144990241996
+  },
+  "evidence_is_necessary": true
+}

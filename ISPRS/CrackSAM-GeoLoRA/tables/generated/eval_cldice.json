@@ -1,0 +1,25 @@
+{
+  "variant": "cldice",
+  "checkpoint": "/home/louis_hauseux_gmail_com/geolora-run/ckpt/cldice_best.pt",
+  "images": 1695,
+  "gamma": 0.0,
+  "with_evidence": {
+    "precision": 0.6737585336652135,
+    "recall": 0.8567467060598092,
+    "dice": 0.7331665345710797,
+    "iou": 0.6065903743939449,
+    "components_pred": 2.647197640117994,
+    "components_true": 57.48436578171091,
+    "skeleton_covered": 0.8254114763381978
+  },
+  "no_evidence": {
+    "precision": 0.6737585336652135,
+    "recall": 0.8567467060598092,
+    "dice": 0.7331665345710797,
+    "iou": 0.6065903743939449,
+    "components_pred": 2.647197640117994,
+    "components_true": 57.48436578171091,
+    "skeleton_covered": 0.8254114763381978
+  },
+  "evidence_is_necessary": false
+}
