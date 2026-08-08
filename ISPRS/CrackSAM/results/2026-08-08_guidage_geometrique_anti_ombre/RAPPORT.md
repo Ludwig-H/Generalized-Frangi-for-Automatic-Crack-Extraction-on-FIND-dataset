@@ -1019,11 +1019,58 @@ vérifie Frangi, mais ne rejette presque pas la marche idéale à lui seul. Enfi
 les fusions `verified_frangi_*` prouvent qu'un « ET » dur est la mauvaise
 interface : elles héritent du défaut du candidat qu'elles devaient corriger.
 
+**Choix recommandé pour CrackSAM 2.** Après confrontation des résultats aux
+travaux récents de la section 3.7 et aux propositions antérieures, l'hypothèse
+architecturale la mieux étayée à tester est une version corrigée de
+`verified_local_v2_signed` : conserver le SAM 2-LoRA gelé et son décodage sans
+prompt comme voie exacte `z0`, puis placer après ce décodeur un petit adapter
+résiduel parallèle qui reçoit `z0`, les features haute résolution `s4/s8` et,
+sans prémultiplication, Frangi, phase, OFS/OFA, paire/impair, énergie absolue,
+orientation et échelle. L'enveloppe candidate doit être l'union de courts
+fragments orientés passant les seuils absolus propres à chaque source, cette
+union pouvant être vide, et jamais le seul support Frangi ; un arbitre local à
+tester, entraîné sur des prédictions strictement hors fold, devrait classer
+chaque bande en **ajouter**, **retirer** ou **s'abstenir**, selon son utilité
+marginale face à `z0`. Deux têtes non négatives et bornées appliqueraient la
+correction signée, avec projections initialisées à zéro ; la sortie finale doit
+être sélectionnée par `torch.where(B, zG, z0)`, ou retourner directement `z0`
+si aucune bande n'est acceptée, afin de garantir l'identité bit à bit hors bande
+et non de la supposer à partir d'une confiance multipliée. Un oracle descriptif
+calculé sur les 26 scènes originales non vides illustre l'hétérogénéité :
+choisir a posteriori, pour chaque métrique, la
+meilleure des 16 cartes par scène ferait passer l'AP2 moyenne de `0,344` à
+`0,398` et le rappel squelette de `0,256` à `0,616`. Ce best-of-GT, calculé
+séparément pour chaque métrique sur une cohorte d'analyse qui exclut les quatre
+masques vides, ne démontre toutefois ni qu'un arbitre puisse choisir sans GT, ni
+qu'une même sortie puisse atteindre simultanément ces deux valeurs, ni que la
+correction de `z0` soit bénéfique ; il justifie de mesurer un plafond
+action-contraint, pas d'affirmer qu'un arbitre est le seul composant manquant.
+Avant de l'entraîner, deux plafonds, mesurés sur une partition d'analyse
+physiquement disjointe avec `z0` strictement hors fold, doivent dépasser des
+seuils pré-enregistrés. L'oracle de **source** choisit, pour chaque fragment
+entier muni d'un corridor fixé sans GT, entre `ajouter`, `retirer` et
+`s'abstenir`, sans recouper, déplacer, réorienter ni redimensionner le fragment ;
+un gain IoU groupé inférieur à `+0,01` est un no-go pour cette famille de
+candidats.
+L'oracle d'**interface** compare face à `None` des points, une suite de points
+échantillonnés sur un scribble parfait et un corridor parfait injecté comme
+`mask_input`, uniquement à titre diagnostique, avec budget et rasterisation
+fixés avant lecture des résultats. Ce second oracle est diagnostique : son échec
+élimine une interface, mais son succès ne valide ni le générateur automatique
+ni l'adapter résiduel. Les points automatiques de la section 3.7 et le
+raccordement doublement ancré restent donc des ablations préalables, ce dernier
+étant le contrôle déterministe le plus sûr ; `mask_input` demeure un contrôle
+négatif et ne doit plus être l'interface d'entraînement ou de déploiement. Aucun
+GNN ni nouvelle LoRA ne doit être engagé tant que le petit adapter n'a pas battu
+`z0`, sa condition sans évidence et les géométries décalée, permutée et
+aléatoire sur un holdout physique dédupliqué et sur des ombres naturelles.
+
 Le prochain essai SAM 2 ne doit donc pas recevoir un nouveau pseudo-masque. Il
 doit recevoir des preuves séparées, avec une baseline exacte, un arbitre local
-révocable et des ablations causales. Avant tout entraînement, la priorité
-expérimentale est de confirmer ces compromis sur le split Khánh Hà complet à
-448 px, puis sur des ombres naturelles annotées ou Shadow-Crack.
+révocable et des ablations causales. Avant tout entraînement de l'adapter, la
+priorité expérimentale est de mesurer les deux plafonds précédents sur le split
+Khánh Hà complet à 448 px, puis sur des ombres naturelles annotées ou
+Shadow-Crack.
 
 ## Références internes
 
