@@ -1,0 +1,31 @@
+{
+  "folds": [
+    {
+      "utility_ratio": 0.0,
+      "fold": 0,
+      "validation_images": 284
+    },
+    {
+      "utility_ratio": 0.0,
+      "fold": 1,
+      "validation_images": 310
+    },
+    {
+      "utility_ratio": 0.0,
+      "fold": 2,
+      "validation_images": 294
+    },
+    {
+      "utility_ratio": -0.07319660616042728,
+      "fold": 3,
+      "validation_images": 294
+    },
+    {
+      "utility_ratio": 0.0,
+      "fold": 4,
+      "validation_images": 287
+    }
+  ],
+  "utility_ratio_mean": -0.014639321232085455,
+  "seed": 3407
+}

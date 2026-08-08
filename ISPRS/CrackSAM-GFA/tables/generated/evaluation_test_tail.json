@@ -1,0 +1,53 @@
+{
+  "split": "test",
+  "images": 1695,
+  "fold": 0,
+  "baseline_iou": 0.6237493788350904,
+  "gfa": {
+    "iou": 0.6237493788350904,
+    "delta_vs_baseline": 0.0,
+    "ci95": [
+      0.0,
+      0.0
+    ],
+    "significant": false
+  },
+  "null": {
+    "iou": 0.6237493788350904,
+    "delta_vs_baseline": 0.0,
+    "ci95": [
+      0.0,
+      0.0
+    ],
+    "significant": false
+  },
+  "permuted": {
+    "iou": 0.6237493788350904,
+    "delta_vs_baseline": 0.0,
+    "ci95": [
+      0.0,
+      0.0
+    ],
+    "significant": false
+  },
+  "shifted": {
+    "iou": 0.6237493788350904,
+    "delta_vs_baseline": 0.0,
+    "ci95": [
+      0.0,
+      0.0
+    ],
+    "significant": false
+  },
+  "random_support": {
+    "iou": 0.6237493788350904,
+    "delta_vs_baseline": 0.0,
+    "ci95": [
+      0.0,
+      0.0
+    ],
+    "significant": false
+  },
+  "gate3_real_gain": false,
+  "gate4_causal": false
+}

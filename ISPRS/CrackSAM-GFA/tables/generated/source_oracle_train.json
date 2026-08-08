@@ -1,0 +1,22 @@
+{
+  "split": "train",
+  "images": 1500,
+  "images_without_z0": 0,
+  "delta": 4.0,
+  "baseline_iou_mean": 0.606785472345234,
+  "achievable_gain_mean": 0.010370712166751207,
+  "achievable_gain_ci95": [
+    0.009656889699881974,
+    0.011100841178329926
+  ],
+  "upper_bound_gain_mean": 0.03459492153962806,
+  "upper_bound_gain_ci95": [
+    0.03239031787611843,
+    0.03683633525610255
+  ],
+  "fragments_mean": 49.80466666666667,
+  "images_without_fragment": 1,
+  "gate_threshold": 0.01,
+  "gate1_verdict": "GO",
+  "negative_is_conclusive": false
+}

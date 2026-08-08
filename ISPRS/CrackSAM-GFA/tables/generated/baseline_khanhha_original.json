@@ -1,0 +1,11 @@
+{
+  "precision": 0.7488897833525032,
+  "recall": 0.7714442480918223,
+  "dice": 0.7452406660752902,
+  "iou": 0.6237493788350904,
+  "samples": 1695,
+  "condition": "khanhha_original",
+  "reference_iou": 0.623804,
+  "delta_iou": -5.4621164909618436e-05,
+  "gate0": "REPRODUITE"
+}

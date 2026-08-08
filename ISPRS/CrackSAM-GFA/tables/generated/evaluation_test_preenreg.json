@@ -1,0 +1,53 @@
+{
+  "split": "test",
+  "images": 1695,
+  "fold": 0,
+  "baseline_iou": 0.6237493788350904,
+  "gfa": {
+    "iou": 0.6171349011596133,
+    "delta_vs_baseline": -0.006614477675476958,
+    "ci95": [
+      -0.007709653338658218,
+      -0.00558890114866801
+    ],
+    "significant": false
+  },
+  "null": {
+    "iou": 0.6237493788350904,
+    "delta_vs_baseline": 0.0,
+    "ci95": [
+      0.0,
+      0.0
+    ],
+    "significant": false
+  },
+  "permuted": {
+    "iou": 0.6235863354119753,
+    "delta_vs_baseline": -0.00016304342311508304,
+    "ci95": [
+      -0.00029813574472615525,
+      -7.229534303569056e-05
+    ],
+    "significant": false
+  },
+  "shifted": {
+    "iou": 0.623603730514528,
+    "delta_vs_baseline": -0.00014564832056229374,
+    "ci95": [
+      -0.00023419411443070245,
+      -6.963921798218234e-05
+    ],
+    "significant": false
+  },
+  "random_support": {
+    "iou": 0.6236707391772692,
+    "delta_vs_baseline": -7.863965782109109e-05,
+    "ci95": [
+      -0.00011757275871983283,
+      -4.453522579733377e-05
+    ],
+    "significant": false
+  },
+  "gate3_real_gain": false,
+  "gate4_causal": false
+}

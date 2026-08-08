@@ -1,0 +1,12 @@
+{
+  "thresholds": {
+    "frangi_sim": 0.9219689667224884,
+    "phase_sym": 0.4652860760688782,
+    "ofs": 0.08623773604631424,
+    "dbic": 0.737444281578064
+  },
+  "quantile": 0.995,
+  "samples": 120,
+  "split": "train",
+  "frozen": true
+}
