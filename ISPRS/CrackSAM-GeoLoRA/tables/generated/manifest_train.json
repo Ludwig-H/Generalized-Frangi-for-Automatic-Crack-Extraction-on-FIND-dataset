@@ -1,0 +1,35 @@
+{
+  "split": "train",
+  "images": 481,
+  "cached": 9605,
+  "evidence_size": 224,
+  "channels": 11,
+  "target_width_px": 9.55,
+  "frangi_scales": [
+    1.5,
+    3.0,
+    5.0,
+    8.0,
+    12.0
+  ],
+  "ofs_radii": [
+    2,
+    3,
+    4,
+    6,
+    8
+  ],
+  "phase_wavelengths": [
+    5.0,
+    8.0,
+    12.0,
+    18.0
+  ],
+  "profile_sigmas": [
+    1.2,
+    2.0,
+    3.0,
+    4.5,
+    6.0
+  ]
+}
