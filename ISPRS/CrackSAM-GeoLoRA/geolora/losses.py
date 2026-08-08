@@ -94,3 +94,55 @@ def consistency_loss(
     return F.mse_loss(
         torch.sigmoid(shadowed_logits), torch.sigmoid(clean_logits).detach()
     )
+
+
+def soft_dilate(mask: torch.Tensor, radius: int) -> torch.Tensor:
+    """Dilatation douce par max-pooling, différentiable.
+
+    Approximation carrée de la dilatation euclidienne employée par la métrique.
+    L'écart est sans conséquence ici : le rayon n'est pas une grandeur à
+    estimer, c'est une tolérance choisie.
+    """
+
+    if radius <= 0:
+        return mask
+    size = 2 * int(radius) + 1
+    return F.max_pool2d(mask, kernel_size=size, stride=1, padding=int(radius))
+
+
+def tolerant_loss(
+    probabilities: torch.Tensor,
+    targets: torch.Tensor,
+    radius: int,
+    smooth: float = 1.0,
+) -> torch.Tensor:
+    """``1 − F1`` tolérant : ne pénalise plus le placement à moins de ``radius``.
+
+    Version douce et différentiable de la métrique ``buffered`` de
+    ``scripts/05_tolerant_iou.py`` :
+
+    * un pixel prédit compte s'il tombe à moins de ``radius`` de la vérité ;
+    * un pixel vrai est couvert s'il a une prédiction à moins de ``radius``.
+
+    Motivation mesurée : sur ce corpus, dilater la vérité terrain d'un seul
+    pixel fait chuter son IoU contre elle-même à ``0,881``. Faire payer au
+    réseau une erreur de frontière d'un pixel détourne sa capacité de ce qui
+    compte — les branches manquées et les ruptures.
+    """
+
+    if probabilities.shape != targets.shape:
+        raise ValueError(
+            f"formes incompatibles : {probabilities.shape} et {targets.shape}"
+        )
+    dilated_targets = soft_dilate(targets, radius)
+    dilated_predictions = soft_dilate(probabilities, radius)
+
+    precision = (
+        torch.sum(probabilities * dilated_targets, dim=(1, 2, 3)) + smooth
+    ) / (torch.sum(probabilities, dim=(1, 2, 3)) + smooth)
+    recall = (
+        torch.sum(targets * dilated_predictions, dim=(1, 2, 3)) + smooth
+    ) / (torch.sum(targets, dim=(1, 2, 3)) + smooth)
+
+    f1 = 2.0 * precision * recall / (precision + recall + 1e-8)
+    return (1.0 - f1).mean()

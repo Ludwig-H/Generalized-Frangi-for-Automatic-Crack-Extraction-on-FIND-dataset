@@ -51,11 +51,17 @@ from cracksam2.model import (  # noqa: E402
     load_adapter_state_dict,
 )
 from geolora.adapter import GeometryAdapter, GeoGuidedCrackSAM2  # noqa: E402
-from geolora.losses import soft_cldice_loss  # noqa: E402
+from geolora.losses import soft_cldice_loss, tolerant_loss  # noqa: E402
 
-VARIANTS = ("baseline", "cldice", "geo", "geo_permuted", "geo_noise")
+VARIANTS = (
+    "baseline", "cldice", "geo", "geo_permuted", "geo_noise",
+    # Variantes tolérantes : la perte cesse de pénaliser une erreur de
+    # placement inférieure au rayon. Motivées par la mesure du §9 du rapport.
+    "tol3", "tol5", "geo_tol3",
+)
 SEED = 3407
 CLDICE_WEIGHT = 0.5
+TOLERANT_WEIGHT = 0.5
 
 
 class EvidenceDataset(Dataset):
@@ -189,13 +195,17 @@ def main() -> int:
     amp_dtype = torch.bfloat16
     args.output.mkdir(parents=True, exist_ok=True)
 
-    uses_geometry = args.variant in {"geo", "geo_permuted", "geo_noise"}
+    uses_geometry = args.variant in {"geo", "geo_permuted", "geo_noise", "geo_tol3"}
     mode = {
         "geo": "aligned",
         "geo_permuted": "permuted",
         "geo_noise": "noise",
+        "geo_tol3": "aligned",
     }.get(args.variant, "aligned")
-    uses_cldice = args.variant != "baseline"
+    # Les variantes tolérantes isolent la tolérance : elles n'ajoutent PAS
+    # clDice, faute de quoi on mesurerait la somme des deux effets.
+    tolerance = {"tol3": 3, "tol5": 5, "geo_tol3": 3}.get(args.variant, 0)
+    uses_cldice = args.variant in {"cldice", "geo", "geo_permuted", "geo_noise"}
 
     def make(split_list: Path, split: str, limit: int | None, evidence_split: str):
         base = CrackSegmentationDataset(
@@ -304,6 +314,10 @@ def main() -> int:
                 loss = loss + CLDICE_WEIGHT * soft_cldice_loss(
                     torch.sigmoid(logits), masks
                 )
+            if tolerance:
+                loss = loss + TOLERANT_WEIGHT * tolerant_loss(
+                    torch.sigmoid(logits), masks, tolerance
+                )
             optimiser.zero_grad(set_to_none=True)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(trainable, 1.0)
@@ -372,6 +386,7 @@ def main() -> int:
         "trainable_parameters": int(sum(p.numel() for p in trainable)),
         "uses_geometry": uses_geometry,
         "uses_cldice": uses_cldice,
+        "tolerance_radius": tolerance,
         "evidence_mode": mode if uses_geometry else None,
         "best": best,
         "history": history,
