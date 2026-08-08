@@ -1,0 +1,37 @@
+{
+  "bootstrap": 2000,
+  "cases": 78,
+  "conditions": [
+    "original",
+    "noisy1",
+    "noisy2"
+  ],
+  "data_root_runtime": "/tmp/cracksam2-data",
+  "elapsed_seconds": 1089.032166555,
+  "image_size": 224,
+  "maps": [
+    "frangi_similarity_historical",
+    "frangi_relative",
+    "black_tophat",
+    "derivative_pair",
+    "paired_profile",
+    "line_step_bic",
+    "phase_symmetry",
+    "ofs",
+    "ofs_reflectance",
+    "fusion_ofs_profile",
+    "fusion_precision",
+    "fusion_reflectance",
+    "verified_frangi_ofs",
+    "verified_frangi_bic",
+    "verified_frangi_v2",
+    "verified_frangi_consensus"
+  ],
+  "metric_rows": 1248,
+  "missing_external_cases": [],
+  "random_cases": 8,
+  "schema_version": 1,
+  "seed": 20260808,
+  "shadow_cases": 16,
+  "shadow_rows": 768
+}

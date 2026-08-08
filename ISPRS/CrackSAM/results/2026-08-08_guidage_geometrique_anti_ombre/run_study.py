@@ -25,6 +25,7 @@ from dataclasses import dataclass
 from pathlib import Path
 import shutil
 import sys
+import textwrap
 import time
 from typing import Iterable, Mapping, Sequence
 
@@ -142,6 +143,11 @@ def _parse_args() -> argparse.Namespace:
         action="store_true",
         help="Ne génère pas les panneaux individuels (tables et atlas conservés).",
     )
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Reprend les cas déjà validés dans les CSV générés sans les recalculer.",
+    )
     return parser.parse_args()
 
 
@@ -188,8 +194,29 @@ def _atomic_json(path: Path, value: object) -> None:
     os.replace(temporary, path)
 
 
-def _prepare_output(output: Path) -> None:
+def _read_csv_rows(path: Path) -> list[dict[str, object]]:
+    if not path.is_file():
+        return []
+    with path.open(newline="", encoding="utf-8-sig") as source:
+        rows: list[dict[str, object]] = []
+        for source_row in csv.DictReader(source):
+            row: dict[str, object] = {}
+            for key, value in source_row.items():
+                if value == "":
+                    row[key] = math.nan
+                    continue
+                try:
+                    row[key] = float(value)
+                except (TypeError, ValueError):
+                    row[key] = value
+            rows.append(row)
+        return rows
+
+
+def _prepare_output(output: Path, resume: bool) -> None:
     output.mkdir(parents=True, exist_ok=True)
+    if resume:
+        return
     # Nettoyage strictement borné aux sorties possédées par ce script.
     for relative in ("figures/generated", "tables/generated"):
         path = output / relative
@@ -198,6 +225,7 @@ def _prepare_output(output: Path) -> None:
         elif path.exists():
             path.unlink()
     (output / "study_manifest.json").unlink(missing_ok=True)
+    (output / "study_progress.json").unlink(missing_ok=True)
 
 
 def _selected_khanhha_cases(random_cases: int) -> tuple[list[str], set[str]]:
@@ -446,13 +474,7 @@ def _case_figure(
     mask: np.ndarray,
     maps: Mapping[str, np.ndarray],
 ) -> None:
-    path = (
-        output
-        / "figures/generated/cases"
-        / spec.dataset
-        / spec.condition
-        / f"{_slug(spec.case_name)}.png"
-    )
+    path = _case_figure_path(output, spec)
     path.parent.mkdir(parents=True, exist_ok=True)
     columns = 5
     panels: list[tuple[str, np.ndarray, str | None]] = [
@@ -477,6 +499,16 @@ def _case_figure(
     plt.close(figure)
 
 
+def _case_figure_path(output: Path, spec: CaseSpec) -> Path:
+    return (
+        output
+        / "figures/generated/cases"
+        / spec.dataset
+        / spec.condition
+        / f"{_slug(spec.case_name)}.png"
+    )
+
+
 def _atlas(
     path: Path,
     records: Sequence[tuple[str, np.ndarray, np.ndarray, Mapping[str, np.ndarray]]],
@@ -494,7 +526,15 @@ def _atlas(
     )
     for row, (label, image, mask, maps) in enumerate(records):
         axes[row, 0].imshow(image)
-        axes[row, 0].set_ylabel(label, fontsize=8)
+        wrapped_label = "\n".join(textwrap.wrap(label.replace("\n", " · "), width=25))
+        axes[row, 0].set_ylabel(
+            wrapped_label,
+            fontsize=7,
+            rotation=0,
+            ha="right",
+            va="center",
+            labelpad=6,
+        )
         axes[row, 1].imshow(mask, cmap="gray", vmin=0, vmax=1)
         for column, name in enumerate(map_names, start=2):
             axes[row, column].imshow(maps[name], cmap="magma", vmin=0.0, vmax=1.0)
@@ -605,47 +645,105 @@ def main() -> None:
     output = args.output.expanduser().resolve()
     if args.image_size < 96:
         raise ValueError("--image-size doit être >= 96")
-    _prepare_output(output)
+    _prepare_output(output, args.resume)
     cases, missing_external = _build_cases(data_root, args.random_cases)
     manifest_rows = [spec.__dict__ for spec in cases]
     _atomic_csv(output / "tables/generated/cases_manifest.csv", manifest_rows)
 
-    metric_rows: list[dict[str, object]] = []
-    shadow_rows: list[dict[str, object]] = []
-    clean_cache: dict[str, tuple[np.ndarray, np.ndarray, dict[str, np.ndarray]]] = {}
-    mandatory_atlas: list[tuple[str, np.ndarray, np.ndarray, Mapping[str, np.ndarray]]] = []
-    external_atlas: list[tuple[str, np.ndarray, np.ndarray, Mapping[str, np.ndarray]]] = []
+    metric_path = output / "tables/generated/per_case_metrics.csv"
+    shadow_path = output / "tables/generated/shadow_stress_per_case.csv"
+    progress_path = output / "study_progress.json"
+    metric_rows = _read_csv_rows(metric_path) if args.resume else []
+    shadow_rows = _read_csv_rows(shadow_path) if args.resume else []
+    previous_elapsed = 0.0
+    if args.resume and progress_path.is_file():
+        progress = json.loads(progress_path.read_text(encoding="utf-8"))
+        previous_elapsed = float(progress.get("elapsed_seconds", 0.0))
+    elif args.resume and (output / "study_manifest.json").is_file():
+        previous_manifest = json.loads(
+            (output / "study_manifest.json").read_text(encoding="utf-8")
+        )
+        previous_elapsed = float(previous_manifest.get("elapsed_seconds", 0.0))
     started = time.perf_counter()
+
+    def checkpoint() -> None:
+        _atomic_json(
+            progress_path,
+            {
+                "schema_version": 1,
+                "elapsed_seconds": previous_elapsed + time.perf_counter() - started,
+                "metric_rows": len(metric_rows),
+                "shadow_rows": len(shadow_rows),
+            },
+        )
+
+    metric_keys = {
+        (str(row["dataset"]), str(row["case_name"]), str(row["condition"]), str(row["map"]))
+        for row in metric_rows
+    }
+    if len(metric_keys) != len(metric_rows):
+        raise RuntimeError("Le CSV de reprise contient des lignes métriques dupliquées")
+    expected_maps = set(DISPLAY_MAPS)
     for index, spec in enumerate(cases, start=1):
+        prefix = (spec.dataset, spec.case_name, spec.condition)
+        completed_maps = {
+            map_name
+            for dataset, case_name, condition, map_name in metric_keys
+            if (dataset, case_name, condition) == prefix
+        }
+        figure_ready = (
+            not spec.qualitative
+            or args.skip_case_figures
+            or _case_figure_path(output, spec).is_file()
+        )
+        if completed_maps == expected_maps and figure_ready:
+            print(
+                f"[{index:03d}/{len(cases):03d}] repris {spec.dataset}/{spec.condition}/"
+                f"{spec.case_name}",
+                flush=True,
+            )
+            continue
+        metrics_complete = completed_maps == expected_maps
+        if completed_maps and not metrics_complete:
+            metric_rows = [
+                row
+                for row in metric_rows
+                if (str(row["dataset"]), str(row["case_name"]), str(row["condition"]))
+                != prefix
+            ]
+            metric_keys = {
+                key for key in metric_keys if key[:3] != prefix
+            }
         image, mask = _load_case(data_root, spec, args.image_size)
         bank = compute_filter_bank(image)
+        if set(bank.maps) != expected_maps:
+            raise RuntimeError(
+                f"Cartes inattendues pour {spec.case_name}: {sorted(bank.maps)}"
+            )
         print(
             f"[{index:03d}/{len(cases):03d}] {spec.dataset}/{spec.condition}/{spec.case_name}",
             flush=True,
         )
-        for map_name, score in bank.maps.items():
-            metric_rows.append(
-                {
-                    **spec.__dict__,
-                    "map": map_name,
-                    **_map_metrics(mask, score),
-                }
-            )
+        if not metrics_complete:
+            for map_name, score in bank.maps.items():
+                metric_rows.append(
+                    {
+                        **spec.__dict__,
+                        "map": map_name,
+                        **_map_metrics(mask, score),
+                    }
+                )
+                metric_keys.add((*prefix, map_name))
         if spec.qualitative and not args.skip_case_figures:
             _case_figure(output, spec, image, mask, bank.maps)
-        if (
-            spec.dataset == "khanhha"
-            and MANDATORY_PRESENTATION_CASES.get(spec.case_name) == spec.condition
-        ):
-            mandatory_atlas.append((
-                f"{spec.condition}\n{spec.case_name}", image, mask, bank.maps
-            ))
-        if spec.dataset == "khanhha" and spec.condition == "original":
-            clean_cache[spec.case_name] = (image, mask, bank.maps)
-        elif spec.dataset != "khanhha":
-            external_atlas.append((f"{spec.dataset}\n{spec.case_name}", image, mask, bank.maps))
+        _atomic_csv(metric_path, metric_rows)
+        checkpoint()
 
-    _atomic_csv(output / "tables/generated/per_case_metrics.csv", metric_rows)
+    expected_metric_rows = len(cases) * len(DISPLAY_MAPS)
+    if len(metric_rows) != expected_metric_rows:
+        raise RuntimeError(
+            f"Campagne réelle incomplète: {len(metric_rows)}/{expected_metric_rows} lignes"
+        )
     summary_rows = _summaries(metric_rows, args.bootstrap, args.seed)
     _atomic_csv(output / "tables/generated/summary_metrics.csv", summary_rows)
 
@@ -654,22 +752,62 @@ def main() -> None:
         for spec in cases
         if spec.dataset == "khanhha" and spec.role == "anchor"
     }
-    mandatory_shadow_names = sorted(set(MANDATORY_PRESENTATION_CASES) & set(clean_cache))
+    khanhha_names = {
+        spec.case_name for spec in cases if spec.dataset == "khanhha"
+    }
+    mandatory_shadow_names = sorted(set(MANDATORY_PRESENTATION_CASES) & khanhha_names)
     other_anchor_names = sorted(
-        (anchor_names - set(mandatory_shadow_names)) & set(clean_cache),
+        anchor_names - set(mandatory_shadow_names),
         key=lambda name: _stable_hash("shadow-anchor", name),
     )
     complementary_names = sorted(
-        set(clean_cache) - anchor_names,
+        khanhha_names - anchor_names,
         key=lambda name: _stable_hash("shadow-complement", name),
     )
     shadow_names = (mandatory_shadow_names + other_anchor_names + complementary_names)[
         : max(0, int(args.shadow_cases))
     ]
-    shadow_atlas: list[tuple[str, np.ndarray, np.ndarray, Mapping[str, np.ndarray]]] = []
-    for case_index, case_name in enumerate(shadow_names):
-        clean_image, mask, clean_maps = clean_cache[case_name]
+    shadow_keys = {
+        (str(row["case_name"]), str(row["shadow_kind"]), str(row["map"]))
+        for row in shadow_rows
+    }
+    if len(shadow_keys) != len(shadow_rows):
+        raise RuntimeError("Le CSV de reprise contient des lignes d'ombre dupliquées")
+    for case_name in shadow_names:
+        complete_case = all(
+            (case_name, shadow_kind, map_name) in shadow_keys
+            for shadow_kind in ("hard", "soft", "curved")
+            for map_name in DISPLAY_MAPS
+        )
+        if complete_case:
+            print(f"[ombre] repris {case_name}", flush=True)
+            continue
+        clean_spec = CaseSpec("khanhha", case_name, "original", "anchor", False)
+        clean_image, mask = _load_case(data_root, clean_spec, args.image_size)
+        clean_maps = compute_filter_bank(clean_image).maps
         for shadow_kind in ("hard", "soft", "curved"):
+            completed_shadow_maps = {
+                map_name
+                for stored_case, stored_kind, map_name in shadow_keys
+                if stored_case == case_name and stored_kind == shadow_kind
+            }
+            if completed_shadow_maps == expected_maps:
+                print(f"[ombre] repris {shadow_kind}/{case_name}", flush=True)
+                continue
+            if completed_shadow_maps:
+                shadow_rows = [
+                    row
+                    for row in shadow_rows
+                    if not (
+                        str(row["case_name"]) == case_name
+                        and str(row["shadow_kind"]) == shadow_kind
+                    )
+                ]
+                shadow_keys = {
+                    key
+                    for key in shadow_keys
+                    if not (key[0] == case_name and key[1] == shadow_kind)
+                }
             seed = int.from_bytes(_stable_hash(str(args.seed), case_name, shadow_kind)[:8], "little")
             shadow_image, shadow_region, boundary = _synthetic_shadow(
                 clean_image, shadow_kind, seed
@@ -687,13 +825,41 @@ def main() -> None:
                         **_shadow_metrics(clean_maps[map_name], score, mask, boundary),
                     }
                 )
-            if case_name in MANDATORY_PRESENTATION_CASES and shadow_kind == "hard":
-                shadow_atlas.append((case_name, shadow_image, mask, shadow_maps))
+                shadow_keys.add((case_name, shadow_kind, map_name))
+            _atomic_csv(shadow_path, shadow_rows)
+            checkpoint()
 
-    _atomic_csv(output / "tables/generated/shadow_stress_per_case.csv", shadow_rows)
+    expected_shadow_rows = len(shadow_names) * 3 * len(DISPLAY_MAPS)
+    if len(shadow_rows) != expected_shadow_rows:
+        raise RuntimeError(
+            f"Stress-test incomplet: {len(shadow_rows)}/{expected_shadow_rows} lignes"
+        )
     shadow_summary = _shadow_summary(shadow_rows)
     _atomic_csv(output / "tables/generated/shadow_stress_summary.csv", shadow_summary)
 
+    mandatory_atlas: list[tuple[str, np.ndarray, np.ndarray, Mapping[str, np.ndarray]]] = []
+    for case_name, condition in MANDATORY_PRESENTATION_CASES.items():
+        spec = CaseSpec("khanhha", case_name, condition, "presentation", True)
+        image, mask = _load_case(data_root, spec, args.image_size)
+        mandatory_atlas.append(
+            (f"{condition}\n{case_name}", image, mask, compute_filter_bank(image).maps)
+        )
+    external_atlas: list[tuple[str, np.ndarray, np.ndarray, Mapping[str, np.ndarray]]] = []
+    for dataset, case_name, role in EXTERNAL_PRESENTATION_CASES:
+        spec = CaseSpec(dataset, case_name, "original", role, True)
+        image, mask = _load_case(data_root, spec, args.image_size)
+        external_atlas.append(
+            (f"{dataset}\n{case_name}", image, mask, compute_filter_bank(image).maps)
+        )
+    shadow_atlas: list[tuple[str, np.ndarray, np.ndarray, Mapping[str, np.ndarray]]] = []
+    for case_name in sorted(MANDATORY_PRESENTATION_CASES):
+        spec = CaseSpec("khanhha", case_name, "original", "presentation", True)
+        clean_image, mask = _load_case(data_root, spec, args.image_size)
+        seed = int.from_bytes(_stable_hash(str(args.seed), case_name, "hard")[:8], "little")
+        shadow_image, _, _ = _synthetic_shadow(clean_image, "hard", seed)
+        shadow_atlas.append(
+            (case_name, shadow_image, mask, compute_filter_bank(shadow_image).maps)
+        )
     mandatory_atlas.sort(key=lambda item: item[0])
     _atlas(
         output / "figures/generated/atlas_presentation_khanhha.png",
@@ -742,11 +908,12 @@ def main() -> None:
         "metric_rows": len(metric_rows),
         "shadow_rows": len(shadow_rows),
         "missing_external_cases": missing_external,
-        "elapsed_seconds": time.perf_counter() - started,
+        "elapsed_seconds": previous_elapsed + time.perf_counter() - started,
         "seed": args.seed,
         "bootstrap": args.bootstrap,
     }
     _atomic_json(output / "study_manifest.json", manifest)
+    progress_path.unlink(missing_ok=True)
     print(json.dumps(manifest, indent=2, ensure_ascii=False), flush=True)
 
 
