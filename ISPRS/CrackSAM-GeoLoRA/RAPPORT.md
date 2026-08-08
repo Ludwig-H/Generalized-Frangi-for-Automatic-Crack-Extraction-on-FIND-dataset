@@ -16,6 +16,11 @@ est *apprise dans* le modèle plutôt qu'appliquée en correction après coup.
 > LoRA déjà entraînée sur ce domaine. La perte de continuité `soft-clDice`, elle,
 > produit un effet réel et important — mais qui n'est pas un gain d'IoU. Aucune
 > variante ne bat la baseline.
+>
+> **Réserve majeure :** tout ce rapport mesure en IoU **stricte**, inadaptée à
+> des structures aussi fines. Deux pixels de tolérance font gagner `+48 %`
+> relatif à la baseline, et les écarts entre variantes sont du même ordre que le
+> bruit de placement. Voir [§9](#9-mesure-et-entraînement-tolérants--priorité-1).
 
 ---
 
@@ -29,6 +34,7 @@ est *apprise dans* le modèle plutôt qu'appliquée en correction après coup.
 6. [Limites](#6-limites)
 7. [Incidents d'exécution](#7-incidents-dexécution)
 8. [Suite](#8-suite)
+9. [Mesure et entraînement tolérants — priorité 1](#9-mesure-et-entraînement-tolérants--priorité-1)
 
 ---
 
@@ -347,14 +353,125 @@ même**.
 
 | Priorité | Action | Coût |
 |:--:|:---|:--|
-| 1 | **Porter l'expérience en multimodal sur FIND.** SAM 2 n'a structurellement pas accès à la portée ; une hessienne fusionnée intensité + portée lui apporte une information qu'aucun entraînement visible ne peut créer. C'est la thèse de l'article ISPRS. | 1 session G4 |
-| 2 | **Trancher la métrique.** Si l'objectif est l'extraction de réseau, `soft-clDice` est un **succès** mal mesuré par l'IoU. Cette décision conditionne tout le reste. | discussion |
+| **1** | **Mesurer ET entraîner à tolérance 3 px et 5 px** — voir [§9](#9-mesure-et-entraînement-tolérants--priorité-1). Conditionne l'interprétation de tout ce qui précède. | 1 session G4 |
+| 2 | **Porter l'expérience en multimodal sur FIND.** SAM 2 n'a structurellement pas accès à la portée ; une hessienne fusionnée intensité + portée lui apporte une information qu'aucun entraînement visible ne peut créer. C'est la thèse de l'article ISPRS. | 1 session G4 |
 | 3 | **Rendre l'évidence multi-échelle** au lieu de l'accorder à une largeur moyenne non représentative (§5), et exploiter `ofa`, le meilleur détecteur du banc. | 1 session G4 |
 | 4 | **Exécuter `geo_permuted` et `geo_noise`** avant toute revendication, même faible. | 1 session G4 |
 
 > [!CAUTION]
 > Ce qu'il ne faut **pas** faire : augmenter la capacité de l'adapter, allonger
 > l'entraînement, ou empiler un GNN. Le signal n'est pas faible, il est absent.
+
+---
+
+## 9. Mesure et entraînement tolérants — priorité 1
+
+> [!IMPORTANT]
+> **Toutes les conclusions de ce rapport reposent sur une IoU stricte, et cette
+> métrique est inadaptée à des structures aussi fines.** Les écarts déclarés —
+> `−0,0175` pour `cldice`, `+0,0017` pour `geo` — sont du même ordre de grandeur
+> que le bruit de placement de frontière. Le classement des variantes peut
+> changer à tolérance 3 px ou 5 px.
+
+### 9.1 Pourquoi c'est décisif
+
+Deux mesures, faites sur ce corpus, le montrent sans ambiguïté.
+
+**La vérité terrain ne se ressemble pas à elle-même.** Dilatée d'un seul pixel,
+elle obtient `0,881` d'IoU contre sa version d'origine ; de deux pixels, `0,799`.
+Un décalage d'un pixel coûte donc déjà douze points.
+
+**Mesure préliminaire sur 36 images de test, baseline** — les masques des trois
+variantes étant restés sur la VM, ce tableau ne porte que sur la baseline et sur
+un échantillon :
+
+| Tolérance | IoU masques dilatés | **IoU tampon** | Précision | Rappel |
+|---:|---:|---:|---:|---:|
+| 0 px | 0,5071 | **0,5071** | 0,5704 | 0,8665 |
+| 1 px | 0,5770 | **0,6475** | 0,7018 | 0,9055 |
+| **2 px** | 0,6235 | **0,7491** | 0,7971 | 0,9267 |
+| **3 px** | 0,6639 | **0,8278** | 0,8715 | 0,9405 |
+| **5 px** | 0,7214 | **0,8983** | 0,9384 | 0,9523 |
+| 8 px | 0,7698 | 0,9284 | 0,9655 | 0,9585 |
+
+Deux pixels de tolérance font passer l'IoU de `0,51` à `0,75`, soit **+48 %
+relatif**. Surtout, la précision grimpe bien plus vite que le rappel
+(`0,570 → 0,797` contre `0,867 → 0,927`) : **l'essentiel des « faux positifs » se
+situe à moins de deux pixels de la vérité terrain.** Ce ne sont pas de fausses
+détections, c'est du débordement de frontière — précisément ce que l'IoU stricte
+sanctionne le plus lourdement et ce qui importe le moins pour extraire un réseau.
+
+### 9.2 Les deux définitions, et laquelle privilégier
+
+| Définition | Formule | Comportement |
+|:---|:---|:---|
+| `dilate_both` | `IoU(dil(P,k), dil(G,k))` | convention EUVIP du dépôt (`thicken(sk, 6)`). Sature lentement, mais épaissit tout : à `k=8` un décalage de 2 px vaut encore `0,80` |
+| **`buffered`** | `P_k = \|P ∩ dil(G,k)\|/\|P\|`, `R_k = \|G ∩ dil(P,k)\|/\|G\|`, puis `F1_k` et `IoU = F1/(2−F1)` | mesure une **distance d'appariement**. À privilégier pour conclure |
+
+Validation sur cas synthétiques — la tolérance doit pardonner le placement,
+**jamais** la topologie :
+
+| Cas | `k=0` | `k=1` | `k=2` | `k=5` |
+|:---|---:|---:|---:|---:|
+| prédiction parfaite | 1,000 | 1,000 | 1,000 | 1,000 |
+| décalée de 2 px | 0,200 | 0,500 | **1,000** | 1,000 |
+| deux fois trop large | 0,429 | 0,714 | **1,000** | 1,000 |
+| **rompue en son milieu** | 0,875 | 0,887 | 0,900 | **0,938** |
+
+Une rupture reste pénalisée à toutes les tolérances : c'est ce qui rend la
+mesure utilisable pour juger de la continuité.
+
+### 9.3 Entraîner avec la tolérance, pas seulement mesurer
+
+Si l'erreur dominante est un débordement de frontière, la faire payer à
+l'entraînement détourne la capacité du réseau de ce qui compte — les branches
+manquées et les ruptures. D'où une **perte tolérante**, version douce et
+différentiable de la métrique `buffered` du §9.2 :
+
+```text
+G_k = maxpool(G, 2k+1)      dilatation douce de la vérité
+P_k = maxpool(P, 2k+1)      dilatation douce de la prédiction
+
+précision_tol = Σ(P · G_k) / ΣP        un pixel prédit à moins de k compte
+rappel_tol    = Σ(G · P_k) / ΣG        un pixel vrai couvert à moins de k compte
+L_tol = 1 − 2·précision_tol·rappel_tol / (précision_tol + rappel_tol)
+```
+
+La dilatation par `maxpool` est exactement la machinerie morphologique déjà
+employée par `soft_skeleton` dans [`geolora/losses.py`](geolora/losses.py) : le
+gradient passe, et l'implémentation réutilise du code testé.
+
+> [!NOTE]
+> Cette perte est le **complément naturel de `soft-clDice`**, pas son
+> concurrent. `clDice` supervise la topologie, la perte tolérante cesse de
+> pénaliser le placement. Le §3 montre que `clDice` échange 8,5 points de
+> précision contre 9,6 points de rappel — sous tolérance, une grande part de
+> cette « perte de précision » devrait disparaître, puisqu'elle est faite de
+> pixels à moins de deux pixels de la cible.
+
+### 9.4 Protocole à exécuter
+
+**Mesures** — rejouer les trois variantes déjà entraînées à `k ∈ {0,1,2,3,5,8}`,
+avec les deux définitions. Purement CPU, quelques minutes, une fois les masques
+récupérés. Le script existe :
+[`scripts/05_tolerant_iou.py`](scripts/05_tolerant_iou.py).
+
+**Entraînements** — deux nouvelles variantes, à budget identique aux
+précédentes :
+
+| Variante | Perte | Ce qu'elle isole |
+|:---|:---|:---|
+| `tol3` | Dice + CE + perte tolérante `k=3` | l'effet de la tolérance seule |
+| `tol5` | Dice + CE + perte tolérante `k=5` | sa sensibilité au rayon |
+| `geo_tol3` | idem `tol3` + adapter géométrique | la géométrie **sous** une métrique adaptée |
+
+Le troisième est le plus important : il rejoue le barreau 2 dans un régime où
+l'erreur de placement ne masque plus le signal. **Si la géométrie doit servir à
+quelque chose, c'est là qu'on le verra.**
+
+Critère de succès pré-enregistré : `IoU tampon k=3` supérieure à celle de la
+baseline mesurée à la même tolérance, avec IC95 excluant zéro. Comparer à
+tolérance égale, jamais une variante tolérante à une baseline stricte.
 
 ---
 
