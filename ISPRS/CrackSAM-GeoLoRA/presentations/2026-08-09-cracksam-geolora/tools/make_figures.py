@@ -38,17 +38,14 @@ PANELS = ("image", "gt", "ref", "var", "frangi", "ofs", "ofa", "phase")
 #: comparée : ``b2t`` baseline vers tol3, ``t2g`` tol3 vers geo_tol3, ``b2g``
 #: baseline vers geo (famille clDice).
 CASES: dict[str, str] = {
-    # baseline -> tol3 : ce que la perte tolérante change
+    # baseline -> tol3 : ce que la dilatation gagne, et ce qu'elle coûte
     "b2t_gain_ct6774": "case_baseline_vs_tol3_reussite_04_cracktree200_6774.jpg",
+    "b2t_loss_gaps552": "case_baseline_vs_tol3_echec_02_GAPS384_train_0552_1_641.jpg",
     "b2t_loss_crack171336": "case_baseline_vs_tol3_echec_00_CRACK500_20160405_171336_641_361.jpg",
     "b2t_loss_riss": "case_baseline_vs_tol3_echec_01_Rissbilder_for_Florian_9S6A2817_67_221_2558_2411.jpg",
-    # tol3 -> geo_tol3 : ce que la géométrie change
-    "t2g_gain_riss": "case_tol3_vs_geo_tol3_reussite_04_Rissbilder_for_Florian_9S6A2817_67_221_2558_2411.jpg",
+    # tol3 -> geo_tol3 : les deux plus grands gains de la géométrie
     "t2g_gain_crack171336": "case_tol3_vs_geo_tol3_reussite_05_CRACK500_20160405_171336_641_361.jpg",
-    "t2g_loss_gaps608": "case_tol3_vs_geo_tol3_echec_00_GAPS384_train_0608_1_1.jpg",
-    # baseline -> geo : la famille clDice
-    "b2g_gain_ct6774": "case_reussite_03_cracktree200_6774.jpg",
-    "b2g_loss_cfd080": "case_echec_02_CFD_080.jpg",
+    "t2g_gain_riss": "case_tol3_vs_geo_tol3_reussite_04_Rissbilder_for_Florian_9S6A2817_67_221_2558_2411.jpg",
 }
 
 #: Vert = vrai positif, rouge = faux positif, bleu = manqué. Mêmes teintes que
