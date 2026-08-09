@@ -58,6 +58,10 @@ VARIANTS = (
     # Variantes tolérantes : la perte cesse de pénaliser une erreur de
     # placement inférieure au rayon. Motivées par la mesure du §9 du rapport.
     "tol3", "tol5", "geo_tol3",
+    # Contrôle apparié de geo_tol3 : capacité identique (744 049 params),
+    # évidence d'une AUTRE image. Sans lui, un écart geo_tol3 - tol3
+    # pourrait venir des paramètres ajoutés et non de la géométrie.
+    "geo_tol3_permuted",
 )
 SEED = 3407
 CLDICE_WEIGHT = 0.5
@@ -195,16 +199,19 @@ def main() -> int:
     amp_dtype = torch.bfloat16
     args.output.mkdir(parents=True, exist_ok=True)
 
-    uses_geometry = args.variant in {"geo", "geo_permuted", "geo_noise", "geo_tol3"}
+    uses_geometry = args.variant in {"geo", "geo_permuted", "geo_noise", "geo_tol3", "geo_tol3_permuted"}
     mode = {
         "geo": "aligned",
         "geo_permuted": "permuted",
         "geo_noise": "noise",
         "geo_tol3": "aligned",
+        "geo_tol3_permuted": "permuted",
     }.get(args.variant, "aligned")
     # Les variantes tolérantes isolent la tolérance : elles n'ajoutent PAS
     # clDice, faute de quoi on mesurerait la somme des deux effets.
-    tolerance = {"tol3": 3, "tol5": 5, "geo_tol3": 3}.get(args.variant, 0)
+    tolerance = {
+        "tol3": 3, "tol5": 5, "geo_tol3": 3, "geo_tol3_permuted": 3
+    }.get(args.variant, 0)
     uses_cldice = args.variant in {"cldice", "geo", "geo_permuted", "geo_noise"}
 
     def make(split_list: Path, split: str, limit: int | None, evidence_split: str):

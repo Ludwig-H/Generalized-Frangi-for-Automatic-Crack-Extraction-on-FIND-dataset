@@ -1,0 +1,25 @@
+{
+  "variant": "geo_tol3_permuted",
+  "checkpoint": "/home/louis_hauseux_gmail_com/geolora-run/ckpt/geo_tol3_permuted_best.pt",
+  "images": 1695,
+  "gamma": 0.001530991867184639,
+  "with_evidence": {
+    "precision": 0.7382937901106962,
+    "recall": 0.7925421245905554,
+    "dice": 0.7501534391153831,
+    "iou": 0.6265499444189966,
+    "components_pred": 5.655457227138643,
+    "components_true": 57.48436578171091,
+    "skeleton_covered": 0.7232016333821428
+  },
+  "no_evidence": {
+    "precision": 0.743754434617877,
+    "recall": 0.7902200664238584,
+    "dice": 0.7516016965696297,
+    "iou": 0.6281060309614828,
+    "components_pred": 3.231858407079646,
+    "components_true": 57.48436578171091,
+    "skeleton_covered": 0.7192452884840247
+  },
+  "evidence_is_necessary": true
+}

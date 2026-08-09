@@ -1,0 +1,25 @@
+{
+  "variant": "tol3",
+  "checkpoint": "/home/louis_hauseux_gmail_com/geolora-run/ckpt/tol3_best.pt",
+  "images": 1695,
+  "gamma": 0.0,
+  "with_evidence": {
+    "precision": 0.7400063165595441,
+    "recall": 0.793976548460774,
+    "dice": 0.7509907200201261,
+    "iou": 0.6276336740194464,
+    "components_pred": 3.309144542772861,
+    "components_true": 57.48436578171091,
+    "skeleton_covered": 0.7237972796674715
+  },
+  "no_evidence": {
+    "precision": 0.7400063165595441,
+    "recall": 0.793976548460774,
+    "dice": 0.7509907200201261,
+    "iou": 0.6276336740194464,
+    "components_pred": 3.309144542772861,
+    "components_true": 57.48436578171091,
+    "skeleton_covered": 0.7237972796674715
+  },
+  "evidence_is_necessary": false
+}

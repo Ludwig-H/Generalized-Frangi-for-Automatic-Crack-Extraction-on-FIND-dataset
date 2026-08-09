@@ -60,16 +60,19 @@ Chaque barreau est entraîné à **budget strictement égal** : mêmes données,
 nombre d'époques, même graine, même ordonnancement, en repartant de la LoRA
 archivée convergée.
 
-| # | Variante | Ce qu'elle isole |
-|---|---|---|
-| 0 | `baseline` | ancre à budget égal |
-| 1 | `cldice` | **la perte de continuité seule**, sans géométrie |
-| 2 | `geo` | l'apport propre de la géométrie |
-| 3 | `geo_permuted` | même capacité, alignement détruit — le contrôle causal |
-| 4 | `geo_noise` | capacité seule *(non exécutée, faute de temps de VM)* |
+| # | Variante | Ce qu'elle isole | IoU test |
+|---|---|---|---:|
+| 0 | `baseline` | ancre à budget égal | 0,6241 |
+| 1 | `cldice` | la perte de continuité seule | 0,6066 |
+| 2 | `geo` | `cldice` + géométrie | 0,6083 |
+| 3 | **`tol3`** | **la perte tolérante 3 px seule** | **0,6276** |
+| 4 | `geo_tol3` | `tol3` + géométrie | 0,6270 |
+| 5 | `geo_tol3_permuted` | même capacité, **alignement détruit** | 0,6265 |
 
-Le barreau 1 est le plus important et le plus souvent omis : si la continuité
-seule apporte l'essentiel, la géométrie est superflue.
+**Résultat.** `tol3` bat la baseline en IoU stricte ; sous tolérance `k ≥ 1`,
+toute la famille la dépasse. Mais `geo_tol3` et son contrôle permuté sont
+indiscernables à toutes les tolérances — **le modèle est indifférent à
+l'alignement de la géométrie**. Détail complet dans [`RAPPORT.md`](RAPPORT.md).
 
 ## Utilisation
 

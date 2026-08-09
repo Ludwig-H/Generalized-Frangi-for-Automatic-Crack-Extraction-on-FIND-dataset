@@ -81,10 +81,10 @@ def case_panel(row, data_root, split, evidence_root, masks, destination) -> None
     axes[1].imshow(tint(image, truth, (0.15, 0.85, 0.25)))
     axes[1].set_title(f"vérité terrain ({truth.mean()*100:.1f} %)")
     axes[2].imshow(agreement(image, baseline, truth))
-    axes[2].set_title(f"baseline — IoU {float(row['baseline_iou']):.3f}")
+    axes[2].set_title(f"référence — IoU {float(row['baseline_iou']):.3f}")
     axes[3].imshow(agreement(image, geo, truth))
     delta = float(row["geo_iou"]) - float(row["baseline_iou"])
-    axes[3].set_title(f"GeoLoRA — IoU {float(row['geo_iou']):.3f} ({delta:+.3f})")
+    axes[3].set_title(f"variante — IoU {float(row['geo_iou']):.3f} ({delta:+.3f})")
 
     for position, (index, label) in enumerate(
         ((0, "frangi_sim"), (1, "ofs"), (2, "ofa"), (5, "phase_sym"))
@@ -113,7 +113,7 @@ def aggregate_figure(rows, destination) -> None:
     axes[0].scatter(baseline, geo, s=5, alpha=0.25, color="#1a73e8")
     limits = [0, 1]
     axes[0].plot(limits, limits, color="black", linewidth=1, linestyle="--")
-    axes[0].set_xlabel("IoU baseline"); axes[0].set_ylabel("IoU GeoLoRA")
+    axes[0].set_xlabel("IoU référence"); axes[0].set_ylabel("IoU variante")
     axes[0].set_title("Par image : au-dessus de la diagonale = gain")
     axes[0].set_xlim(limits); axes[0].set_ylim(limits)
 
@@ -121,7 +121,7 @@ def aggregate_figure(rows, destination) -> None:
     axes[1].axvline(0, color="black", linestyle="--", linewidth=1)
     axes[1].axvline(delta.mean(), color="#d93025", linewidth=2,
                     label=f"moyenne {delta.mean():+.4f}")
-    axes[1].set_xlabel("Δ IoU (GeoLoRA − baseline)")
+    axes[1].set_xlabel("Δ IoU (variante − référence)")
     axes[1].set_ylabel("images"); axes[1].legend(fontsize=9)
     axes[1].set_title("Distribution des deltas appariés")
 
@@ -145,8 +145,13 @@ def ladder_figure(summaries: dict, destination) -> None:
     names = list(summaries)
     values = [summaries[n]["with_evidence"]["iou"] for n in names]
     figure, axis = plt.subplots(figsize=(9, 4.6))
-    colours = ["#5f6368" if n in {"baseline"} else
-               "#1a73e8" if n in {"cldice", "geo"} else "#d93025" for n in names]
+    order = ["baseline", "cldice", "geo", "tol3", "geo_tol3", "geo_tol3_permuted", "tol5"]
+    names = [n for n in order if n in summaries] + [n for n in names if n not in order]
+    values = [summaries[n]["with_evidence"]["iou"] for n in names]
+    palette = {"baseline": "#5f6368", "cldice": "#1a73e8", "geo": "#4285f4",
+               "tol3": "#188038", "geo_tol3": "#34a853",
+               "geo_tol3_permuted": "#d93025", "tol5": "#0b8043"}
+    colours = [palette.get(n, "#9aa0a6") for n in names]
     bars = axis.bar(names, values, color=colours)
     reference = summaries.get("baseline", {}).get("with_evidence", {}).get("iou")
     if reference:
@@ -171,6 +176,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--split", default="test")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--cases", type=int, default=4)
+    parser.add_argument(
+        "--pair", nargs=2, default=("baseline", "geo"),
+        metavar=("REFERENCE", "VARIANTE"),
+        help="paire comparée dans les panneaux par cas",
+    )
     return parser.parse_args()
 
 
@@ -187,8 +197,9 @@ def main() -> int:
         ladder_figure(summaries, args.output / "ablation_ladder.png")
         print("écrit ablation_ladder.png")
 
-    baseline_csv = evaluation / "per_image_baseline.csv"
-    geo_csv = evaluation / "per_image_geo.csv"
+    reference, variant = args.pair
+    baseline_csv = evaluation / f"per_image_{reference}.csv"
+    geo_csv = evaluation / f"per_image_{variant}.csv"
     if not (baseline_csv.exists() and geo_csv.exists()):
         print("per-image manquant : figures par cas ignorées")
         return 0
@@ -209,12 +220,12 @@ def main() -> int:
                 "geo_iou": geo_rows[name]["with_evidence_iou"],
             }
         )
-    aggregate_figure(rows, args.output / "per_image_overview.png")
-    print(f"écrit per_image_overview.png ({len(rows)} images)")
+    aggregate_figure(rows, args.output / f"per_image_{reference}_vs_{variant}.png")
+    print(f"écrit per_image_{reference}_vs_{variant}.png ({len(rows)} images)")
 
     masks = {
-        "baseline": evaluation / "masks_baseline",
-        "geo": evaluation / "masks_geo",
+        "baseline": evaluation / f"masks_{reference}",
+        "geo": evaluation / f"masks_{variant}",
     }
     if not all(path.exists() for path in masks.values()):
         print("masques manquants : panneaux par cas ignorés")
@@ -229,7 +240,7 @@ def main() -> int:
         stem = Path(row["name"]).stem
         case_panel(
             row, args.data_root, args.split, args.run_root / "evidence", masks,
-            args.output / f"case_{label}_{position:02d}_{stem}.png",
+            args.output / f"case_{reference}_vs_{variant}_{label}_{position:02d}_{stem}.png",
         )
         print(f"écrit case {label} {stem}")
     return 0
