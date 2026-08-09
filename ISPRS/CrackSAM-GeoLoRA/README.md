@@ -4,7 +4,9 @@
 > **apprise dans le modèle** au lieu d'être appliquée en correction *post-hoc*.
 >
 > Conçue selon le §11 du [rapport CrackSAM-GFA](../CrackSAM-GFA/RAPPORT.md).
-> Résultats et diagnostic complets dans [`RAPPORT.md`](RAPPORT.md).
+> Résultats et diagnostic complets dans [`RAPPORT.md`](RAPPORT.md), version
+> exposée dans
+> [`presentations/2026-08-09-cracksam-geolora/`](presentations/2026-08-09-cracksam-geolora/).
 
 ## Pourquoi apprendre la géométrie plutôt que la plaquer après coup
 

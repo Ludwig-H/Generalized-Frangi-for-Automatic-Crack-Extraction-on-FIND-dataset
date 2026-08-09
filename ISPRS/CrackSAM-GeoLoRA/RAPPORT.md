@@ -524,6 +524,8 @@ reprise après préemption Spot repart à l'époque suivante.
 
 ## Références internes
 
+- [Présentation Inria–Cerema du 9 août 2026](presentations/2026-08-09-cracksam-geolora/)
+  — même contenu, 26 planches Beamer, protocole et contrôle en avant
 - [CrackSAM-GFA — arbitrage de fragments](../CrackSAM-GFA/RAPPORT.md)
 - [Étude filtre-seul anti-ombre](../CrackSAM/results/2026-08-08_guidage_geometrique_anti_ombre/RAPPORT.md)
 - [Question expérimentale et vocabulaire](../CrackSAM/docs/01_EXPERIMENTAL_QUESTION.md)

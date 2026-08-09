@@ -1,0 +1,1045 @@
+\documentclass[A4,svgnames,9pt,aspectratio=169]{beamer}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning}
+
+\usetheme{inria}
+\graphicspath{{figures/}}
+
+\hypersetup{
+  colorlinks=true,
+  allcolors=rouge_inria,
+  pdfauthor={Louis Hauseux, Raphaël Antoine, Philippe Foucher, Pierre Charbonnier, Josiane Zerubia},
+  pdftitle={CrackSAM-GeoLoRA},
+  pdfsubject={Géométrie apprise dans SAM 2 : protocole, contrôle causal et résultats},
+  pdfkeywords={SAM 2, CrackSAM, LoRA, Frangi, IoU tolérante, crack segmentation}
+}
+
+\definecolor{success}{HTML}{3C8D5A}
+\definecolor{warning}{HTML}{D98200}
+\definecolor{failure}{HTML}{C9191E}
+\definecolor{inkblue}{HTML}{27348B}
+\definecolor{softblue}{HTML}{E9F2F8}
+\definecolor{softred}{HTML}{FBEAEC}
+\definecolor{softgreen}{HTML}{EAF5EE}
+\definecolor{softgray}{HTML}{F1F2F4}
+
+\newcommand{\IoU}{\mathrm{IoU}}
+\newcommand{\refmark}[1]{\textcolor{rouge_inria}{\textbf{[#1]}}}
+\newcommand{\source}[1]{%
+  \par\vfill{\raggedright\fontsize{5.8}{6.6}\selectfont\color{black!62}#1\par}%
+}
+\newcommand{\statusbadge}[2]{%
+  \tikz[baseline=(n.base)]\node[rounded corners=2pt,fill=#1!13,draw=#1!55,
+  inner xsep=4pt,inner ysep=1.5pt,text=#1,font=\bfseries\scriptsize] (n) {#2};%
+}
+\newcommand{\metriccard}[4]{%
+  \begin{tikzpicture}
+    \node[rounded corners=4pt,draw=#1!50,fill=#1!8,minimum width=3.05cm,
+      minimum height=1.35cm,align=center,inner sep=4pt] {%
+      {\scriptsize #2}\\[-1pt]
+      {\Large\bfseries\color{#1} #3}\\[-1pt]
+      {\fontsize{5.8}{6.5}\selectfont\color{black!62} #4}%
+    };
+  \end{tikzpicture}%
+}
+\newcommand{\imagepanel}[2]{%
+  \begin{minipage}[t]{0.235\textwidth}
+    \centering
+    {\scriptsize\bfseries #1}\par\vspace{2pt}
+    \setlength{\fboxsep}{1pt}%
+    \fcolorbox{black!18}{white}{\includegraphics[width=0.95\linewidth]{#2}}
+  \end{minipage}%
+}
+\newcommand{\compactpanel}[2]{%
+  \begin{minipage}[t]{0.235\textwidth}
+    \centering
+    {\fontsize{6.1}{6.8}\selectfont\bfseries #1}\par\vspace{1pt}
+    \setlength{\fboxsep}{0.7pt}%
+    \fcolorbox{black!16}{white}{%
+      \includegraphics[width=0.93\linewidth,height=1.98cm,keepaspectratio]{#2}}
+  \end{minipage}%
+}
+% Une planche par cas : entrée, vérité terrain, référence, variante.
+\newcommand{\caserow}[6]{%
+  \noindent
+  \begin{minipage}[c]{0.66\linewidth}
+    {\scriptsize\bfseries #1}
+  \end{minipage}\hfill
+  \begin{minipage}[c]{0.32\linewidth}
+    \raggedleft\statusbadge{#5}{#6}
+  \end{minipage}\par
+  \vspace{1pt}
+  \compactpanel{Entrée}{#2_image.jpg}\hfill
+  \compactpanel{Vérité terrain}{#2_gt.jpg}\hfill
+  \compactpanel{#3}{#2_ref.jpg}\hfill
+  \compactpanel{#4}{#2_var.jpg}%
+}
+% Quatre des onze canaux d'évidence de la même image.
+\newcommand{\evidencerow}[1]{%
+  \compactpanel{\texttt{frangi\_sim}}{#1_frangi.jpg}\hfill
+  \compactpanel{\texttt{ofs}}{#1_ofs.jpg}\hfill
+  \compactpanel{\texttt{ofa}}{#1_ofa.jpg}\hfill
+  \compactpanel{\texttt{phase\_sym}}{#1_phase.jpg}%
+}
+% Cinq panneaux : la même image vue par la baseline, par tol3, puis par
+% geo_tol3. Les deux premières colonnes viennent de la planche baseline-tol3,
+% la dernière de la planche tol3-geo_tol3.
+\newcommand{\widepanel}[2]{%
+  \begin{minipage}[t]{0.188\textwidth}
+    \centering
+    {\fontsize{6.1}{6.8}\selectfont\bfseries #1}\par\vspace{1pt}
+    \setlength{\fboxsep}{0.7pt}%
+    \fcolorbox{black!16}{white}{%
+      \includegraphics[width=0.93\linewidth,height=1.92cm,keepaspectratio]{#2}}
+  \end{minipage}%
+}
+\newcommand{\threewayrow}[6]{%
+  \noindent
+  \begin{minipage}[c]{0.60\linewidth}
+    {\scriptsize\bfseries #1}
+  \end{minipage}\hfill
+  \begin{minipage}[c]{0.38\linewidth}
+    \raggedleft\statusbadge{#5}{#6}
+  \end{minipage}\par
+  \vspace{1pt}
+  \widepanel{Entrée}{#2_image.jpg}\hfill
+  \widepanel{Vérité terrain}{#2_gt.jpg}\hfill
+  \widepanel{Baseline}{#2_ref.jpg}\hfill
+  \widepanel{\texttt{tol3}}{#2_var.jpg}\hfill
+  \widepanel{\texttt{geo\_tol3}}{#3_var.jpg}%
+}
+\newcommand{\synthpanel}[2]{%
+  \begin{minipage}[t]{0.185\textwidth}
+    \centering
+    {\fontsize{6.1}{6.8}\selectfont\bfseries #1}\par\vspace{1pt}
+    \setlength{\fboxsep}{0.7pt}%
+    \fcolorbox{black!16}{white}{%
+      \includegraphics[width=0.88\linewidth]{#2}}
+  \end{minipage}%
+}
+\newcommand{\colourkey}{%
+  \textcolor{success}{$\blacksquare$}~vrai positif \quad
+  \textcolor{failure}{$\blacksquare$}~faux positif \quad
+  \textcolor{inkblue}{$\blacksquare$}~manqué}
+
+\title[CrackSAM-GeoLoRA]{CrackSAM-GeoLoRA}
+\subtitle{La géométrie apprise \emph{dans} SAM 2 : protocole, contrôle causal, résultats}
+\date[09/08/2026]{9 août 2026}
+\author[L. \textsc{Hauseux} et al.]{%
+  {\small Louis \textsc{Hauseux}, Josiane \textsc{Zerubia}}\\
+  {\small Raphaël \textsc{Antoine}, Philippe \textsc{Foucher}, Pierre \textsc{Charbonnier}}%
+}
+\institute{Inria, équipe \textsc{Ayana} \quad---\quad Cerema, équipe \textsc{Endsum}}
+
+\begin{document}
+
+\frame{\titlepage}
+
+% =============================================================================
+\section{Contexte}
+
+\begin{frame}{Quatre itérations, un même verdict}
+  \centering
+  \vspace{0.10cm}
+  \begin{tikzpicture}[>=Latex,font=\scriptsize]
+    \node[rounded corners=5pt,draw=failure!50,fill=softred,text width=2.55cm,
+      minimum height=2.5cm,align=left,inner sep=6pt] at (0,0) (a) {%
+      \textbf{1. Invite dense}\\[3pt]
+      carte Frangi placée dans \texttt{mask\_input}\\[4pt]
+      \textcolor{failure}{\textbf{$-$0,0979} d'IoU}\\
+      {\fontsize{5.6}{6.2}\selectfont essai causal archivé}};
+    \node[rounded corners=5pt,draw=warning!50,fill=warning!8,text width=2.55cm,
+      minimum height=2.5cm,align=left,inner sep=6pt] at (3.1,0) (b) {%
+      \textbf{2. Résidu sélectif}\\[3pt]
+      correction révocable des logits\\[4pt]
+      \textcolor{warning}{\textbf{prototype}}\\
+      {\fontsize{5.6}{6.2}\selectfont robustesse aux ombres : hypothèse}};
+    \node[rounded corners=5pt,draw=failure!50,fill=softred,text width=2.55cm,
+      minimum height=2.5cm,align=left,inner sep=6pt] at (6.2,0) (c) {%
+      \textbf{3. Arbitrage de fragments}\\[3pt]
+      recoller les morceaux après coup\\[4pt]
+      \textcolor{failure}{\textbf{$-$0,0066} d'IoU}\\
+      {\fontsize{5.6}{6.2}\selectfont ou parité selon le pli}};
+    \node[rounded corners=5pt,draw=inkblue!55,fill=softblue,text width=2.55cm,
+      minimum height=2.5cm,align=left,inner sep=6pt] at (9.3,0) (d) {%
+      \textbf{4. GeoLoRA}\\[3pt]
+      la géométrie \textbf{apprise} dans l'encodeur\\[4pt]
+      \textcolor{inkblue}{\textbf{8--9 août 2026}}\\
+      {\fontsize{5.6}{6.2}\selectfont l'objet de ce rapport}};
+    \draw[->,very thick,black!45] (a) -- (b);
+    \draw[->,very thick,black!45] (b) -- (c);
+    \draw[->,very thick,black!45] (c) -- (d);
+  \end{tikzpicture}
+
+  \vspace{0.34cm}
+  \statusbadge{inkblue}{les trois premières corrigeaient un modèle gelé}
+  \hspace{0.4cm}
+  \statusbadge{warning}{aucune n'a produit de gain mesuré}
+
+  \source{La carte réellement injectée en juillet était \texttt{node\_sim\_max} :
+  ni MST, ni composantes, ni centralité n'intervenaient. Le résultat négatif de
+  la ligne CrackSAM ne condamne donc pas le Frangi généralisé complet.}
+\end{frame}
+
+\begin{frame}{La question de cette itération}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.475\textwidth}
+      \begin{block}{Deux raisons de réessayer}
+        \small
+        \begin{itemize}
+          \item SAM 2 ne peut structurellement pas accéder à la \textbf{portée}
+            ni au \textbf{thermique} ; aucune correction en aval ne créera
+            cette information.
+          \item Corriger une bande de \textbf{19 px} de large demande une
+            représentation \textbf{multi-échelle} qu'une retouche de logits ne
+            fournit pas.
+        \end{itemize}
+      \end{block}
+    \end{column}
+    \begin{column}{0.475\textwidth}
+      \begin{block}{Une raison d'en douter}
+        \small
+        Khánh Hà est \textbf{monomodal visible}, ses annotations sont
+        \textbf{épaisses}, et la baseline est \textbf{supervisée sur ce domaine
+        même}. La LoRA a peut-être déjà appris tout ce que la géométrie
+        propose.
+      \end{block}
+    \end{column}
+  \end{columns}
+
+  \vspace{0.36cm}
+  \centering
+  \statusbadge{inkblue}{le protocole doit pouvoir réfuter l'hypothèse, pas seulement l'illustrer}
+
+  \vspace{0.24cm}
+  \begin{tabularx}{0.94\linewidth}{>{\bfseries}p{2.9cm}X}
+    Corpus & Khánh Hà : 9\,121 train, 481 val, 1\,695 test \\
+    Modèle & SAM 2 Hiera-L, LoRA q/v $r=4$, 453\,248 paramètres \\
+    Question & la géométrie ajoute-t-elle une information que la LoRA n'a pas déjà~? \\
+  \end{tabularx}
+\end{frame}
+
+% =============================================================================
+\section{Évidence}
+
+\begin{frame}{Ce qu'on ajoute à la Frangi--similarité : onze canaux}
+  \small
+  \begin{tabularx}{\linewidth}{>{\bfseries\raggedright\arraybackslash}p{2.3cm}>{\raggedright\arraybackslash}p{2.75cm}>{\raggedright\arraybackslash}X}
+    \toprule
+    Rôle & Canaux & Principe \\
+    \midrule
+    Proposer &
+      \texttt{frangi\_sim} &
+      le \texttt{node\_sim\_max} historique, 5 échelles --- seule carte des
+      essais précédents \\
+    Récuser une ombre &
+      \texttt{ofs}, \texttt{ofa}, \texttt{abs\_energy} &
+      Oriented Flux Symmetry : tenseur de flux sur un disque, et antisymétrie
+      sur l'anneau comme confiance \refmark{5} \\
+    Trancher ligne \emph{vs} marche &
+      \texttt{even\_odd}, \texttt{dbic}, \texttt{profile} &
+      réponse paire moins impaire ; sélection de modèle $\Delta$BIC entre
+      $H_0$ et $H_1$ ; deux flancs plus clairs au même rayon \\
+    Polarité sombre &
+      \texttt{phase\_sym} &
+      Gabor en quadrature ; une marche est rejetée par $|\text{odd}|$
+      \refmark{6} \\
+    Géométrie explicite &
+      \texttt{cos2}$\theta$, \texttt{sin2}$\theta$, \texttt{scale} &
+      orientation et rayon gagnant, bornés dans $[0,1]$ \\
+    \bottomrule
+  \end{tabularx}
+
+  \vspace{0.28cm}
+  \centering
+  \statusbadge{failure}{jamais multipliés entre eux}
+  \hspace{0.35cm}
+  \statusbadge{inkblue}{séparés jusqu'à l'encodeur}
+
+  \source{L'étude filtre-seul du 8 août montre pourquoi : la fusion
+  \emph{multiplicative} anti-ombre $\times$ Frangi retombe à environ
+  \textbf{10~\%} de rétention quand la fissure passe sous l'ombre, contre
+  \textbf{89,5~\%} pour OFS seul. Sur 24 paires ligne/marche, la fuite médiane
+  d'OFS vaut \textbf{0,133} contre \textbf{1,000} pour la carte historique.}
+\end{frame}
+
+\begin{frame}{Les onze canaux sur une image réelle}
+  \centering
+  \vspace{0.06cm}
+  \imagepanel{Image}{b2t_gain_ct6774_image.jpg}\hfill
+  \imagepanel{\texttt{frangi\_sim}}{b2t_gain_ct6774_frangi.jpg}\hfill
+  \imagepanel{\texttt{ofs}}{b2t_gain_ct6774_ofs.jpg}\hfill
+  \imagepanel{\texttt{phase\_sym}}{b2t_gain_ct6774_phase.jpg}
+
+  \vspace{0.34cm}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.31\textwidth}
+      \centering\statusbadge{failure}{bande épaisse, hors sujet}\\[2pt]
+      {\fontsize{6.4}{7.4}\selectfont \texttt{frangi\_sim} est accordé sur
+      19,1 px : il fusionne le réseau en une seule coulée.}
+    \end{column}
+    \begin{column}{0.31\textwidth}
+      \centering\statusbadge{warning}{presque vide}\\[2pt]
+      {\fontsize{6.4}{7.4}\selectfont \texttt{ofs} s'abstient --- ce qui est le
+      comportement voulu, mais il ne propose alors plus rien.}
+    \end{column}
+    \begin{column}{0.31\textwidth}
+      \centering\statusbadge{warning}{saturé d'artefacts}\\[2pt]
+      {\fontsize{6.4}{7.4}\selectfont \texttt{phase\_sym} répond aux étoiles de
+      Gabor autant qu'aux fissures.}
+    \end{column}
+  \end{columns}
+
+  \source{\texttt{cracktree200\_6774}, vérité terrain à 0,8~\% de pixels. Les
+  fissures y font 1 à 2 px : c'est le régime que le réaccordage sur la largeur
+  \emph{moyenne} a sur-corrigé.}
+\end{frame}
+
+\begin{frame}{Des échelles mesurées, pas héritées}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.47\textwidth}
+      \small
+      \begin{tabularx}{\linewidth}{>{\bfseries}p{1.9cm}>{\raggedright\arraybackslash}X}
+        \toprule
+        Filtre & Paramètre \\
+        \midrule
+        Frangi & $\sigma=\{1{,}5\,;3\,;5\,;8\,;12\}$ \\
+        OFS & rayons $\{2,3,4,6,8\}$ \\
+        Phase & $\lambda=\{5\,;8\,;12\,;18\}$ \\
+        Profil, $\Delta$BIC & $\sigma=\{1{,}2\,;2\,;3\,;4{,}5\,;6\}$ \\
+        \bottomrule
+      \end{tabularx}
+
+      \vspace{0.2cm}
+      {\fontsize{6.6}{7.6}\selectfont L'évidence est calculée à
+      \textbf{224 px} : une fissure de 19,1 px à 448 y fait 9,6 px, au centre
+      de la plage validée. À 448, couvrir la même structure demanderait des
+      noyaux de Gabor de $143\times143$.}
+    \end{column}
+    \begin{column}{0.47\textwidth}
+      \begin{block}{L'erreur que la moyenne a masquée}
+        \small
+        La largeur de \textbf{19,1 px} est une médiane de corpus. Les scènes
+        \texttt{cracktree200}, \texttt{GAPS384} et \texttt{Rissbilder} ont des
+        vérités terrain à \textbf{0,4--0,8~\%} de pixels : des fissures
+        \textbf{fines}. En réaccordant sur 19,1 px, on a sur-corrigé pour une
+        partie du corpus.
+      \end{block}
+      \centering
+      \statusbadge{warning}{une évidence multi-échelle, et non mono-largeur}
+    \end{column}
+  \end{columns}
+
+  \source{Échelles gelées dans \texttt{manifest\_train.json} :
+  \texttt{target\_width\_px} $=9{,}55$, 11 canaux, 9\,605 caches d'évidence
+  calculés (environ 19 s par image, sur CPU).}
+\end{frame}
+
+% =============================================================================
+\section{Intégration}
+
+\begin{frame}{Comment la géométrie entre dans SAM 2}
+  \centering
+  \vspace{0.02cm}
+  \begin{tikzpicture}[>=Latex,font=\scriptsize]
+    \node[rounded corners=4pt,draw=black!30,fill=softgray,text width=2.0cm,
+      align=center,inner sep=4pt] at (0,0.95) (rgb) {Image RGB\\$448^2$};
+    \node[rounded corners=4pt,draw=warning!55,fill=warning!8,text width=2.35cm,
+      align=center,inner sep=4pt] at (3.0,0.95) (hiera) {%
+      \textbf{SAM 2 Hiera-L}\\LoRA q/v $r=4$\\453\,248 params};
+    \node[rounded corners=4pt,draw=black!30,fill=softgray,text width=2.0cm,
+      align=center,inner sep=4pt] at (0,-1.15) (geo) {11 canaux\\$224^2$};
+    \node[rounded corners=4pt,draw=inkblue!55,fill=softblue,text width=2.35cm,
+      align=center,inner sep=4pt] at (3.0,-1.15) (enc) {%
+      \textbf{Encodeur géométrique}\\290\,801 params};
+    \node[rounded corners=4pt,draw=inkblue!45,fill=white,text width=3.35cm,
+      align=left,inner sep=4pt] at (7.1,-1.15) (inj) {%
+      \textcolor{inkblue}{\textbf{3 projections init. à ZÉRO}}\\[1.5pt]
+      $+$ \texttt{high\_res[0]} \hfill $32{\times}256^2$\\
+      $+$ \texttt{high\_res[1]} \hfill $64{\times}128^2$\\
+      $+$ \texttt{embeddings} \hfill $256{\times}64^2$};
+    \node[rounded corners=4pt,draw=success!50,fill=softgreen,text width=2.35cm,
+      align=center,inner sep=4pt] at (10.7,0.95) (dec) {%
+      \textbf{Mask decoder}\\logits $448^2$};
+
+    \draw[->,thick] (rgb) -- (hiera);
+    \draw[->,thick] (geo) -- (enc);
+    \draw[->,thick] (enc) -- (inj);
+    \draw[->,thick] (hiera) -- (dec);
+    \draw[->,thick] (inj.east) -| (dec.south);
+  \end{tikzpicture}
+
+  \vspace{0.30cm}
+  \statusbadge{inkblue}{à l'initialisation, le modèle \emph{est} la baseline gelée}
+  \hspace{0.3cm}
+  \statusbadge{success}{\texttt{evidence=None} reste bit à bit}
+  \hspace{0.3cm}
+  \statusbadge{failure}{\texttt{mask\_input} reste un contrôle négatif}
+
+  \source{Les corrections sont \emph{additives} et injectées à trois
+  résolutions, parce que les corridors mono-échelle des essais précédents ne
+  couvraient que 1,8~\% de la vérité terrain contre 5,7~\% attendus.}
+\end{frame}
+
+\begin{frame}{Le point selle qui a coûté une heure de GPU}
+  \centering
+  \vspace{0.10cm}
+  \begin{tikzpicture}[>=Latex,font=\small]
+    \node[rounded corners=5pt,draw=failure!50,fill=softred,text width=4.6cm,
+      minimum height=2.35cm,align=center,inner sep=6pt] at (0,0) {%
+      \textbf{Version fautive}\\[4pt]
+      $\mathrm{d}z = \gamma \cdot \mathrm{proj}(x)$\\[4pt]
+      $\gamma = 0$ \textbf{et} $\mathrm{proj} = 0$\\[3pt]
+      {\scriptsize les \emph{deux} gradients s'annulent}};
+    \node[rounded corners=5pt,draw=success!50,fill=softgreen,text width=4.6cm,
+      minimum height=2.35cm,align=center,inner sep=6pt] at (6.4,0) {%
+      \textbf{Version corrigée}\\[4pt]
+      $\gamma = 1$, $\mathrm{proj} = 0$\\[4pt]
+      $\mathrm{d}z = 0$ à l'initialisation\\[3pt]
+      {\scriptsize et le gradient existe}};
+    \draw[->,very thick,black!45] (2.35,0) -- (4.05,0);
+  \end{tikzpicture}
+
+  \vspace{0.34cm}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.47\textwidth}
+      \centering
+      \statusbadge{failure}{constaté en réel}\\[3pt]
+      {\scriptsize activation $=0{,}0000$ après une époque complète, et la
+      variante géométrique \emph{numériquement identique} à sa version sans
+      géométrie.}
+    \end{column}
+    \begin{column}{0.47\textwidth}
+      \centering
+      \statusbadge{success}{test de régression}\\[3pt]
+      {\scriptsize\texttt{test\_adapter\_gradients\_are\_not\_both\_dead\_}
+      \texttt{at\_initialisation} --- l'un des 15 tests du module.}
+    \end{column}
+  \end{columns}
+
+  \source{Trois autres incidents ont coûté du GPU sans changer les
+  conclusions : un correctif transféré mais jamais extrait, deux entraînements
+  concurrents sur le même GPU, et un pilote NVIDIA cassé par un changement de
+  noyau. Le seul qui aurait pu \emph{fausser} un résultat est le point selle.}
+\end{frame}
+
+% =============================================================================
+\section{Protocole}
+
+\begin{frame}{Juger honnêtement : six exigences}
+  \small
+  \begin{tabularx}{\linewidth}{>{\bfseries\raggedright\arraybackslash}p{3.45cm}>{\raggedright\arraybackslash}X}
+    \toprule
+    Budget strictement égal &
+      5 époques, graine 3407, même ordonnancement, même départ depuis la LoRA
+      convergée. La \textbf{baseline est réentraînée} dans ces conditions :
+      l'archivée valait 70 époques, elle n'est pas comparable. \\
+    Un facteur par barreau &
+      \texttt{cldice} isole la perte de continuité ; \texttt{geo} y ajoute la
+      géométrie ; \texttt{tol3} isole la tolérance \emph{sans} clDice. \\
+    Un contrôle apparié &
+      \texttt{geo\_tol3\_permuted} : même capacité, même perte, même graine ;
+      seul l'\textbf{alignement image~$\leftrightarrow$~évidence} est détruit.
+      Sans lui, on ne sépare pas \og la géométrie aide\fg{} de \og les paramètres
+      aident\fg{}. \\
+    Un test de nécessité d'entrée &
+      à l'évaluation, \texttt{evidence=None} restitue la voie baseline bit à
+      bit : si les scores ne bougent pas, l'adapter est décoratif. \\
+    Des deltas appariés par image &
+      gains \emph{et} pertes comptés séparément : une moyenne ne dit pas que
+      866 images sur 1\,695 ont perdu. \\
+    La métrique choisie \emph{avant} &
+      deux conventions de tolérance ne classent pas pareil ; choisir après
+      avoir vu les chiffres, c'est choisir son résultat. \\
+    \bottomrule
+  \end{tabularx}
+
+  \vspace{0.24cm}
+  \centering
+  \statusbadge{warning}{ce qui manque : IC95 par bootstrap groupé, \texttt{tol5}, et le contrôle permuté de la famille clDice}
+
+  \source{Exécution des 8--9 août 2026 sur RTX PRO 6000 Blackwell (97,9 Go).
+  Chaque époque écrit un état complet, optimiseur compris : la reprise après
+  préemption Spot repart à l'époque suivante.}
+\end{frame}
+
+\begin{frame}{L'échelle d'ablations}
+  \small
+  \begin{tabularx}{\linewidth}{c>{\ttfamily}p{2.75cm}p{2.3cm}>{\raggedright\arraybackslash}p{1.7cm}r>{\raggedright\arraybackslash}X}
+    \toprule
+    \# & \normalfont Variante & Perte & Évidence & Params &
+      \normalfont Ce qu'elle isole \\
+    \midrule
+    0 & baseline & CrackSAM & --- & 453\,248 & l'ancre à budget égal \\
+    1 & cldice & $+$ soft-clDice & --- & 453\,248 & la continuité seule \\
+    2 & geo & $+$ soft-clDice & alignée & 744\,049 & la géométrie \\
+    3 & tol3 & $+$ tolérante $k{=}3$ & --- & 453\,248 & la tolérance seule \\
+    4 & geo\_tol3 & $+$ tolérante $k{=}3$ & alignée & 744\,049 &
+      la géométrie, sans \mbox{clDice} \\
+    5 & geo\_tol3\_permuted & $+$ tolérante $k{=}3$ &
+      \textbf{d'une autre image} & 744\,049 & la capacité seule \\
+    \bottomrule
+  \end{tabularx}
+
+  \vspace{0.30cm}
+  \centering
+  \metriccard{inkblue}{Durée par variante}{40--41 min}{61 min pour \texttt{geo}}
+  \hspace{0.25cm}
+  \metriccard{success}{Coût de l'adapter}{$+1$ min}{744\,049 contre 453\,248 params}
+  \hspace{0.25cm}
+  \metriccard{warning}{Époques}{5}{et non 20, l'optimum archivé}
+
+  \source{Les 21 minutes supplémentaires de \texttt{geo} viennent de
+  \texttt{soft-clDice}, dont la squelettisation douce coûte dix passes de
+  \emph{pooling} par échantillon --- et non de la géométrie.}
+\end{frame}
+
+% =============================================================================
+\section{Mesurer}
+
+\begin{frame}{L'IoU stricte mesure surtout un biais de largeur}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.45\textwidth}
+      \centering
+      {\small\bfseries La vérité terrain contre elle-même}\\[3pt]
+      \small
+      \begin{tabularx}{\linewidth}{Xr}
+        \toprule
+        Perturbation du GT & IoU \\
+        \midrule
+        dilaté de 1 px & 0,881 \\
+        érodé de 1 px & 0,843 \\
+        dilaté de 2 px & 0,799 \\
+        \bottomrule
+      \end{tabularx}
+      \\[5pt]
+      {\fontsize{6.4}{7.4}\selectfont Un décalage d'un pixel coûte
+      \textbf{douze points} d'IoU --- davantage que tous les écarts entre
+      variantes mesurés ici.}
+    \end{column}
+    \begin{column}{0.51\textwidth}
+      \centering
+      {\small\bfseries Baseline : précision et rappel tolérants}\\[3pt]
+      \small
+      \begin{tabularx}{\linewidth}{Xrrrr}
+        \toprule
+        $k$ & 0 & 1 & 2 & 3 \\
+        \midrule
+        Précision & 0,759 & \textbf{0,888} & 0,923 & 0,941 \\
+        Rappel & 0,761 & 0,812 & 0,848 & 0,879 \\
+        \bottomrule
+      \end{tabularx}
+      \\[5pt]
+      {\fontsize{6.4}{7.4}\selectfont Un seul pixel de tolérance fait gagner
+      \textbf{$+0{,}129$} à la précision et seulement $+0{,}051$ au rappel :
+      l'essentiel de ce que l'IoU stricte compte comme faux positifs est du
+      \textbf{débordement de frontière}, pas de la fausse détection.}
+    \end{column}
+  \end{columns}
+
+  \vspace{0.30cm}
+  \centering
+  \statusbadge{failure}{comparer deux méthodes à $\pm0{,}02$ d'IoU stricte revient largement à comparer leurs largeurs}
+\end{frame}
+
+\begin{frame}{Deux conventions de tolérance, deux classements}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.475\textwidth}
+      \begin{block}{\texttt{buffered} --- à privilégier}
+        \small
+        \[
+          P_k=\frac{|P\cap \delta_k G|}{|P|},\qquad
+          R_k=\frac{|G\cap \delta_k P|}{|G|}
+        \]
+        \[
+          \IoU_k = \frac{F1_k}{2-F1_k}
+        \]
+        {\fontsize{6.4}{7.4}\selectfont Ne dilate \emph{jamais} les deux
+        masques : mesure une distance d'appariement. Dilatation euclidienne,
+        donc isotrope.}
+      \end{block}
+    \end{column}
+    \begin{column}{0.475\textwidth}
+      \begin{block}{\texttt{dilate\_both} --- convention EUVIP du dépôt}
+        \small
+        \[
+          \IoU_k = \IoU\bigl(\delta_k P,\ \delta_k G\bigr)
+        \]
+        \vspace{-0.15cm}
+        {\fontsize{6.4}{7.4}\selectfont C'est \texttt{thicken(sk, 6)} puis
+        Jaccard. Elle épaissit les deux masques, donc elle favorise les
+        prédictions déjà larges, et sature vers 1.}
+      \end{block}
+    \end{column}
+  \end{columns}
+
+  \vspace{0.24cm}
+  \centering
+  \small
+  \begin{tabularx}{0.90\linewidth}{Xrrrrrr}
+    \toprule
+    $k=8$ & \ttfamily baseline & \ttfamily cldice & \ttfamily geo &
+      \ttfamily tol3 & \ttfamily geo\_tol3 & \ttfamily perm. \\
+    \midrule
+    \texttt{buffered} & 0,9213 & 0,9341 & 0,9347 & 0,9346 & 0,9374 &
+      \textbf{0,9378} \\
+    \texttt{dilate\_both} & 0,7720 & 0,8175 & \textbf{0,8181} & 0,7943 &
+      0,7960 & 0,7974 \\
+    \bottomrule
+  \end{tabularx}
+
+  \vspace{0.18cm}
+  \statusbadge{failure}{la même mesure à la même tolérance donne deux vainqueurs différents}
+\end{frame}
+
+\begin{frame}{Ce que la tolérance pardonne --- et ce qu'elle ne pardonne pas}
+  \centering
+  \vspace{0.02cm}
+  \synthpanel{parfait}{synth_perfect.png}\hfill
+  \synthpanel{décalé 2 px}{synth_shifted.png}\hfill
+  \synthpanel{2$\times$ trop large}{synth_wide.png}\hfill
+  \synthpanel{rompu 4 px}{synth_break4.png}\hfill
+  \synthpanel{rompu 20 px}{synth_break20.png}
+
+  \vspace{0.20cm}
+  \small
+  \begin{tabularx}{0.88\linewidth}{Xrrrrrr}
+    \toprule
+    IoU tampon & $k{=}0$ & $k{=}1$ & $k{=}2$ & $k{=}3$ & $k{=}5$ & $k{=}8$ \\
+    \midrule
+    prédiction parfaite & 1,000 & 1,000 & 1,000 & 1,000 & 1,000 & 1,000 \\
+    décalée de 2 px & 0,200 & 0,500 & \textbf{1,000} & 1,000 & 1,000 & 1,000 \\
+    deux fois trop large & 0,429 & 0,714 & \textbf{1,000} & 1,000 & 1,000 & 1,000 \\
+    rompue sur 4 px & 0,917 & 0,958 & \textbf{1,000} & 1,000 & 1,000 & 1,000 \\
+    \textbf{rompue sur 20 px} & 0,583 & 0,625 & 0,667 & 0,708 & 0,792 &
+      \textbf{0,917} \\
+    \bottomrule
+  \end{tabularx}
+
+  \vspace{0.20cm}
+  \statusbadge{failure}{l'IoU stricte sanctionne un décalage de 2 px (0,200) bien plus qu'une rupture de 20 px (0,583)}
+
+  \source{Ligne verticale de 3 px sur 48, dans une image de $64^2$ ; scores
+  recalculés par \texttt{scripts/05\_tolerant\_iou.py} lui-même. La tolérance
+  est une distance d'appariement : elle efface donc aussi une rupture, mais
+  seulement tant que celle-ci est plus courte que $2k$. Une coupure franche
+  reste pénalisée à toutes les tolérances mesurées.}
+\end{frame}
+
+\begin{frame}{La perte tolérante, contrepartie différentiable}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.50\textwidth}
+      \vspace{0.06cm}
+      \begin{tikzpicture}
+        \node[rounded corners=4pt,draw=black!25,fill=softgray,align=left,
+          inner sep=6pt,text width=5.6cm,font=\fontsize{7.4}{9.4}\selectfont] {%
+          $G_k = \texttt{soft\_dilate}(G,\,k)$ \hfill {\tiny max-pool}\\
+          $P_k = \texttt{soft\_dilate}(P,\,k)$\\
+          $\text{prec} = \sum (P \cdot G_k)\,/\,\sum P$\\
+          $\text{rec}\ \, = \sum (G \cdot P_k)\,/\,\sum G$\\
+          $L = 1 - 2\,\text{prec}\cdot\text{rec}\,/\,(\text{prec}+\text{rec})$};
+      \end{tikzpicture}
+      \\[3pt]
+      {\fontsize{6.4}{7.4}\selectfont Même machinerie morphologique que
+      \texttt{soft\_skeleton}. La dilatation est \emph{carrée} et non
+      euclidienne : le rayon n'est pas une grandeur à estimer, c'est une
+      tolérance choisie.}
+    \end{column}
+    \begin{column}{0.46\textwidth}
+      \centering
+      \small
+      \setlength{\tabcolsep}{3pt}%
+      \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{2.1cm}rrr}
+        \toprule
+        $1-F1$ tolérant & $k{=}0$ & $k{=}1$ & $k{=}3$ \\
+        \midrule
+        parfait & 0,0000 & 0,0000 & 0,0000 \\
+        décalé de 2 px & 0,6621 & 0,3310 & \textbf{0,0000} \\
+        2$\times$ trop large & 0,3983 & 0,1661 & \textbf{0,0000} \\
+        rompu, 20 px & 0,2609 & 0,2288 & \textbf{0,1694} \\
+        \bottomrule
+      \end{tabularx}
+      \\[6pt]
+      \statusbadge{success}{le placement est pardonné, la rupture non}
+    \end{column}
+  \end{columns}
+
+  \vspace{0.26cm}
+  \centering
+  \statusbadge{inkblue}{les variantes \texttt{tol*} n'incluent volontairement \emph{pas} clDice : on isole la tolérance seule}
+
+  \source{Trois variantes ont été câblées dans le CLI d'entraînement :
+  \texttt{tol3}, \texttt{tol5} et \texttt{geo\_tol3}. \texttt{tol5} a été
+  sacrifié pour faire place au contrôle causal, qui importait davantage : la
+  sensibilité au rayon reste donc inconnue.}
+\end{frame}
+
+% =============================================================================
+\section{Résultats}
+
+\begin{frame}{Les six barreaux, en IoU stricte}
+  \small
+  \begin{tabularx}{\linewidth}{>{\ttfamily}p{2.85cm}Xrrrrrr}
+    \toprule
+    \normalfont Variante & & IoU & Précision & Rappel & Couv. sq. &
+      Comp. & Sans évid. \\
+    \midrule
+    baseline & & 0,6241 & 0,7588 & 0,7607 & 0,6792 & 2,76 & --- \\
+    cldice & & 0,6066 & 0,6738 & 0,8567 & \textbf{0,8254} & 2,65 & --- \\
+    geo & & 0,6083 & 0,6742 & \textbf{0,8590} & \textbf{0,8263} & 2,52 & 0,6138 \\
+    \textbf{tol3} & & \textbf{0,6276} & 0,7400 & 0,7940 & 0,7238 & 3,31 & --- \\
+    geo\_tol3 & & 0,6270 & 0,7432 & 0,7869 & 0,7162 & 5,97 & 0,6281 \\
+    geo\_tol3\_permuted & & 0,6265 & 0,7383 & 0,7925 & 0,7232 & 5,66 & 0,6281 \\
+    \bottomrule
+  \end{tabularx}
+
+  \vspace{0.26cm}
+  \centering
+  \metriccard{inkblue}{Baseline à budget égal}{0,6241}{ancre, 5 époques}
+  \hspace{0.25cm}
+  \metriccard{success}{\texttt{tol3}}{0,6276}{$+0{,}0035$, sans géométrie}
+  \hspace{0.25cm}
+  \metriccard{failure}{Contrôle permuté}{0,6265}{à $0{,}0005$ de \texttt{geo\_tol3}}
+
+  \source{Vérité terrain : 57,5 composantes connexes par image en moyenne,
+  contre 2,5 à 6,0 pour les prédictions --- toutes les variantes
+  sous-segmentent massivement en \emph{nombre} de composantes, y compris
+  celles qui optimisent la continuité.}
+\end{frame}
+
+\begin{frame}{IoU tampon, six tolérances : le classement s'inverse}
+  \centering
+  \small
+  \begin{tabularx}{0.96\linewidth}{Xrrrrrr}
+    \toprule
+    $k$ & \ttfamily baseline & \ttfamily cldice & \ttfamily geo &
+      \ttfamily tol3 & \ttfamily geo\_tol3 & \ttfamily geo\_tol3\_perm. \\
+    \midrule
+    \textbf{0} & 0,6241 & 0,6066 & 0,6083 & \textbf{0,6276} & 0,6270 & 0,6265 \\
+    1 & 0,7407 & 0,7574 & 0,7593 & 0,7586 & 0,7597 & \textbf{0,7601} \\
+    2 & 0,7971 & 0,8213 & \textbf{0,8231} & 0,8186 & 0,8206 & 0,8214 \\
+    \textbf{3} & 0,8396 & 0,8659 & \textbf{0,8674} & 0,8607 & 0,8635 & 0,8644 \\
+    5 & 0,8901 & 0,9110 & \textbf{0,9119} & 0,9072 & 0,9101 & 0,9108 \\
+    8 & 0,9213 & 0,9341 & 0,9347 & 0,9346 & 0,9374 & \textbf{0,9378} \\
+    \bottomrule
+  \end{tabularx}
+
+  \vspace{0.28cm}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.31\textwidth}
+      \centering\statusbadge{success}{à $k=0$, \texttt{tol3} gagne}\\[2pt]
+      {\fontsize{6.4}{7.4}\selectfont Cesser de facturer une frontière que
+      l'annotation ne définit pas \textbf{libère de la capacité utile}.}
+    \end{column}
+    \begin{column}{0.31\textwidth}
+      \centering\statusbadge{inkblue}{dès $k=1$, tout dépasse la baseline}\\[2pt]
+      {\fontsize{6.4}{7.4}\selectfont Le verdict \og aucune variante ne bat la
+      baseline\fg{} ne tenait qu'à tolérance nulle. À $k=3$ : $+0{,}0278$ pour
+      \texttt{geo}.}
+    \end{column}
+    \begin{column}{0.31\textwidth}
+      \centering\statusbadge{failure}{mais le contrôle mène 5 fois sur 6}\\[2pt]
+      {\fontsize{6.4}{7.4}\selectfont \texttt{geo\_tol3\_permuted} est devant
+      \texttt{geo\_tol3} à toutes les tolérances sauf $k=0$.}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Le contrôle qui tranche}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.46\textwidth}
+      \centering
+      \small
+      \setlength{\tabcolsep}{3pt}%
+      \begin{tabularx}{\linewidth}{Xrr}
+        \toprule
+        $k$ &
+          \shortstack[r]{\ttfamily tol3\\[-1pt] $-$ \ttfamily baseline} &
+          \shortstack[r]{alignée\\[-1pt] $-$ permutée} \\
+        \midrule
+        0 & $+0{,}0035$ & $+0{,}0004$ \\
+        1 & $+0{,}0179$ & $-0{,}0005$ \\
+        2 & $+0{,}0215$ & $-0{,}0008$ \\
+        3 & $+0{,}0212$ & $-0{,}0009$ \\
+        5 & $+0{,}0171$ & $-0{,}0007$ \\
+        8 & $+0{,}0133$ & $-0{,}0004$ \\
+        \bottomrule
+      \end{tabularx}
+      \\[5pt]
+      {\fontsize{6.4}{7.4}\selectfont L'effet de la perte est \textbf{vingt à
+      quarante fois} plus grand que l'écart entre géométrie alignée et
+      géométrie d'une autre image.}
+    \end{column}
+    \begin{column}{0.50\textwidth}
+      \begin{block}{Ce que le contrôle établit}
+        \small
+        L'adapter \textbf{s'active} : ses projections croissent jusqu'à
+        $1{,}79\times10^{-3}$, et le test de nécessité d'entrée est positif
+        (\texttt{evidence=None} change le score). Mais ce qu'il apprend
+        \textbf{ne dépend pas} de la correspondance entre l'évidence et
+        l'image.
+      \end{block}
+      \centering
+      \metriccard{failure}{Deltas appariés, par image}{$-0{,}0007$}{603 gains,
+      866 pertes, 226 nuls}
+    \end{column}
+  \end{columns}
+
+  \vspace{0.22cm}
+  \centering
+  \statusbadge{failure}{aligner la géométrie sur l'image ne sert à rien}
+  \hspace{0.3cm}
+  \statusbadge{inkblue}{le déficit de \texttt{geo\_tol3} vient des 290\,801 paramètres, pas d'un mauvais usage}
+\end{frame}
+
+% =============================================================================
+\section{Cas}
+
+\begin{frame}{Ce que la perte tolérante change, et ce qu'elle coûte}
+  \caserow{\texttt{cracktree200\_6774} --- la baseline manque
+    \emph{intégralement} le réseau}{b2t_gain_ct6774}{Baseline}{Avec
+    \texttt{tol3}}{success}{0,000 $\rightarrow$ 0,219}
+
+  \vspace{0.26cm}
+  \caserow{\texttt{CRACK500\_20160405\_171336} --- annotation épaisse
+    (10,6~\% des pixels)}{b2t_loss_crack171336}{Baseline}{Avec
+    \texttt{tol3}}{failure}{0,875 $\rightarrow$ 0,510}
+
+  \vspace{0.16cm}
+  \centering{\fontsize{6.4}{7.4}\selectfont \colourkey}
+
+  \source{Les gains se concentrent sur \texttt{cracktree200}, fissures fines et
+  peu contrastées : le régime où exiger une frontière au pixel près est le plus
+  coûteux et le moins pertinent. Les pertes se concentrent sur les annotations
+  larges, où la tolérance autorise un débordement que l'IoU stricte sanctionne.}
+\end{frame}
+
+\begin{frame}{La famille clDice : plus de rappel, moins de précision}
+  \caserow{\texttt{cracktree200\_6774} --- le réseau fin est
+    retrouvé}{b2g_gain_ct6774}{Baseline}{Avec \texttt{geo}}{success}{0,000
+    $\rightarrow$ 0,228}
+
+  \vspace{0.26cm}
+  \caserow{\texttt{CFD\_080} --- le débordement autour d'une fissure déjà bien
+    détectée}{b2g_loss_cfd080}{Baseline}{Avec
+    \texttt{geo}}{failure}{0,523 $\rightarrow$ 0,343}
+
+  \vspace{0.16cm}
+  \centering
+  \statusbadge{success}{couverture du squelette : 0,679 $\rightarrow$ 0,826}
+  \hspace{0.3cm}
+  \statusbadge{failure}{précision : 0,759 $\rightarrow$ 0,674}
+
+  \source{C'est le même mécanisme dans les deux sens : \texttt{soft-clDice}
+  pousse à couvrir les squelettes, donc récupère les réseaux manqués et
+  déborde là où la baseline était déjà juste. Ce que l'IoU stricte comptait
+  comme faux positifs est en grande partie ce halo rouge.}
+\end{frame}
+
+\begin{frame}{Ce que la géométrie change}
+  \caserow{\texttt{Rissbilder\_for\_Florian} --- le plus grand gain de la
+    paire}{t2g_gain_riss}{\texttt{tol3}}{\texttt{geo\_tol3}}{success}{0,153
+    $\rightarrow$ 0,405}
+
+  \vspace{0.26cm}
+  \caserow{\texttt{GAPS384\_0608} --- la contrepartie, aussi
+    fréquente}{t2g_loss_gaps608}{\texttt{tol3}}{\texttt{geo\_tol3}}{failure}{0,443
+    $\rightarrow$ 0,341}
+
+  \vspace{0.16cm}
+  \centering
+  \statusbadge{inkblue}{603 gains contre 866 pertes : les deux colonnes existent, en nombre comme en amplitude}
+
+  \source{Aucun de ces deux cas n'est atypique : la distribution des deltas
+  appariés est un pic étroit centré sur zéro, avec une queue de part et
+  d'autre.}
+\end{frame}
+
+\begin{frame}{Les deux plus grands gains, vus de bout en bout}
+  \threewayrow{\texttt{CRACK500\_20160405\_171336}}{b2t_loss_crack171336}{t2g_gain_crack171336}{}{warning}{0,875 $\rightarrow$ 0,510 $\rightarrow$ 0,807}
+
+  \vspace{0.24cm}
+  \threewayrow{\texttt{Rissbilder\_for\_Florian}}{b2t_loss_riss}{t2g_gain_riss}{}{warning}{0,422 $\rightarrow$ 0,153 $\rightarrow$ 0,405}
+
+  \vspace{0.14cm}
+  \centering
+  \statusbadge{failure}{la géométrie récupère ce que la tolérance avait coûté, et s'arrête juste avant la baseline}
+
+  \source{Ces deux images sont exactement les deux plus grandes \emph{pertes}
+  de \texttt{tol3} face à la baseline ($-0{,}364$ et $-0{,}269$) et les deux
+  plus grands \emph{gains} de \texttt{geo\_tol3} face à \texttt{tol3}
+  ($+0{,}296$ et $+0{,}252$). Une galerie de gains construite sur ces deux
+  images raconterait donc l'inverse de ce que dit le corpus.}
+\end{frame}
+
+\begin{frame}{Le piège de la galerie sélective}
+  \centering
+  \vspace{0.04cm}
+  \evidencerow{t2g_gain_riss}
+
+  \vspace{0.22cm}
+  \small
+  \begin{tabularx}{0.90\linewidth}{Xrrrr}
+    \toprule
+    Les deux plus grands gains de \texttt{geo\_tol3} & \ttfamily baseline &
+      \ttfamily tol3 & \ttfamily geo\_tol3 & $\Delta$ \\
+    \midrule
+    \texttt{CRACK500\_20160405\_171336} & \textbf{0,875} & 0,510 & 0,807 &
+      $+0{,}296$ \\
+    \texttt{Rissbilder\_for\_Florian} & \textbf{0,422} & 0,153 & 0,405 &
+      $+0{,}252$ \\
+    \bottomrule
+  \end{tabularx}
+
+  \vspace{0.22cm}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.47\textwidth}
+      \centering\statusbadge{failure}{ce sont exactement les deux plus grandes
+      \emph{pertes} de \texttt{tol3}}\\[3pt]
+      {\fontsize{6.4}{7.4}\selectfont La géométrie ne fait que rendre ce que la
+      perte tolérante avait coûté --- et reste \textbf{sous la baseline} dans
+      les deux cas.}
+    \end{column}
+    \begin{column}{0.47\textwidth}
+      \centering\statusbadge{warning}{et aucun canal ne désigne la
+      fissure}\\[3pt]
+      {\fontsize{6.4}{7.4}\selectfont Sur \texttt{Rissbilder} :
+      \texttt{frangi\_sim} est une tache sur le bord supérieur, \texttt{ofa}
+      sature de coulures, \texttt{phase\_sym} n'est qu'un entrelacs.}
+    \end{column}
+  \end{columns}
+
+  \source{Le contrôle permuté obtient la \emph{même} performance moyenne : il
+  s'agit de variance d'entraînement, pas d'un effet de la géométrie. Une figure
+  ne remplace pas un contrôle.}
+\end{frame}
+
+% =============================================================================
+\section{Bilan}
+
+\begin{frame}{Trois conclusions fausses, corrigées par la mesure}
+  \small
+  \begin{tabularx}{\linewidth}{>{\bfseries\raggedright\arraybackslash}p{3.5cm}>{\raggedright\arraybackslash}X}
+    \toprule
+    \og L'adapter coûte 2,5$\times$ plus cher\fg{} &
+      Faux : c'était la contention entre deux entraînements concurrents sur le
+      même GPU. Mesuré proprement, \texttt{geo\_tol3} prend 41 min contre 40
+      pour \texttt{tol3}. Les 61 min de \texttt{geo} viennent de
+      \texttt{soft-clDice}. \\
+    \og \texttt{soft-clDice} dégrade\fg{} &
+      Faux sous une métrique adaptée : $-0{,}0175$ en IoU stricte,
+      $+0{,}0263$ à $k=3$. Ce que l'IoU stricte comptait comme faux positifs
+      était du débordement de frontière. \\
+    \og Aucune variante ne bat la baseline\fg{} &
+      Vrai à tolérance nulle \emph{uniquement}. \texttt{tol3} la bat même en
+      strict ($+0{,}0035$), et toute la famille tolérante la dépasse dès
+      $k=1$. \\
+    \bottomrule
+  \end{tabularx}
+
+  \vspace{0.30cm}
+  \centering
+  \statusbadge{failure}{trois fois, une conclusion tirée trop tôt d'une mesure inadaptée}
+
+  \vspace{0.16cm}
+  \statusbadge{success}{le seul garde-fou qui a fonctionné : mesurer autrement, et exécuter le contrôle}
+\end{frame}
+
+\begin{frame}{Limites}
+  \small
+  \begin{itemize}
+    \item[\textcolor{success}{\textbf{\checkmark}}] \textbf{Contrôle causal} :
+      exécuté, \texttt{geo\_tol3\_permuted}. C'était la limite principale du
+      rapport précédent.
+    \item[\textcolor{failure}{\textbf{--}}] \textbf{Pas d'IC95} sur les écarts
+      entre variantes : les deltas appariés sont calculés, le bootstrap groupé
+      non. Plusieurs écarts sont du même ordre que la variance d'entraînement.
+    \item[\textcolor{failure}{\textbf{--}}] \textbf{5 époques, pas 20.} Les
+      variantes repartent d'un modèle convergé, mais l'optimum de validation de
+      la baseline archivée est à l'époque 20.
+    \item[\textcolor{failure}{\textbf{--}}] \textbf{\texttt{geo\_permuted} et
+      \texttt{geo\_noise} non entraînés} : le $+0{,}0015$ de \texttt{geo} sur
+      \texttt{cldice} n'est pas causalement attribué --- même si le contrôle du
+      triplet \texttt{tol3} rend une conclusion différente très improbable.
+    \item[\textcolor{failure}{\textbf{--}}] \textbf{\texttt{tol5} non exécuté} :
+      la sensibilité au rayon de tolérance reste inconnue.
+    \item[\textcolor{failure}{\textbf{--}}] \textbf{Évidence mono-échelle},
+      accordée à une largeur moyenne peu représentative d'une partie du corpus.
+    \item[\textcolor{failure}{\textbf{--}}] \textbf{Aucune évaluation
+      multimodale}, ni sur ombres naturelles : l'argument central de la ligne
+      n'est donc pas encore testé là où il pourrait tenir.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Suite}
+  \small
+  \begin{tabularx}{\linewidth}{c>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{3.35cm}}
+    \toprule
+    & Action & Justification \\
+    \midrule
+    \textbf{1} & \textbf{Adopter la perte tolérante par défaut.}
+      \texttt{tol3} bat la baseline en strict \emph{et} en tolérant, pour un
+      coût nul. & gain acquis, reproductible \\
+    \textbf{2} & \textbf{Trancher la métrique du projet.} \texttt{clDice}
+      domine à $k\ge1$ et en convention EUVIP ; \texttt{tol3} domine en
+      strict. & les deux conventions ne classent pas pareil \\
+    3 & \textbf{Porter l'expérience en multimodal sur FIND.} SAM 2 n'a pas
+      accès à la portée : c'est le seul cadre où l'argument géométrique repose
+      sur de l'information. & thèse de l'article ISPRS \\
+    4 & Compléter les IC95 par bootstrap groupé, et le contrôle permuté de la
+      famille clDice. & plusieurs écarts sont dans le bruit \\
+    \bottomrule
+  \end{tabularx}
+
+  \vspace{0.24cm}
+  \centering
+  \statusbadge{failure}{à ne pas faire : augmenter la capacité de l'adapter, allonger l'entraînement, empiler un GNN}
+
+  \vspace{0.18cm}
+  {\small Sur Khánh Hà --- monomodal visible, annotations épaisses, baseline
+  supervisée sur ce domaine même --- le Frangi généralisé n'apporte
+  \textbf{aucune} information que la LoRA n'ait déjà apprise. Ce n'est pas un
+  signal faible mal exploité : c'est l'absence de signal.}
+\end{frame}
+
+\appendix
+
+\begin{frame}{Références}
+  \small
+  \begin{itemize}
+    \item[\textbf{[1]}] Kirillov et al.,
+      \href{https://arxiv.org/abs/2304.02643}{\emph{Segment Anything}},
+      ICCV 2023.
+    \item[\textbf{[2]}] Ravi et al.,
+      \href{https://arxiv.org/abs/2408.00714}{\emph{SAM 2: Segment Anything in
+      Images and Videos}}, 2024.
+    \item[\textbf{[3]}] Ge et al.,
+      \href{https://doi.org/10.1016/j.conbuildmat.2024.136573}{\emph{Fine-tuning
+      vision foundation model for crack segmentation in civil
+      infrastructures}}, Construction and Building Materials, 2024.
+    \item[\textbf{[4]}] Shit et al.,
+      \href{https://doi.org/10.1109/CVPR46437.2021.01629}{\emph{clDice --- a
+      Novel Topology-Preserving Loss Function for Tubular Structure
+      Segmentation}}, CVPR 2021.
+    \item[\textbf{[5]}] Law et Chung, \emph{Three-dimensional curvilinear
+      structure detection using optimally oriented flux}, ECCV 2008.
+    \item[\textbf{[6]}] Kovesi, \emph{Symmetry and asymmetry from local phase},
+      1997.
+    \item[\textbf{[7]}] Frangi et al., \emph{Multiscale vessel enhancement
+      filtering}, MICCAI 1998.
+    \item[\textbf{[8]}] Hu et al.,
+      \href{https://arxiv.org/abs/2106.09685}{\emph{LoRA: Low-Rank Adaptation
+      of Large Language Models}}, 2022.
+  \end{itemize}
+\end{frame}
+
+\end{document}
