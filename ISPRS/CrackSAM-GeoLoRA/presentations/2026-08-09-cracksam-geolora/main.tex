@@ -19,7 +19,7 @@
   allcolors=rouge_inria,
   pdfauthor={Louis Hauseux, Raphaël Antoine, Philippe Foucher, Pierre Charbonnier, Josiane Zerubia},
   pdftitle={CrackSAM-GeoLoRA},
-  pdfsubject={Guidage géométrique dans SAM 2 : résultat négatif ; gain de la dilatation},
+  pdfsubject={Guider SAM 2 par la géométrie de Frangi : comment, et pourquoi cela ne marche pas},
   pdfkeywords={SAM 2, CrackSAM, LoRA, Frangi, IoU tolérante}
 }
 
@@ -49,6 +49,19 @@
       {\fontsize{5.8}{6.5}\selectfont\color{black!62} #4}%
     };
   \end{tikzpicture}%
+}
+% Vignette d'une grille de comparaison : largeur au choix, en-tête facultatif
+% (vide pour les rangées qui suivent la première).
+\newcommand{\csrowpanel}[4]{%
+  \begin{minipage}[t]{#1\textwidth}
+    \centering
+    \ifx\relax#2\relax\else
+      {\fontsize{6.1}{6.8}\selectfont\bfseries #2}\par\vspace{1pt}%
+    \fi
+    \setlength{\fboxsep}{0.7pt}%
+    \fcolorbox{black!16}{white}{%
+      \includegraphics[width=0.95\linewidth,height=#3,keepaspectratio]{#4}}
+  \end{minipage}%
 }
 % Vignette d'un panneau, sur cinq colonnes.
 \newcommand{\widepanel}[2]{%
@@ -113,7 +126,7 @@
   \textcolor{inkblue}{$\blacksquare$}~manqué}
 
 \title[CrackSAM-GeoLoRA]{CrackSAM-GeoLoRA}
-\subtitle{Le guidage géométrique n'aide pas. La dilatation, un peu.}
+\subtitle{Guider SAM 2 par la géométrie : comment, et pourquoi cela ne marche pas.}
 \date[09/08/2026]{9 août 2026}
 \author[L. \textsc{Hauseux} et al.]{%
   {\small Louis \textsc{Hauseux}, Josiane \textsc{Zerubia}}\\
@@ -126,33 +139,130 @@
 \frame{\titlepage}
 
 % -----------------------------------------------------------------------------
-\begin{frame}{Deux résultats}
+\begin{frame}{D'où l'on part : CrackSAM, SAM ajusté par LoRA}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.47\textwidth}
+      \begin{tikzpicture}
+        \node[rounded corners=6pt,draw=warning!50,fill=warning!8,text width=5.5cm,
+          align=left,inner sep=8pt,anchor=north west] at (0,0) {%
+          {\bfseries\color{warning} Le modèle}\\[5pt]
+          \small
+          SAM ViT-H, 637\,M paramètres, \textbf{gelé}\\[2pt]
+          LoRA de rang 4 sur les projections $q$ et $v$\\[2pt]
+          décodeur de masque réentraîné\\[2pt]
+          \textbf{4,4\,M} paramètres appris, soit $\div\,100$};
+        \node[rounded corners=6pt,draw=inkblue!45,fill=softblue,text width=5.5cm,
+          align=left,inner sep=8pt,anchor=north west] at (0,-2.35) {%
+          {\bfseries\color{inkblue} Le corpus : Khánh Hà}\\[5pt]
+          \small
+          11 jeux réunis en un seul --- Rissbilder,\\
+          CRACK500, Volker, DeepCrack, CFD\ldots\\[2pt]
+          \textbf{9\,121} / 481 / \textbf{1\,695} images\\[2pt]
+          routes, façades, murs ; 12\,\% sans fissure};
+      \end{tikzpicture}
+    \end{column}
+    \begin{column}{0.51\textwidth}
+      \centering
+      \setlength{\fboxsep}{1pt}%
+      \fcolorbox{black!16}{white}{\includegraphics[width=0.98\linewidth]{cs_flou_courbe.jpg}}
+      \\[3pt]
+      {\scriptsize IoU sur le test Khánh Hà, sous flou gaussien croissant.}
+    \end{column}
+  \end{columns}
+
+  \vspace{0.24cm}
+  \centering
+  \statusbadge{inkblue}{sur image nette, les quatre modèles sont à 0,64}
+  \hspace{0.3cm}
+  \statusbadge{success}{sous flou fort, il garde 0,46 ; les autres tombent sous 0,41}
+
+  \source{\textsc{Ge} \emph{et al.}, \og Fine-tuning vision foundation model for crack
+  segmentation in civil infrastructures\fg{}, \emph{Construction and Building
+  Materials} 431:136573, 2024. Figure du papier.}
+\end{frame}
+
+% -----------------------------------------------------------------------------
+\begin{frame}{Sa force : hors domaine et sous bruit}
+  \centering
+  \vspace{0.02cm}
+  {\small Entraîné sur Khánh Hà. Testé tel quel sur trois corpus qu'il n'a
+  jamais vus.}
+
+  \vspace{0.16cm}
+  \small
+  \setlength{\tabcolsep}{4pt}%
+  \begin{tabular}{lrrrrr}
+    \toprule
+    IoU & test & flou fort & \texttt{Road420} & \texttt{Facade390} &
+      \texttt{Concrete3k} \\
+    \midrule
+    \textbf{CrackSAM} (LoRA \texttt{qv}, $r=4$) & 0,642 & \textbf{0,492} &
+      \textbf{0,622} & 0,454 & \textbf{0,680} \\
+    SegFormer, le meilleur des 12 autres & \textbf{0,648} & 0,444 & 0,582 &
+      \textbf{0,462} & 0,653 \\
+    \bottomrule
+  \end{tabular}
+
+  \vspace{0.06cm}
+  {\fontsize{6.4}{7.4}\selectfont Sur image nette, il est derrière. Dès qu'on
+  dégrade ou qu'on change de domaine, il passe devant.}
+
+  \vspace{0.14cm}
+  \csrowpanel{0.155}{Image}{1.58cm}{cs_zs_reflet_image}\hfill
+  \csrowpanel{0.155}{Vérité terrain}{1.58cm}{cs_zs_reflet_gt}\hfill
+  \csrowpanel{0.155}{\textcolor{success}{CrackSAM}}{1.58cm}{cs_zs_reflet_sam}\hfill
+  \csrowpanel{0.155}{SegFormer}{1.58cm}{cs_zs_reflet_segformer}\hfill
+  \csrowpanel{0.155}{MobileNet}{1.58cm}{cs_zs_reflet_mobilenet}\hfill
+  \csrowpanel{0.155}{ResNet-50}{1.58cm}{cs_zs_reflet_resnet}
+
+  \vspace{2pt}
+  \csrowpanel{0.155}{}{1.58cm}{cs_zs_ombre_image}\hfill
+  \csrowpanel{0.155}{}{1.58cm}{cs_zs_ombre_gt}\hfill
+  \csrowpanel{0.155}{}{1.58cm}{cs_zs_ombre_sam}\hfill
+  \csrowpanel{0.155}{}{1.58cm}{cs_zs_ombre_segformer}\hfill
+  \csrowpanel{0.155}{}{1.58cm}{cs_zs_ombre_mobilenet}\hfill
+  \csrowpanel{0.155}{}{1.58cm}{cs_zs_ombre_resnet}
+
+  \vspace{0.14cm}
+  \statusbadge{inkblue}{un reflet, puis une ombre portée : c'est cette
+  robustesse que la géométrie devait renforcer}
+
+  \source{Tableau 6 du papier. \og Flou fort \fg{} : image réduite de moitié,
+  puis floutée. Notre \texttt{baseline} reprend la recette sur SAM 2 Hiera-L.}
+\end{frame}
+
+% -----------------------------------------------------------------------------
+\begin{frame}{La question, et la réponse}
   \centering
   \vspace{0.10cm}
   \begin{tikzpicture}
-    \node[rounded corners=6pt,draw=failure!50,fill=softred,text width=5.4cm,
-      minimum height=3.1cm,align=left,inner sep=9pt,anchor=north west]
+    \node[rounded corners=6pt,draw=inkblue!50,fill=softblue,text width=5.8cm,
+      minimum height=3.3cm,align=left,inner sep=9pt,anchor=north west]
       at (0,0) {%
-      {\large\bfseries\color{failure} Géométrie : rien}\\[6pt]
-      Évidence \textbf{alignée} contre évidence \textbf{d'une autre image} :\\[4pt]
-      $|\Delta| < 0{,}001$ à toutes les tolérances\\[2pt]
-      le contrôle est devant \textbf{5 fois sur 6}\\[6pt]
+      {\large\bfseries\color{inkblue} La question}\\[6pt]
+      Une fissure a une forme : fine, longue, continue.\\[3pt]
+      Le Frangi généralisé la décrit. SAM 2, non.\\[3pt]
+      Peut-on la lui donner ? Et si oui, \textbf{où} et
+      \textbf{sous quelle forme} ?\\[6pt]
+      {\scriptsize Trois tentatives ont déjà échoué. Ici, la géométrie est
+      apprise \emph{dans} le modèle.}};
+    \node[rounded corners=6pt,draw=failure!50,fill=softred,text width=5.8cm,
+      minimum height=3.3cm,align=left,inner sep=9pt,anchor=north west]
+      at (6.8,0) {%
+      {\large\bfseries\color{failure} La réponse : non}\\[6pt]
+      On donne au modèle la géométrie de \textbf{son} image.
+      Puis celle d'une \textbf{autre} image.\\[4pt]
+      Les deux se valent, partout : $|\Delta| < 0{,}001$.\\[2pt]
+      La mauvaise gagne \textbf{5 fois sur 6}.\\[6pt]
       {\scriptsize Par image : $-0{,}0007$ en moyenne,
       603 gains, 866 pertes.}};
-    \node[rounded corners=6pt,draw=success!50,fill=softgreen,text width=5.4cm,
-      minimum height=3.1cm,align=left,inner sep=9pt,anchor=north west]
-      at (6.4,0) {%
-      {\large\bfseries\color{success} Dilatation : un peu}\\[6pt]
-      Perte tolérante à \textbf{3 px} contre baseline :\\[4pt]
-      \textbf{$+0{,}0035$} en IoU stricte\\[2pt]
-      \textbf{$+0{,}0179$} à 1 px de tolérance\\[6pt]
-      {\scriptsize Aucun paramètre ajouté, aucun coût de calcul.}};
   \end{tikzpicture}
 
-  \vspace{0.34cm}
+  \vspace{0.30cm}
   \statusbadge{inkblue}{6 variantes, budget strictement égal, 1\,695 images de test}
 
-  \source{Khánh Hà, monomodal visible. 8--9 août 2026, RTX PRO 6000 Blackwell.}
+  \source{Khánh Hà, monomodal visible. 8--9 août 2026, RTX PRO 6000 Blackwell.
+  Le modèle ne voit pas la différence.}
 \end{frame}
 
 % -----------------------------------------------------------------------------
@@ -240,7 +350,7 @@
     cldice & $+$ clDice & --- & 453\,248 & la continuité \\
     geo & $+$ clDice & alignée & 744\,049 & la géométrie \\
     \textbf{tol3} & $+$ \textbf{tolérante 3 px} & --- & 453\,248 &
-      \textbf{la dilatation} \\
+      \textbf{la tolérance} \\
     geo\_tol3 & $+$ tolérante 3 px & alignée & 744\,049 & la géométrie \\
     \textbf{geo\_tol3\_permuted} & $+$ tolérante 3 px &
       \textbf{d'une autre image} & 744\,049 & \textbf{le contrôle} \\
@@ -309,7 +419,7 @@
 
   \vspace{0.14cm}
   \centering
-  \statusbadge{failure}{la géométrie rend ce que la dilatation avait coûté, et reste sous la baseline}
+  \statusbadge{failure}{la géométrie rend ce que la tolérance avait coûté, et reste sous la baseline}
 
   \vspace{0.10cm}
   {\fontsize{6.4}{7.4}\selectfont \colourkey}
@@ -319,9 +429,38 @@
 \end{frame}
 
 % -----------------------------------------------------------------------------
-\begin{frame}{Pourquoi dilater}
+\begin{frame}{Suite}
+  \small
+  \begin{tabularx}{\linewidth}{c>{\raggedright\arraybackslash}X}
+    \toprule
+    \textbf{1} & \textbf{Arrêter le guidage géométrique sur Khánh Hà.} Il n'y a
+      pas un signal faible à mieux exploiter. Il n'y a pas de signal. \\
+    \textbf{2} & \textbf{Aller là où l'information existe : FIND multimodal.}
+      La portée et le thermique, SAM 2 ne les voit pas. Il n'a donc pas pu les
+      apprendre. \\
+    3 & Choisir la métrique du projet. Deux conventions donnent deux
+      classements. \\
+    \bottomrule
+  \end{tabularx}
+
+  \vspace{0.30cm}
   \centering
-  \vspace{0.04cm}
+  \statusbadge{failure}{à ne pas faire : plus de capacité, plus d'époques, un GNN}
+
+  \vspace{0.20cm}
+  \statusbadge{warning}{limites : 5 époques et non 20, pas d'IC95, une seule échelle d'évidence}
+
+  \source{Sur ce corpus --- monomodal visible, annotations épaisses, baseline
+  supervisée sur le même domaine --- le Frangi généralisé n'apporte aucune
+  information que la LoRA n'ait déjà apprise.}
+\end{frame}
+
+% -----------------------------------------------------------------------------
+\begin{frame}{Digression : ce que l'IoU stricte mesure vraiment}
+  \centering
+  {\small Rien à voir avec la géométrie. Mais c'est le seul gain de l'étude.}
+
+  \vspace{0.12cm}
   \synthpanel{parfait}{synth_perfect.png}\hfill
   \synthpanel{décalé 2 px}{synth_shifted.png}\hfill
   \synthpanel{2$\times$ trop large}{synth_wide.png}\hfill
@@ -361,17 +500,17 @@
 \end{frame}
 
 % -----------------------------------------------------------------------------
-\begin{frame}{Ce que la dilatation gagne}
+\begin{frame}{Digression : tolérer 3 px fait gagner, même en strict}
   \caserow{\texttt{cracktree200\_6774} --- réseau fin entièrement
     manqué}{b2t_gain_ct6774}{Baseline}{Avec
     \texttt{tol3}}{success}{0,000 $\rightarrow$ 0,219}
 
-  \vspace{0.18cm}
+  \vspace{0.12cm}
   \caserow{\texttt{GAPS384\_0552} --- la contrepartie : débordement le long
     d'un bord clair}{b2t_loss_gaps552}{Baseline}{Avec
     \texttt{tol3}}{failure}{0,517 $\rightarrow$ 0,308}
 
-  \vspace{0.20cm}
+  \vspace{0.12cm}
   \centering
   \small
   \setlength{\tabcolsep}{5pt}%
@@ -384,32 +523,6 @@
       \textbf{0,9346} \\
     \bottomrule
   \end{tabular}
-\end{frame}
-
-% -----------------------------------------------------------------------------
-\begin{frame}{Suite}
-  \small
-  \begin{tabularx}{\linewidth}{c>{\raggedright\arraybackslash}X}
-    \toprule
-    \textbf{1} & \textbf{Adopter la perte tolérante à 3 px par défaut.} Gain
-      acquis, aucun paramètre, aucun coût. \\
-    \textbf{2} & \textbf{Arrêter le guidage géométrique sur Khánh Hà.} Le
-      modèle est indifférent à l'alignement de l'évidence. \\
-    3 & \textbf{Le tester où l'information existe} : FIND multimodal, portée et
-      thermique, que SAM 2 ne peut pas voir. \\
-    \bottomrule
-  \end{tabularx}
-
-  \vspace{0.30cm}
-  \centering
-  \statusbadge{failure}{à ne pas faire : plus de capacité, plus d'époques, un GNN}
-
-  \vspace{0.20cm}
-  \statusbadge{warning}{limites : 5 époques et non 20, pas d'IC95, \texttt{tol5} non exécuté}
-
-  \source{Sur ce corpus --- monomodal visible, annotations épaisses, baseline
-  supervisée sur le même domaine --- le Frangi généralisé n'apporte aucune
-  information que la LoRA n'ait déjà apprise.}
 \end{frame}
 
 \end{document}
