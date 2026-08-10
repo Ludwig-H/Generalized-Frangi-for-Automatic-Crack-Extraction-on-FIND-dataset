@@ -56,11 +56,11 @@ qui fait mieux sur `Facade390` (0,4718).
 
 Les effectifs du corpus viennent des listes officielles versionnées sous
 `ISPRS/CrackSAM/protocol/cracksam_paper/lists/lists_khanhha/` : 9 121 / 481 /
-1 695, onze sous-ensembles, 12,5 % d'images sans fissure. Les effectifs par
-sous-corpus affichés sous les vignettes sont comptés dans `test_vol.txt` et
-somment bien à 1 695 : Rissbilder 573, CRACK500 505, noncrack 212, Volker 148,
-DeepCrack 78, GAPS384 76, cracktree200 31, Sylvie 28, forest 18, CFD 18,
-Eugen 8.
+1 695, onze sous-ensembles, 12,5 % d'images sans fissure. Le détail compté dans
+`test_vol.txt`, qui somme bien à 1 695 : Rissbilder 573, CRACK500 505,
+noncrack 212, Volker 148, DeepCrack 78, GAPS384 76, cracktree200 31, Sylvie 28,
+forest 18, CFD 18, Eugen 8. La planche n'affiche pas ces effectifs — voir plus
+bas.
 
 ## Les vignettes du corpus
 
@@ -72,8 +72,10 @@ de cette étude sous `figures/generated/`, et celles de l'étude anti-ombre du
 images sans fissure.
 
 `forest` (18 images de test) et `Eugen` (8) ne figurent dans aucune planche
-archivée. Ils ne sont pas illustrés, et la planche le dit plutôt que de les
-passer sous silence.
+archivée, et le corpus n'est monté sur aucune machine de développement : ces
+deux sous-corpus **ne peuvent pas être illustrés** en l'état. La planche montre
+donc neuf vignettes sur onze, et n'affiche aucun effectif par sous-corpus — des
+nombres qui ne sommeraient pas à 1 695 induiraient en erreur.
 
 Les trois panneaux `ombre_*` viennent de `Sylvie_Chambon_319`, qui porte à la
 fois une vraie fissure et une ombre portée franche. Le panneau de droite est

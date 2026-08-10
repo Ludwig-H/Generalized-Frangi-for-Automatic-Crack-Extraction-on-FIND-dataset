@@ -51,14 +51,13 @@
   \end{tikzpicture}%
 }
 % Vignette d'un sous-corpus : image, nom, effectif de test.
-\newcommand{\corpusthumb}[3]{%
+\newcommand{\corpusthumb}[2]{%
   \begin{minipage}[t]{0.185\textwidth}
     \centering
     \setlength{\fboxsep}{0.7pt}%
-    \fcolorbox{black!16}{white}{\includegraphics[height=1.42cm]{#3}}\par
-    \vspace{1pt}
-    {\fontsize{6.0}{6.6}\selectfont\bfseries #1}
-    {\fontsize{6.0}{6.6}\selectfont\color{black!55} · #2}
+    \fcolorbox{black!16}{white}{\includegraphics[height=1.62cm]{#2}}\par
+    \vspace{1.5pt}
+    {\fontsize{6.4}{7.0}\selectfont\bfseries #1}
   \end{minipage}%
 }
 % Vignette d'une grille de comparaison : largeur au choix, en-tête facultatif
@@ -152,59 +151,46 @@
 % -----------------------------------------------------------------------------
 \begin{frame}{Le corpus : Khánh Hà}
   \centering
-  \vspace{0.04cm}
+  \vspace{0.10cm}
   {\small Onze jeux publics réunis en un seul --- routes, façades, murs.
   \textbf{9\,121} images d'entraînement, \textbf{1\,695} de test, dont 12\,\%
   sans aucune fissure.}
 
-  \vspace{0.20cm}
-  \corpusthumb{Rissbilder}{573}{kh_rissbilder}\hfill
-  \corpusthumb{CRACK500}{505}{kh_crack500}\hfill
-  \corpusthumb{noncrack}{212}{kh_noncrack}\hfill
-  \corpusthumb{Volker}{148}{kh_volker}\hfill
-  \corpusthumb{DeepCrack}{78}{kh_deepcrack}
+  \vspace{0.34cm}
+  \corpusthumb{Rissbilder}{kh_rissbilder}\hfill
+  \corpusthumb{CRACK500}{kh_crack500}\hfill
+  \corpusthumb{noncrack}{kh_noncrack}\hfill
+  \corpusthumb{Volker}{kh_volker}\hfill
+  \corpusthumb{DeepCrack}{kh_deepcrack}
 
-  \vspace{0.14cm}
-  \corpusthumb{GAPS384}{76}{kh_gaps384}\hfill
-  \corpusthumb{cracktree200}{31}{kh_cracktree200}\hfill
-  \corpusthumb{Sylvie Chambon}{28}{kh_sylvie}\hfill
-  \corpusthumb{CFD}{18}{kh_cfd}\hfill
-  \begin{minipage}[t]{0.185\textwidth}
-    \centering
-    \vspace{0.48cm}
-    {\fontsize{6.0}{7.0}\selectfont\color{black!55}
-    \textit{forest} (18)\\ et \textit{Eugen} (8)\\ non illustrés}
-  \end{minipage}
-
-  \vspace{0.16cm}
-  {\small Le nombre sous chaque vignette est l'effectif de test. Résolutions,
-  éclairages et annotations hétérogènes.}
-
-  \source{Effectifs de test relevés dans
-  \texttt{protocol/cracksam\_paper/lists/lists\_khanhha/test\_vol.txt}, 1\,695 au
-  total. Le corpus n'étant pas versionné, chaque vignette est le panneau
-  d'entrée d'une planche par cas archivée.}
+  \vspace{0.26cm}
+  \corpusthumb{GAPS384}{kh_gaps384}\hfill
+  \corpusthumb{cracktree200}{kh_cracktree200}\hfill
+  \corpusthumb{Sylvie Chambon}{kh_sylvie}\hfill
+  \corpusthumb{CFD}{kh_cfd}\hfill
+  \begin{minipage}[t]{0.185\textwidth}\ \end{minipage}
 \end{frame}
 
 % -----------------------------------------------------------------------------
-\begin{frame}{Sa force : le bruit, et le hors-domaine}
+\begin{frame}{Sa force : hors domaine, et sous flou}
   \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.44\textwidth}
+    \begin{column}{0.41\textwidth}
       \centering
       \setlength{\fboxsep}{1pt}%
-      \fcolorbox{black!16}{white}{\includegraphics[height=2.85cm]{cs_flou_courbe.jpg}}
+      \fcolorbox{black!16}{white}{\includegraphics[height=2.95cm]{cs_flou_courbe.jpg}}
       \\[2pt]
-      {\fontsize{6.4}{7.4}\selectfont IoU sous flou gaussien croissant.
-      Sur image nette les quatre modèles sont à 0,64 ; sous flou fort CrackSAM
-      garde 0,46, les autres tombent sous 0,41.}
+      {\fontsize{6.4}{7.4}\selectfont \texttt{Khánh Hà}, sous flou gaussien
+      croissant}
     \end{column}
-    \begin{column}{0.53\textwidth}
+    \begin{column}{0.56\textwidth}
       \centering
-      \vspace{0.15cm}
+      \vspace{0.30cm}
       \footnotesize
-      \setlength{\tabcolsep}{3pt}%
+      \setlength{\tabcolsep}{4pt}%
       \begin{tabular}{lrrrr}
         \toprule
+        & \texttt{Khánh Hà} & \multicolumn{3}{c}{\textbf{zéro-shot}} \\
+        \cmidrule(lr){2-2}\cmidrule(lr){3-5}
         IoU & flou fort & \texttt{Road420} & \texttt{Facade390} &
           \texttt{Concrete3k} \\
         \midrule
@@ -213,28 +199,26 @@
         SegFormer & 0,444 & 0,582 & \textbf{0,462} & 0,653 \\
         \bottomrule
       \end{tabular}
-      \\[4pt]
-      {\fontsize{6.4}{7.4}\selectfont Trois corpus jamais vus à l'entraînement.
-      SegFormer est le meilleur des douze autres concurrents.}
+      \\[7pt]
+      {\small \textbf{CrackSAM s'en tire très bien} : trois corpus jamais vus,
+      et le flou.}
     \end{column}
   \end{columns}
 
-  \vspace{0.20cm}
+  \vspace{0.26cm}
   \centering
-  \csrowpanel{0.155}{Image}{1.28cm}{cs_zs_ombre_image}\hfill
-  \csrowpanel{0.155}{Vérité terrain}{1.28cm}{cs_zs_ombre_gt}\hfill
-  \csrowpanel{0.155}{\textcolor{success}{CrackSAM}}{1.28cm}{cs_zs_ombre_sam}\hfill
-  \csrowpanel{0.155}{SegFormer}{1.28cm}{cs_zs_ombre_segformer}\hfill
-  \csrowpanel{0.155}{MobileNet}{1.28cm}{cs_zs_ombre_mobilenet}\hfill
-  \csrowpanel{0.155}{ResNet-50}{1.28cm}{cs_zs_ombre_resnet}
+  {\fontsize{6.6}{7.4}\selectfont\bfseries \texttt{Road420}, en zéro-shot}
+  \par\vspace{2pt}
+  \csrowpanel{0.155}{Image}{1.30cm}{cs_zs_ombre_image}\hfill
+  \csrowpanel{0.155}{Vérité terrain}{1.30cm}{cs_zs_ombre_gt}\hfill
+  \csrowpanel{0.155}{\textcolor{success}{CrackSAM}}{1.30cm}{cs_zs_ombre_sam}\hfill
+  \csrowpanel{0.155}{SegFormer}{1.30cm}{cs_zs_ombre_segformer}\hfill
+  \csrowpanel{0.155}{MobileNet}{1.30cm}{cs_zs_ombre_mobilenet}\hfill
+  \csrowpanel{0.155}{ResNet-50}{1.30cm}{cs_zs_ombre_resnet}
 
-  \source{Une ombre portée, en zéro-shot : c'est cette robustesse que la
-  géométrie devait renforcer. --- \textsc{Ge} \emph{et al.}, \og Fine-tuning
-  vision foundation model for crack segmentation in civil
-  infrastructures\fg{}, \emph{Construction and Building Materials} 431:136573,
-  2024 ; figures et tableau 6 du papier. \og Flou fort \fg{} : image réduite de
-  moitié, puis floutée. Notre \texttt{baseline} reprend la recette sur SAM 2
-  Hiera-L.}
+  \source{\textsc{Ge} \emph{et al.}, \emph{Construction and Building Materials}
+  431:136573, 2024 --- tableau 6 et figures. SegFormer est le meilleur des douze
+  autres concurrents.}
 \end{frame}
 
 % -----------------------------------------------------------------------------
@@ -263,15 +247,11 @@
       {\textbf{4 directions}\\les seules apprises};
   \end{tikzpicture}
 
-  \vspace{0.40cm}
+  \vspace{0.45cm}
   {\large $y \;=\; W x \;+\; B A x$}
 
-  \vspace{0.40cm}
-  {\small $BA$ pèse \textbf{4\,608} poids là où $W$ en a \textbf{331\,776}.
-  Et $B = 0$ au départ : à l'initialisation, le modèle \emph{est} SAM 2.}
-
-  \source{Exemple chiffré sur une projection $576 \times 576$ d'un bloc de
-  Hiera-L.}
+  \vspace{0.45cm}
+  {\small $B = 0$ au départ : à l'initialisation, le modèle \emph{est} SAM 2.}
 \end{frame}
 
 % -----------------------------------------------------------------------------
@@ -306,13 +286,8 @@
 
   \vspace{0.40cm}
   \metriccard{warning}{SAM 2 Hiera-L}{224,9\,M}{poids gelés}
-  \hspace{0.25cm}
+  \hspace{0.4cm}
   \metriccard{inkblue}{Appris}{453\,248}{48 blocs, 7 attentions}
-  \hspace{0.25cm}
-  \metriccard{success}{Soit}{0,2\,\%}{1,8\,Mo à sauvegarder}
-
-  \source{Le \texttt{qkv} de Hiera est une projection fusionnée : la correction
-  y est écrite sur les tranches $q$ et $v$, celle de $k$ restant nulle.}
 \end{frame}
 
 % -----------------------------------------------------------------------------
