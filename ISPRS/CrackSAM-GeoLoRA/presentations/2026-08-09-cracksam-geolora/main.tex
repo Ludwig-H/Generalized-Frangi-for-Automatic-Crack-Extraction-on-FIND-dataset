@@ -505,141 +505,81 @@
 
 % -----------------------------------------------------------------------------
 \begin{frame}{\texttt{baseline} contre \texttt{geo}}
+  \centering
+  \vspace{0.75cm}
+  \small
+  \setlength{\tabcolsep}{7pt}%
+  \begin{tabular}{lrrrrr}
+    \toprule
+    & précision & rappel & Dice & IoU & squelette couvert \\
+    \midrule
+    \ttfamily baseline & \textbf{0,759} & 0,761 & \textbf{0,746} &
+      \textbf{0,624} & 0,679 \\
+    \ttfamily geo & 0,674 & \textbf{0,859} & 0,735 & 0,608 & \textbf{0,826} \\
+    \bottomrule
+  \end{tabular}
+
+  \vspace{0.75cm}
+  {\small \texttt{geo} trouve \textbf{plus} de fissure --- rappel
+  $0{,}761 \rightarrow 0{,}859$, squelette couvert
+  $0{,}679 \rightarrow 0{,}826$.}
+
+  \vspace{0.25cm}
+  {\small Et \textbf{plus de faux positifs} avec --- précision
+  $0{,}759 \rightarrow 0{,}674$. L'IoU baisse.}
+
+  \source{1\,695 images de test.
+  \texttt{tables/generated/eval\_baseline.json} et \texttt{eval\_geo.json}.}
+\end{frame}
+
+% -----------------------------------------------------------------------------
+\begin{frame}{\texttt{geo} : ce qu'elle fait trouver}
   \caserow{\texttt{cracktree200\_6774} --- réseau fin entièrement
     manqué}{b2g_gain_ct6774}{\texttt{baseline}}{\texttt{geo}}{success}%
     {0,000 $\rightarrow$ 0,228}
 
-  \vspace{0.10cm}
+  \vspace{0.14cm}
+  \caserow{\texttt{CRACK500\_20160330\_165333}}{b2g_gain_crack165333}%
+    {\texttt{baseline}}{\texttt{geo}}{success}{0,205 $\rightarrow$ 0,462}
+
+  \vspace{0.18cm}
+  \centering
+  {\fontsize{6.4}{7.4}\selectfont \colourkey}
+\end{frame}
+
+% -----------------------------------------------------------------------------
+\begin{frame}{\texttt{geo} : ce qu'elle coûte}
   \caserow{\texttt{GAPS384\_0552} --- débordement le long d'un bord
     clair}{b2g_loss_gaps552}{\texttt{baseline}}{\texttt{geo}}{failure}%
     {0,517 $\rightarrow$ 0,205}
 
-  \vspace{0.12cm}
+  \vspace{0.14cm}
+  \caserow{\texttt{CFD\_080}}{b2g_loss_cfd080}{\texttt{baseline}}%
+    {\texttt{geo}}{failure}{0,523 $\rightarrow$ 0,343}
+
+  \vspace{0.18cm}
   \centering
   {\fontsize{6.4}{7.4}\selectfont \colourkey}
-
-  \vspace{0.12cm}
-  \small
-  \setlength{\tabcolsep}{5pt}%
-  \begin{tabular}{lrrrr}
-    \toprule
-    & précision & rappel & IoU & squelette couvert \\
-    \midrule
-    \ttfamily baseline & \textbf{0,759} & 0,761 & \textbf{0,624} & 0,679 \\
-    \ttfamily geo & 0,674 & \textbf{0,859} & 0,608 & \textbf{0,826} \\
-    \bottomrule
-  \end{tabular}
 \end{frame}
 
 % -----------------------------------------------------------------------------
-\begin{frame}{Le protocole : six barreaux, un contrôle}
-  \small
-  \begin{tabularx}{\linewidth}{>{\ttfamily}p{2.75cm}p{2.3cm}>{\raggedright\arraybackslash}p{1.7cm}r>{\raggedright\arraybackslash}X}
-    \toprule
-    \normalfont Variante & Perte & Évidence & Params &
-      \normalfont Isole \\
-    \midrule
-    baseline & CrackSAM & --- & 453\,248 & l'ancre \\
-    cldice & $+$ clDice & --- & 453\,248 & la continuité \\
-    geo & $+$ clDice & alignée & 744\,049 & la géométrie \\
-    \textbf{tol3} & $+$ \textbf{tolérante 3 px} & --- & 453\,248 &
-      \textbf{la tolérance} \\
-    geo\_tol3 & $+$ tolérante 3 px & alignée & 744\,049 & la géométrie \\
-    \textbf{geo\_tol3\_permuted} & $+$ tolérante 3 px &
-      \textbf{d'une autre image} & 744\,049 & \textbf{le contrôle} \\
-    \bottomrule
-  \end{tabularx}
+\begin{frame}{\texttt{tol3} : la \texttt{baseline}, à 3 px près}
+  \centering
+  \vspace{0.30cm}
+  {\small La \texttt{baseline}, dont la perte cesse de compter une erreur de
+  placement de moins de \textbf{3 px}.}
 
   \vspace{0.30cm}
-  \centering
-  \metriccard{inkblue}{Budget}{5 époques}{même graine, même ordre}
-  \hspace{0.25cm}
-  \metriccard{success}{Corpus}{9\,121 / 1\,695}{train / test}
-  \hspace{0.25cm}
-  \metriccard{warning}{Durée}{40--41 min}{par variante}
+  {\small un pixel prédit compte s'il tombe à moins de 3 px de la vérité
+  \emph{(vérité grossie de 3 px)}}
 
-  \source{Contrôle permuté : même capacité, même perte, seul l'appariement
-  image~$\leftrightarrow$~évidence est détruit.}
-\end{frame}
+  \vspace{0.12cm}
+  {\small un pixel vrai est couvert s'il a une prédiction à moins de 3 px
+  \emph{(prédiction grossie de 3 px)}}
 
-% -----------------------------------------------------------------------------
-\begin{frame}{La géométrie n'aide pas}
-  \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.42\textwidth}
-      \centering
-      \small
-      \setlength{\tabcolsep}{3pt}%
-      \begin{tabularx}{\linewidth}{Xrrr}
-        \toprule
-        $k$ & \ttfamily alignée & \ttfamily permutée & $\Delta$ \\
-        \midrule
-        0 & 0,6270 & 0,6265 & $+0{,}0004$ \\
-        1 & 0,7597 & \textbf{0,7601} & $-0{,}0005$ \\
-        3 & 0,8635 & \textbf{0,8644} & $-0{,}0009$ \\
-        8 & 0,9374 & \textbf{0,9378} & $-0{,}0004$ \\
-        \bottomrule
-      \end{tabularx}
-      \\[6pt]
-      {\footnotesize L'alignement ne sert à rien.}
-    \end{column}
-    \begin{column}{0.55\textwidth}
-      \centering
-      \compactpanel{\texttt{frangi\_sim}}{t2g_gain_riss_frangi.jpg}\hfill
-      \compactpanel{\texttt{ofs}}{t2g_gain_riss_ofs.jpg}\hfill
-      \compactpanel{\texttt{ofa}}{t2g_gain_riss_ofa.jpg}\hfill
-      \compactpanel{\texttt{phase\_sym}}{t2g_gain_riss_phase.jpg}
-      \\[4pt]
-      {\scriptsize Image du \emph{plus grand gain} de la géométrie :
-      \textbf{aucun canal ne désigne la fissure}.}
-    \end{column}
-  \end{columns}
-
-  \vspace{0.26cm}
-  \centering
-  {\small L'adapter s'active pourtant : projections jusqu'à
-  $1{,}79\times10^{-3}$.}
-
-  \source{Le déficit de \texttt{geo\_tol3} face à \texttt{tol3} vient des
-  290\,801 paramètres ajoutés.}
-\end{frame}
-
-% -----------------------------------------------------------------------------
-\begin{frame}{Et la galerie de gains trompe}
-  \threewayrow{\texttt{CRACK500\_20160405\_171336}}{b2t_loss_crack171336}{t2g_gain_crack171336}{0,875 $\rightarrow$ 0,510 $\rightarrow$ 0,807}
-
-  \vspace{0.22cm}
-  \threewayrow{\texttt{Rissbilder\_for\_Florian}}{b2t_loss_riss}{t2g_gain_riss}{0,422 $\rightarrow$ 0,153 $\rightarrow$ 0,405}
-
-  \vspace{0.16cm}
-  \centering
-  {\small La géométrie rend ce que la tolérance avait coûté, et reste sous la
-  baseline.}
-
-  \vspace{0.10cm}
-  {\fontsize{6.4}{7.4}\selectfont \colourkey}
-
-  \source{Ces deux images sont les deux plus grands gains de la géométrie. Ce
-  sont aussi les deux plus grandes pertes de \texttt{tol3}.}
-\end{frame}
-
-% -----------------------------------------------------------------------------
-\begin{frame}{\texttt{baseline} contre \texttt{tol3} : ce que la tolérance gagne}
-  \caserow{\texttt{cracktree200\_6774} --- réseau fin entièrement
-    manqué}{b2t_gain_ct6774}{Baseline}{Avec
-    \texttt{tol3}}{success}{0,000 $\rightarrow$ 0,219}
-
-  \vspace{0.10cm}
-  \caserow{\texttt{cracktree200\_6243} --- même régime : fines, peu
-    contrastées}{b2t_gain_ct6243}{Baseline}{Avec
-    \texttt{tol3}}{success}{0,000 $\rightarrow$ 0,238}
-
-  \vspace{0.10cm}
-  \centering
-  {\fontsize{6.4}{7.4}\selectfont \colourkey}
-
-  \vspace{0.14cm}
+  \vspace{0.55cm}
   \small
-  \setlength{\tabcolsep}{5pt}%
+  \setlength{\tabcolsep}{7pt}%
   \begin{tabular}{lrrrr}
     \toprule
     IoU tampon & strict & 1 px & 3 px & 8 px \\
@@ -649,6 +589,24 @@
       \textbf{0,9346} \\
     \bottomrule
   \end{tabular}
+
+  \source{Elle l'emporte à toutes les tolérances, y compris en strict.}
+\end{frame}
+
+% -----------------------------------------------------------------------------
+\begin{frame}{\texttt{tol3} : ce que la tolérance gagne}
+  \caserow{\texttt{cracktree200\_6774} --- réseau fin entièrement
+    manqué}{b2t_gain_ct6774}{\texttt{baseline}}{\texttt{tol3}}{success}%
+    {0,000 $\rightarrow$ 0,219}
+
+  \vspace{0.14cm}
+  \caserow{\texttt{cracktree200\_6243} --- fines, peu
+    contrastées}{b2t_gain_ct6243}{\texttt{baseline}}{\texttt{tol3}}{success}%
+    {0,000 $\rightarrow$ 0,238}
+
+  \vspace{0.18cm}
+  \centering
+  {\fontsize{6.4}{7.4}\selectfont \colourkey}
 
   \source{Gains concentrés sur \texttt{cracktree200}. Contrepartie mesurée :
   \texttt{GAPS384\_0552}, \texttt{0,517} $\rightarrow$ \texttt{0,308}.}

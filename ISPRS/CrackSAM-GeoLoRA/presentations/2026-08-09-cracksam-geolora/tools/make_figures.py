@@ -67,6 +67,7 @@ CASES: dict[str, str] = {
     "b2g_gain_ct6774": "case_reussite_03_cracktree200_6774.jpg",
     "b2g_gain_crack165333": "case_reussite_05_CRACK500_20160330_165333_1921_1081.jpg",
     "b2g_loss_gaps552": "case_echec_00_GAPS384_train_0552_1_641.jpg",
+    "b2g_loss_cfd080": "case_echec_02_CFD_080.jpg",
 }
 
 #: Vert = vrai positif, rouge = faux positif, bleu = manqué. Mêmes teintes que
