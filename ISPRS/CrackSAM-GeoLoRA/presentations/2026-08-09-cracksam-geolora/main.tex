@@ -263,10 +263,11 @@
   \end{tikzpicture}
 
   \vspace{0.45cm}
-  {\large $y \;=\; W x \;+\; B A x$}
+  {\large $y \;=\; W x \;+\; B A x$, \qquad
+   $\operatorname{rang}(BA) \le 4$}
 
-  \vspace{0.45cm}
-  {\small $B = 0$ au départ : à l'initialisation, le modèle \emph{est} SAM 2.}
+  \vspace{0.40cm}
+  {\large $B = 0 \;\Longrightarrow\; y = Wx$}
 \end{frame}
 
 % -----------------------------------------------------------------------------
@@ -294,12 +295,18 @@
     \draw[->,black!45] (att) -- (out);
   \end{tikzpicture}
 
-  \vspace{0.45cm}
-  {\small \textcolor{inkblue}{$q$ : où l'on regarde.} \quad
-  \textcolor{inkblue}{$v$ : ce que l'on en retient.} \quad
-  \textcolor{black!55}{$k$ et la sortie : intacts.}}
+  \vspace{0.42cm}
+  {\large $\displaystyle \mathrm{Att}(X) \;=\;
+   \mathrm{softmax}\!\left(
+   \frac{(X\textcolor{inkblue}{W_q})(XW_k)^{\!\top}}{\sqrt{d}}
+   \right) X\textcolor{inkblue}{W_v}$}
 
-  \vspace{0.40cm}
+  \vspace{0.28cm}
+  {\small $\textcolor{inkblue}{W_q \leftarrow W_q + B_qA_q}$ \qquad
+   $\textcolor{inkblue}{W_v \leftarrow W_v + B_vA_v}$ \qquad
+   $W_k$, $W_o$ inchangés}
+
+  \vspace{0.24cm}
   \metriccard{warning}{SAM 2 Hiera-L}{224,9\,M}{poids gelés}
   \hspace{0.4cm}
   \metriccard{inkblue}{Appris}{453\,248}{48 blocs, 7 attentions}
@@ -313,12 +320,13 @@
     \node[rounded corners=4pt,draw=black!30,fill=softgray,text width=2.1cm,
       align=center,inner sep=5pt] at (0,0) (g) {graphe de Frangi};
     \node[rounded corners=4pt,draw=black!30,fill=softgray,text width=2.1cm,
-      align=center,inner sep=5pt] at (3.1,0) (s) {\texttt{node\_sim\_max}\\
-      {\color{black!58}affinité locale}};
+      align=center,inner sep=5pt] at (3.1,0) (s) {$s = \texttt{node\_sim\_max}$\\
+      $s \in [0,1]$};
     \node[rounded corners=4pt,draw=warning!55,fill=warning!8,text width=2.1cm,
-      align=center,inner sep=5pt] at (6.2,0) (l) {pseudo-logits};
+      align=center,inner sep=5pt] at (6.2,0) (l)
+      {$z = \log\dfrac{s}{1-s}$};
     \node[rounded corners=4pt,draw=failure!55,fill=softred,text width=2.5cm,
-      align=center,inner sep=5pt] at (9.5,0) (m) {\texttt{mask\_input}\\
+      align=center,inner sep=5pt] at (9.5,0) (m) {\texttt{mask\_input} $\leftarrow z$\\
       {\color{black!58}un masque à raffiner}};
     \draw[->,black!45] (g) -- (s);
     \draw[->,black!45] (s) -- (l);
@@ -367,13 +375,12 @@
     \node[text=black!58] at (6.0,-1.72) {profil \textbf{impair}};
   \end{tikzpicture}
 
-  \vspace{0.55cm}
-  {\large $I(x) \;=\; \underbrace{P(x)}_{P(-x)\,=\,P(x)} \;+\;
-   \underbrace{M(x)}_{M(-x)\,=\,-M(x)}$}
-
   \vspace{0.50cm}
-  {\small Tout profil transverse se décompose en une partie \textbf{paire} et
-  une partie \textbf{impaire}.}
+  {\large $I(x) \;=\; \textcolor{inkblue}{P(x)} \;+\; \textcolor{failure}{M(x)}$}
+
+  \vspace{0.40cm}
+  {\large $\textcolor{inkblue}{P(x) = \dfrac{I(x)+I(-x)}{2}}$ \qquad
+   $\textcolor{failure}{M(x) = \dfrac{I(x)-I(-x)}{2}}$}
 \end{frame}
 
 % -----------------------------------------------------------------------------
@@ -386,27 +393,19 @@
   \widepanel{\texttt{ofa}}{b2t_gain_ct6774_ofa.jpg}\hfill
   \widepanel{\texttt{phase\_sym}}{b2t_gain_ct6774_phase.jpg}
 
-  \vspace{0.24cm}
-  \small
-  \begin{tabularx}{0.96\linewidth}{>{\ttfamily\footnotesize}p{2.3cm}X}
-    \toprule
-    \normalfont\bfseries Canal & \normalfont\bfseries Ce qu'il mesure \\
-    \midrule
-    frangi\_sim & la carte des essais précédents : elle \emph{propose} \\
-    ofs & flux du gradient entrant dans un disque --- fort sur une vallée \\
-    ofa & gradient moyen sur le cercle --- non nul sur une \emph{marche} \\
-    even\_odd, profile & réponse paire moins réponse impaire ; deux flancs
-      clairs exigés au même rayon \\
-    dbic & compare explicitement \og ombre seule \fg{} et \og ombre $+$ ligne
-      sombre \fg{} \\
-    phase\_sym & Gabor en quadrature : polarité sombre \\
-    cos2$\theta$, sin2$\theta$, scale, abs\_energy & orientation, largeur,
-      confiance absolue \\
-    \bottomrule
-  \end{tabularx}
+  \vspace{0.34cm}
+  {\large $\displaystyle
+   Q_r = \frac{1}{|\partial D_r|}\int_{D_r}\!\nabla^2 I
+   \qquad
+   a_r = \frac{1}{|\partial D_r|}\oint_{\partial D_r}\!\nabla I$}
 
-  \source{\texttt{cracktree200\_6774}. \texttt{ofa} est le canal
-  \emph{anti}-ombre : c'est lui qui récuse ce que \texttt{ofs} propose.}
+  \vspace{0.34cm}
+  {\large $\texttt{ofs} = \lambda_+(Q_r)$ \qquad
+   $\texttt{ofa} = \lVert a_r \rVert$}
+
+  \vspace{0.34cm}
+  {\small vallée : $\lambda_+$ grand, $\lVert a_r\rVert \approx 0$ \qquad
+   marche : $\lVert a_r\rVert$ grand}
 \end{frame}
 
 % -----------------------------------------------------------------------------
@@ -446,50 +445,39 @@
       at (6.55,-1.05) {3 corrections};
   \end{tikzpicture}
 
-  \vspace{0.30cm}
-  {\small L'évidence est \textbf{ajoutée} aux traits de SAM 2, à trois échelles :
-  $32{\times}256^2$, $64{\times}128^2$, $256{\times}64^2$. Jamais par
-  \texttt{mask\_input}.}
+  \vspace{0.34cm}
+  {\large $f_s \;\leftarrow\; f_s \;+\; \gamma\,P_s(E)$, \qquad
+   $s \in \{32{\times}256^2,\; 64{\times}128^2,\; 256{\times}64^2\}$}
 
-  \vspace{0.30cm}
-  {\small Les projections partent de \textbf{zéro} : à l'initialisation la
-  correction est nulle, et \texttt{geo} \emph{est} la \texttt{baseline}, au bit
-  près. Une seule chose les sépare : \textbf{290\,801} paramètres et onze
-  canaux.}
-
-  \source{L'invite dense de juillet coûtait $-0{,}0979$ d'IoU : cette interface
-  reste un contrôle négatif, jamais un chemin d'entraînement.}
+  \vspace{0.34cm}
+  {\large $P_s \equiv 0$ à $t=0 \;\Longrightarrow\;
+   \texttt{geo} = \texttt{baseline}$}
 \end{frame}
 
 % -----------------------------------------------------------------------------
 \begin{frame}{La question, et la réponse}
   \centering
   \vspace{0.10cm}
+  \vspace{0.45cm}
   \begin{tikzpicture}
-    \node[rounded corners=6pt,draw=inkblue!50,fill=softblue,text width=5.8cm,
-      minimum height=3.3cm,align=left,inner sep=9pt,anchor=north west]
+    \node[rounded corners=6pt,draw=inkblue!50,fill=softblue,text width=5.4cm,
+      minimum height=1.9cm,align=center,inner sep=9pt,anchor=north west]
       at (0,0) {%
-      {\large\bfseries\color{inkblue} La question}\\[6pt]
-      Une fissure a une forme : fine, longue, continue.\\[3pt]
-      Le Frangi généralisé la décrit. SAM 2, non.\\[3pt]
-      Peut-on la lui donner ? Et si oui, \textbf{où} et
-      \textbf{sous quelle forme} ?\\[6pt]
-      {\scriptsize Trois tentatives ont déjà échoué. Ici, la géométrie est
-      apprise \emph{dans} le modèle.}};
-    \node[rounded corners=6pt,draw=failure!50,fill=softred,text width=5.8cm,
-      minimum height=3.3cm,align=left,inner sep=9pt,anchor=north west]
-      at (6.8,0) {%
-      {\large\bfseries\color{failure} La réponse : non}\\[6pt]
-      On donne au modèle la géométrie de \textbf{son} image.
-      Puis celle d'une \textbf{autre} image.\\[4pt]
-      Les deux se valent, partout : $|\Delta| < 0{,}001$.\\[2pt]
-      La mauvaise gagne \textbf{5 fois sur 6}.\\[6pt]
-      {\scriptsize Par image : $-0{,}0007$ en moyenne,
-      603 gains, 866 pertes.}};
+      {\large\bfseries\color{inkblue} La question}\\[7pt]
+      $E$ décrit la forme. SAM 2, non.\\[4pt]
+      Peut-on la lui donner ?};
+    \node[rounded corners=6pt,draw=failure!50,fill=softred,text width=5.4cm,
+      minimum height=1.9cm,align=center,inner sep=9pt,anchor=north west]
+      at (6.6,0) {%
+      {\large\bfseries\color{failure} La réponse : non}\\[7pt]
+      $\bigl|\IoU(E) - \IoU(E_{\pi})\bigr| < 10^{-3}$\\[4pt]
+      $E_\pi$ gagne \textbf{5 fois sur 6}};
   \end{tikzpicture}
 
-  \source{Khánh Hà, monomodal visible. 8--9 août 2026, RTX PRO 6000 Blackwell.
-  Le modèle ne voit pas la différence.}
+  \vspace{0.50cm}
+  {\small $E$ : la géométrie de \emph{son} image. \quad
+  $E_\pi$ : celle d'une \textbf{autre} image. \quad
+  Par image : $-0{,}0007$, 603 gains, 866 pertes.}
 \end{frame}
 
 % -----------------------------------------------------------------------------
@@ -586,40 +574,35 @@
 
 % -----------------------------------------------------------------------------
 \begin{frame}{Suite}
-  \small
+  \vspace{0.30cm}
   \begin{tabularx}{\linewidth}{c>{\raggedright\arraybackslash}X}
     \toprule
-    \textbf{1} & \textbf{Arrêter le guidage géométrique sur Khánh Hà.} Il n'y a
-      pas un signal faible à mieux exploiter. Il n'y a pas de signal. \\
-    \textbf{2} & \textbf{Aller là où l'information existe : FIND multimodal.}
-      La portée et le thermique, SAM 2 ne les voit pas. Il n'a donc pas pu les
-      apprendre. \\
-    3 & Choisir la métrique du projet. Deux conventions donnent deux
-      classements. \\
+    \textbf{1} & \textbf{Arrêter le guidage géométrique sur Khánh Hà.} \\
+    \textbf{2} & \textbf{Aller où l'information existe : FIND multimodal}
+      --- portée et thermique, que SAM 2 n'a jamais vus. \\
+    3 & Choisir la métrique du projet : $k=0$ et $k=3$ ne donnent pas le même
+      classement. \\
     \bottomrule
   \end{tabularx}
 
-  \vspace{0.32cm}
+  \vspace{0.45cm}
   \centering
   {\small À ne pas faire : plus de capacité, plus d'époques, un GNN.}
 
-  \vspace{0.18cm}
-  {\small Limites : 5 époques et non 20, pas d'IC95, une seule échelle
-  d'évidence.}
-
-  \source{Sur ce corpus --- monomodal visible, annotations épaisses, baseline
-  supervisée sur le même domaine --- le Frangi généralisé n'apporte aucune
-  information que la LoRA n'ait déjà apprise.}
+  \vspace{0.22cm}
+  {\small Limites : 5 époques, pas d'IC95, une seule échelle d'évidence.}
 \end{frame}
 
 % -----------------------------------------------------------------------------
 \begin{frame}{La tolérance de 3 px : en quoi elle consiste}
   \centering
-  {\small Un pixel prédit compte comme juste s'il tombe à moins de $k$ pixels de
-  la vérité terrain --- et réciproquement. Une \textbf{distance
-  d'appariement}, pas une dilatation.}
+  \vspace{0.04cm}
+  {\small $\mathrm{Pr}_k = \dfrac{|P \cap G^{\oplus k}|}{|P|}$ \quad
+   $\mathrm{Re}_k = \dfrac{|G \cap P^{\oplus k}|}{|G|}$ \quad
+   $\IoU_k = \dfrac{F_k}{2 - F_k}$, \;
+   $F_k = \dfrac{2\,\mathrm{Pr}_k \mathrm{Re}_k}{\mathrm{Pr}_k + \mathrm{Re}_k}$}
 
-  \vspace{0.12cm}
+  \vspace{0.14cm}
   \synthpanel{parfait}{synth_perfect.png}\hfill
   \synthpanel{décalé 2 px}{synth_shifted.png}\hfill
   \synthpanel{2$\times$ trop large}{synth_wide.png}\hfill
@@ -645,17 +628,15 @@
     \end{column}
     \begin{column}{0.51\textwidth}
       \small
-      La vérité terrain \textbf{dilatée d'un pixel} n'obtient plus que
-      \textbf{0,881} contre elle-même, et \textbf{0,799} à deux pixels.\\[4pt]
-      Baseline, à 1 px de tolérance : la précision passe de 0,759 à
-      \textbf{0,888}, le rappel seulement de 0,761 à 0,812.\\[4pt]
-      {\footnotesize Un décalage de 2 px est plus puni qu'une rupture de 20 px.}
+      $\IoU_0(G^{\oplus 1}, G) = \textbf{0,881}$ \qquad
+      $\IoU_0(G^{\oplus 2}, G) = \textbf{0,799}$\\[7pt]
+      Baseline, $k=1$ :\\[2pt]
+      $\mathrm{Pr} : 0{,}759 \rightarrow \textbf{0,888}$ \qquad
+      $\mathrm{Re} : 0{,}761 \rightarrow 0{,}812$\\[7pt]
+      {\footnotesize Un décalage de 2 px est plus puni qu'une rupture de
+      20 px.}
     \end{column}
   \end{columns}
-
-  \source{La tolérance est une distance d'appariement : elle pardonne le
-  placement et la largeur, et une rupture seulement si elle est plus courte que
-  $2k$.}
 \end{frame}
 
 % -----------------------------------------------------------------------------
