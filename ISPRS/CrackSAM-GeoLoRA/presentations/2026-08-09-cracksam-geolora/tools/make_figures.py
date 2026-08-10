@@ -55,6 +55,7 @@ PANELS = ("image", "gt", "ref", "var", "frangi", "ofs", "ofa", "phase")
 CASES: dict[str, str] = {
     # baseline -> tol3 : ce que la dilatation gagne, et ce qu'elle coûte
     "b2t_gain_ct6774": "case_baseline_vs_tol3_reussite_04_cracktree200_6774.jpg",
+    "b2t_gain_ct6243": "case_baseline_vs_tol3_reussite_05_cracktree200_6243.jpg",
     "b2t_loss_gaps552": "case_baseline_vs_tol3_echec_02_GAPS384_train_0552_1_641.jpg",
     "b2t_loss_crack171336": "case_baseline_vs_tol3_echec_00_CRACK500_20160405_171336_641_361.jpg",
     "b2t_loss_riss": "case_baseline_vs_tol3_echec_01_Rissbilder_for_Florian_9S6A2817_67_221_2558_2411.jpg",
@@ -173,6 +174,76 @@ def split_grid(path: Path) -> list[list[Image.Image]]:
     ]
 
 
+#: Planches par cas de l'étude anti-ombre du 8 août : seule source versionnée
+#: où figurent Volker, DeepCrack, Sylvie et les images sans fissure. Le panneau
+#: (0, 0) y est l'entrée, les suivants des cartes de filtres.
+ANTI_SHADOW = (
+    GEOLORA.parent
+    / "CrackSAM"
+    / "results"
+    / "2026-08-08_guidage_geometrique_anti_ombre"
+    / "figures"
+    / "generated"
+    / "cases"
+    / "khanhha"
+    / "original"
+)
+
+#: Une vignette par sous-corpus de Khánh Hà. Le corpus lui-même n'est pas
+#: versionné : chaque vignette est donc le panneau d'entrée d'une planche par
+#: cas déjà archivée, et non une image tirée du jeu de données.
+#:
+#: ``forest`` (18 images de test) et ``Eugen`` (8) ne figurent dans aucune
+#: planche archivée. Ils ne sont pas illustrés, et la planche le dit.
+KHANHHA: dict[str, tuple[str, str]] = {
+    "kh_rissbilder": (
+        "case",
+        "case_baseline_vs_tol3_echec_01_Rissbilder_for_Florian"
+        "_9S6A2817_67_221_2558_2411.jpg",
+    ),
+    "kh_crack500": ("case", "case_echec_01_CRACK500_20160310_114418_641_361.jpg"),
+    "kh_noncrack": ("shadow", "noncrack_noncrack_concrete_wall_43_50.jpg.jpg.png"),
+    "kh_volker": ("shadow", "Volker_DSC01646_226_19_1273_1645.jpg.png"),
+    "kh_deepcrack": ("shadow", "DeepCrack_11231-3.jpg.png"),
+    "kh_gaps384": (
+        "case",
+        "case_tol3_vs_geo_tol3_echec_00_GAPS384_train_0608_1_1.jpg",
+    ),
+    "kh_cracktree200": (
+        "case",
+        "case_baseline_vs_tol3_reussite_04_cracktree200_6774.jpg",
+    ),
+    "kh_sylvie": ("shadow", "Sylvie_Chambon_319.jpg.png"),
+    "kh_cfd": ("case", "case_echec_02_CFD_080.jpg"),
+}
+
+
+#: L'échec de l'interface historique, en une image. ``Sylvie_Chambon_319``
+#: porte à la fois une vraie fissure et une ombre portée franche. Le panneau
+#: « Frangi-sim. hist. » est exactement la carte ``node_sim_max`` qui était
+#: injectée dans ``mask_input`` : elle répond sur la frontière d'ombre bien plus
+#: que sur la fissure, que la vérité terrain est seule à désigner.
+SHADOW: tuple[str, dict[str, int]] = (
+    "Sylvie_Chambon_319.jpg.png",
+    {"image": 0, "gt": 1, "frangi": 2},
+)
+
+
+def square(image: Image.Image, size: int = 320) -> Image.Image:
+    """Recadre au centre en carré, puis met à l'échelle.
+
+    Les deux familles de planches n'ont ni la même définition ni le même format
+    de panneau ; sans ce passage au carré, la rangée de vignettes serait bancale.
+    """
+
+    side = min(image.size)
+    left = (image.width - side) // 2
+    top = (image.height - side) // 2
+    return image.crop((left, top, left + side, top + side)).resize(
+        (size, size), Image.LANCZOS
+    )
+
+
 def trim(path: Path, margin: int = 6) -> Image.Image:
     """Retire les marges blanches d'une figure, en gardant ``margin`` pixels."""
 
@@ -258,6 +329,20 @@ def main() -> int:
 
     trim(PAPER / "extracted_p9_0.jpg").save(OUTPUT / "cs_flou_courbe.jpg", quality=94)
     print("détouré cs_flou_courbe (extracted_p9_0.jpg)")
+
+    for slug, (family, filename) in KHANHHA.items():
+        if family == "case":
+            panel = split_panels(SOURCE / filename)[0]
+        else:
+            panel = split_grid(ANTI_SHADOW / filename)[0][0]
+        square(panel).save(OUTPUT / f"{slug}.jpg", quality=92)
+        print(f"vignette {slug} ({filename})")
+
+    filename, columns = SHADOW
+    row = split_grid(ANTI_SHADOW / filename)[0]
+    for name, column in columns.items():
+        square(row[column]).save(OUTPUT / f"ombre_{name}.jpg", quality=92)
+    print(f"vignettes ombre_* ({filename})")
 
     metric = _load_metric()
     radii = (0, 1, 2, 3, 5, 8)

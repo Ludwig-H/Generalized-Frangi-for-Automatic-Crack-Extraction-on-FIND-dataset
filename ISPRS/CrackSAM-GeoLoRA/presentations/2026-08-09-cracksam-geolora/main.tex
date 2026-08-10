@@ -50,6 +50,30 @@
     };
   \end{tikzpicture}%
 }
+% Vignette d'un sous-corpus : image, nom, effectif de test.
+\newcommand{\corpusthumb}[3]{%
+  \begin{minipage}[t]{0.185\textwidth}
+    \centering
+    \setlength{\fboxsep}{0.7pt}%
+    \fcolorbox{black!16}{white}{\includegraphics[height=1.42cm]{#3}}\par
+    \vspace{1pt}
+    {\fontsize{6.0}{6.6}\selectfont\bfseries #1}
+    {\fontsize{6.0}{6.6}\selectfont\color{black!55} · #2}
+  \end{minipage}%
+}
+% Vignette d'une grille de comparaison : largeur au choix, en-tête facultatif
+% (vide pour les rangées qui suivent la première).
+\newcommand{\csrowpanel}[4]{%
+  \begin{minipage}[t]{#1\textwidth}
+    \centering
+    \ifx\relax#2\relax\else
+      {\fontsize{6.1}{6.8}\selectfont\bfseries #2}\par\vspace{1pt}%
+    \fi
+    \setlength{\fboxsep}{0.7pt}%
+    \fcolorbox{black!16}{white}{%
+      \includegraphics[width=0.95\linewidth,height=#3,keepaspectratio]{#4}}
+  \end{minipage}%
+}
 % Vignette d'un panneau, sur cinq colonnes.
 \newcommand{\widepanel}[2]{%
   \begin{minipage}[t]{0.188\textwidth}
@@ -67,7 +91,7 @@
     {\fontsize{6.1}{6.8}\selectfont\bfseries #1}\par\vspace{1pt}
     \setlength{\fboxsep}{0.7pt}%
     \fcolorbox{black!16}{white}{%
-      \includegraphics[width=0.93\linewidth,height=1.80cm,keepaspectratio]{#2}}
+      \includegraphics[width=0.93\linewidth,height=1.56cm,keepaspectratio]{#2}}
   \end{minipage}%
 }
 \newcommand{\caserow}[6]{%
@@ -109,8 +133,8 @@
 }
 \newcommand{\colourkey}{%
   \textcolor{success}{$\blacksquare$}~vrai positif \quad
-  \textcolor{failure}{$\blacksquare$}~faux positif \quad
-  \textcolor{inkblue}{$\blacksquare$}~manqué}
+  \textcolor{failure}{$\blacksquare$}~faussement positif \quad
+  \textcolor{inkblue}{$\blacksquare$}~faussement négatif (manqué)}
 
 \title[CrackSAM-GeoLoRA]{CrackSAM-GeoLoRA}
 \subtitle{Guider SAM 2 par la géométrie : comment, et pourquoi cela ne marche pas.}
@@ -126,46 +150,91 @@
 \frame{\titlepage}
 
 % -----------------------------------------------------------------------------
-\begin{frame}{D'où l'on part : CrackSAM, SAM ajusté par LoRA}
+\begin{frame}{Le corpus : Khánh Hà}
+  \centering
+  \vspace{0.04cm}
+  {\small Onze jeux publics réunis en un seul --- routes, façades, murs.
+  \textbf{9\,121} images d'entraînement, \textbf{1\,695} de test, dont 12\,\%
+  sans aucune fissure.}
+
+  \vspace{0.20cm}
+  \corpusthumb{Rissbilder}{573}{kh_rissbilder}\hfill
+  \corpusthumb{CRACK500}{505}{kh_crack500}\hfill
+  \corpusthumb{noncrack}{212}{kh_noncrack}\hfill
+  \corpusthumb{Volker}{148}{kh_volker}\hfill
+  \corpusthumb{DeepCrack}{78}{kh_deepcrack}
+
+  \vspace{0.14cm}
+  \corpusthumb{GAPS384}{76}{kh_gaps384}\hfill
+  \corpusthumb{cracktree200}{31}{kh_cracktree200}\hfill
+  \corpusthumb{Sylvie Chambon}{28}{kh_sylvie}\hfill
+  \corpusthumb{CFD}{18}{kh_cfd}\hfill
+  \begin{minipage}[t]{0.185\textwidth}
+    \centering
+    \vspace{0.48cm}
+    {\fontsize{6.0}{7.0}\selectfont\color{black!55}
+    \textit{forest} (18)\\ et \textit{Eugen} (8)\\ non illustrés}
+  \end{minipage}
+
+  \vspace{0.16cm}
+  {\small Le nombre sous chaque vignette est l'effectif de test. Résolutions,
+  éclairages et annotations hétérogènes.}
+
+  \source{Effectifs de test relevés dans
+  \texttt{protocol/cracksam\_paper/lists/lists\_khanhha/test\_vol.txt}, 1\,695 au
+  total. Le corpus n'étant pas versionné, chaque vignette est le panneau
+  d'entrée d'une planche par cas archivée.}
+\end{frame}
+
+% -----------------------------------------------------------------------------
+\begin{frame}{Sa force : le bruit, et le hors-domaine}
   \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.47\textwidth}
-      \begin{tikzpicture}
-        \node[rounded corners=6pt,draw=warning!50,fill=warning!8,text width=5.5cm,
-          align=left,inner sep=8pt,anchor=north west] at (0,0) {%
-          {\bfseries\color{warning} Le modèle}\\[5pt]
-          \small
-          SAM ViT-H, 637\,M paramètres, \textbf{gelé}\\[2pt]
-          LoRA de rang 4 sur les projections $q$ et $v$\\[2pt]
-          décodeur de masque réentraîné\\[2pt]
-          \textbf{4,4\,M} paramètres appris, soit $\div\,100$};
-        \node[rounded corners=6pt,draw=inkblue!45,fill=softblue,text width=5.5cm,
-          align=left,inner sep=8pt,anchor=north west] at (0,-2.35) {%
-          {\bfseries\color{inkblue} Le corpus : Khánh Hà}\\[5pt]
-          \small
-          11 jeux réunis en un seul --- Rissbilder,\\
-          CRACK500, Volker, DeepCrack, CFD\ldots\\[2pt]
-          \textbf{9\,121} / 481 / \textbf{1\,695} images\\[2pt]
-          routes, façades, murs ; 12\,\% sans fissure};
-      \end{tikzpicture}
-    \end{column}
-    \begin{column}{0.51\textwidth}
+    \begin{column}{0.44\textwidth}
       \centering
       \setlength{\fboxsep}{1pt}%
-      \fcolorbox{black!16}{white}{\includegraphics[width=0.98\linewidth]{cs_flou_courbe.jpg}}
-      \\[3pt]
-      {\scriptsize IoU sur le test Khánh Hà, sous flou gaussien croissant.}
+      \fcolorbox{black!16}{white}{\includegraphics[height=2.85cm]{cs_flou_courbe.jpg}}
+      \\[2pt]
+      {\fontsize{6.4}{7.4}\selectfont IoU sous flou gaussien croissant.
+      Sur image nette les quatre modèles sont à 0,64 ; sous flou fort CrackSAM
+      garde 0,46, les autres tombent sous 0,41.}
+    \end{column}
+    \begin{column}{0.53\textwidth}
+      \centering
+      \vspace{0.15cm}
+      \footnotesize
+      \setlength{\tabcolsep}{3pt}%
+      \begin{tabular}{lrrrr}
+        \toprule
+        IoU & flou fort & \texttt{Road420} & \texttt{Facade390} &
+          \texttt{Concrete3k} \\
+        \midrule
+        \textbf{CrackSAM} & \textbf{0,492} & \textbf{0,622} & 0,454 &
+          \textbf{0,680} \\
+        SegFormer & 0,444 & 0,582 & \textbf{0,462} & 0,653 \\
+        \bottomrule
+      \end{tabular}
+      \\[4pt]
+      {\fontsize{6.4}{7.4}\selectfont Trois corpus jamais vus à l'entraînement.
+      SegFormer est le meilleur des douze autres concurrents.}
     \end{column}
   \end{columns}
 
-  \vspace{0.24cm}
+  \vspace{0.20cm}
   \centering
-  \statusbadge{inkblue}{sur image nette, les quatre modèles sont à 0,64}
-  \hspace{0.3cm}
-  \statusbadge{success}{sous flou fort, il garde 0,46 ; les autres tombent sous 0,41}
+  \csrowpanel{0.155}{Image}{1.28cm}{cs_zs_ombre_image}\hfill
+  \csrowpanel{0.155}{Vérité terrain}{1.28cm}{cs_zs_ombre_gt}\hfill
+  \csrowpanel{0.155}{\textcolor{success}{CrackSAM}}{1.28cm}{cs_zs_ombre_sam}\hfill
+  \csrowpanel{0.155}{SegFormer}{1.28cm}{cs_zs_ombre_segformer}\hfill
+  \csrowpanel{0.155}{MobileNet}{1.28cm}{cs_zs_ombre_mobilenet}\hfill
+  \csrowpanel{0.155}{ResNet-50}{1.28cm}{cs_zs_ombre_resnet}
 
-  \source{\textsc{Ge} \emph{et al.}, \og Fine-tuning vision foundation model for crack
-  segmentation in civil infrastructures\fg{}, \emph{Construction and Building
-  Materials} 431:136573, 2024. Figure du papier.}
+  \source{Une ombre portée, en zéro-shot : c'est cette robustesse que la
+  géométrie devait renforcer. --- \textsc{Ge} \emph{et al.}, \og Fine-tuning
+  vision foundation model for crack segmentation in civil
+  infrastructures\fg{}, \emph{Construction and Building Materials} 431:136573,
+  2024 ; figures et tableau 6 du papier. \og Flou fort \fg{} : image réduite de
+  moitié, puis floutée. Notre \texttt{baseline} reprend la recette sur SAM 2
+  Hiera-L.}
 \end{frame}
 
 % -----------------------------------------------------------------------------
@@ -198,9 +267,8 @@
   {\large $y \;=\; W x \;+\; B A x$}
 
   \vspace{0.40cm}
-  \statusbadge{inkblue}{4\,608 poids là où $W$ en a 331\,776}
-  \hspace{0.3cm}
-  \statusbadge{success}{$B = 0$ au départ : le modèle \emph{est} SAM 2}
+  {\small $BA$ pèse \textbf{4\,608} poids là où $W$ en a \textbf{331\,776}.
+  Et $B = 0$ au départ : à l'initialisation, le modèle \emph{est} SAM 2.}
 
   \source{Exemple chiffré sur une projection $576 \times 576$ d'un bloc de
   Hiera-L.}
@@ -232,11 +300,9 @@
   \end{tikzpicture}
 
   \vspace{0.45cm}
-  \statusbadge{inkblue}{$q$ : où l'on regarde}
-  \hspace{0.25cm}
-  \statusbadge{inkblue}{$v$ : ce que l'on en retient}
-  \hspace{0.25cm}
-  \statusbadge{warning}{$k$ et la sortie : intacts}
+  {\small \textcolor{inkblue}{$q$ : où l'on regarde.} \quad
+  \textcolor{inkblue}{$v$ : ce que l'on en retient.} \quad
+  \textcolor{black!55}{$k$ et la sortie : intacts.}}
 
   \vspace{0.40cm}
   \metriccard{warning}{SAM 2 Hiera-L}{224,9\,M}{poids gelés}
@@ -247,6 +313,195 @@
 
   \source{Le \texttt{qkv} de Hiera est une projection fusionnée : la correction
   y est écrite sur les tranches $q$ et $v$, celle de $k$ restant nulle.}
+\end{frame}
+
+% -----------------------------------------------------------------------------
+\begin{frame}{Première tentative : la géométrie en \texttt{mask\_input}}
+  \centering
+  \vspace{0.35cm}
+  \begin{tikzpicture}[font=\scriptsize,>=Latex]
+    \node[rounded corners=4pt,draw=black!30,fill=softgray,text width=2.1cm,
+      align=center,inner sep=5pt] at (0,0) (g) {graphe de Frangi};
+    \node[rounded corners=4pt,draw=black!30,fill=softgray,text width=2.1cm,
+      align=center,inner sep=5pt] at (3.1,0) (s) {\texttt{node\_sim\_max}\\
+      {\color{black!58}affinité locale}};
+    \node[rounded corners=4pt,draw=warning!55,fill=warning!8,text width=2.1cm,
+      align=center,inner sep=5pt] at (6.2,0) (l) {pseudo-logits};
+    \node[rounded corners=4pt,draw=failure!55,fill=softred,text width=2.5cm,
+      align=center,inner sep=5pt] at (9.5,0) (m) {\texttt{mask\_input}\\
+      {\color{black!58}un masque à raffiner}};
+    \draw[->,black!45] (g) -- (s);
+    \draw[->,black!45] (s) -- (l);
+    \draw[->,black!45] (l) -- (m);
+  \end{tikzpicture}
+
+  \vspace{0.40cm}
+  {\small Une \textbf{affinité locale} est présentée à SAM 2 comme une
+  \textbf{hypothèse de segmentation déjà faite}.}
+
+  \vspace{0.45cm}
+  \metriccard{inkblue}{Baseline}{0,5675}{IoU macro}
+  \hspace{0.25cm}
+  \metriccard{failure}{Frangi dense}{0,5563}{IoU macro}
+  \hspace{0.25cm}
+  \metriccard{warning}{Sur poids gelés}{$-0{,}0979$}{le prompt correct coûte}
+
+  \vspace{0.35cm}
+  {\small Et pourtant l'alignement \emph{est} lu : le prompt correct vaut
+  \textbf{$+0{,}2473$} contre un prompt permuté. L'information est là,
+  l'encodage nuit.}
+
+  \source{Matrice causale du 20 juillet 2026. Le MST, les composantes et la
+  centralité ne participaient pas : l'extracteur rendait \texttt{node\_sim\_max}
+  avant eux.}
+\end{frame}
+
+% -----------------------------------------------------------------------------
+\begin{frame}{Pourquoi : une frontière d'ombre est une vallée, localement}
+  \centering
+  \vspace{0.10cm}
+  \csrowpanel{0.245}{Image}{3.05cm}{ombre_image}\hfill
+  \csrowpanel{0.245}{Vérité terrain}{3.05cm}{ombre_gt}\hfill
+  \csrowpanel{0.245}{\textcolor{failure}{La carte injectée}}{3.05cm}{ombre_frangi}
+
+  \vspace{0.22cm}
+  {\small Une fissure fine à gauche, une ombre portée à droite. La carte répond
+  sur l'\textbf{ombre}, que la vérité terrain ignore.}
+
+  \vspace{0.30cm}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.48\textwidth}
+      {\footnotesize Une Hessienne locale ne voit pas \og une grande région
+      sombre \fg{}. Elle voit une transition étroite : fine, contrastée,
+      allongée, orientée, cohérente sur une longue distance.}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      {\footnotesize Tout est normalisé \textbf{par l'image} : maximum par
+      échelle, candidats relatifs, fraction d'arêtes conservée. Une image sans
+      fissure produit donc une structure forte \emph{relativement à elle-même}.}
+    \end{column}
+  \end{columns}
+
+  \source{\texttt{Sylvie\_Chambon\_319}, étude anti-ombre du 8 août 2026. Le
+  panneau de droite est \texttt{node\_sim\_max}, exactement la carte qui était
+  injectée.}
+\end{frame}
+
+% -----------------------------------------------------------------------------
+\begin{frame}{L'idée : distinguer la vallée de la marche}
+  \centering
+  \vspace{0.30cm}
+  \begin{tikzpicture}[font=\scriptsize]
+    \draw[inkblue,very thick,rounded corners=3pt]
+      (-1.7,0.45) -- (-0.55,0.45) -- (-0.16,-0.45) -- (0.16,-0.45)
+      -- (0.55,0.45) -- (1.7,0.45);
+    \node[font=\small,text=inkblue] at (0,-1.15) {\textbf{fissure} : vallée};
+    \node[text=black!58] at (0,-1.72) {profil \textbf{pair}};
+
+    \draw[failure,very thick,rounded corners=3pt]
+      (4.3,0.45) -- (5.6,0.45) -- (6.2,-0.45) -- (7.7,-0.45);
+    \node[font=\small,text=failure] at (6.0,-1.15) {\textbf{ombre} : marche};
+    \node[text=black!58] at (6.0,-1.72) {profil \textbf{impair}};
+  \end{tikzpicture}
+
+  \vspace{0.40cm}
+  {\large $I(x) \;=\; \underbrace{P(x)}_{P(-x)\,=\,P(x)} \;+\;
+   \underbrace{M(x)}_{M(-x)\,=\,-M(x)}$}
+
+  \vspace{0.40cm}
+  {\small Tout profil transverse se décompose en une partie \textbf{paire} et
+  une partie \textbf{impaire}. Une fissure met son énergie dans $P$, une ombre
+  dans $M$. Chaque canal mesure cet écart à sa façon --- et aucun n'est
+  multiplié aux autres.}
+
+  \source{C'est la seule idée de l'évidence géométrique. Les onze canaux en sont
+  onze mesures indépendantes, calculées à $224^2$ pour des fissures de
+  \texttt{19,1}\,px à $448^2$.}
+\end{frame}
+
+% -----------------------------------------------------------------------------
+\begin{frame}{Onze canaux, jamais multipliés}
+  \centering
+  \vspace{0.04cm}
+  \widepanel{Image}{b2t_gain_ct6774_image.jpg}\hfill
+  \widepanel{\texttt{frangi\_sim}}{b2t_gain_ct6774_frangi.jpg}\hfill
+  \widepanel{\texttt{ofs}}{b2t_gain_ct6774_ofs.jpg}\hfill
+  \widepanel{\texttt{ofa}}{b2t_gain_ct6774_ofa.jpg}\hfill
+  \widepanel{\texttt{phase\_sym}}{b2t_gain_ct6774_phase.jpg}
+
+  \vspace{0.24cm}
+  \small
+  \begin{tabularx}{0.96\linewidth}{>{\ttfamily\footnotesize}p{2.3cm}X}
+    \toprule
+    \normalfont\bfseries Canal & \normalfont\bfseries Ce qu'il mesure \\
+    \midrule
+    frangi\_sim & la carte des essais précédents : elle \emph{propose} \\
+    ofs & flux du gradient entrant dans un disque --- fort sur une vallée \\
+    ofa & gradient moyen sur le cercle --- non nul sur une \emph{marche} \\
+    even\_odd, profile & réponse paire moins réponse impaire ; deux flancs
+      clairs exigés au même rayon \\
+    dbic & compare explicitement \og ombre seule \fg{} et \og ombre $+$ ligne
+      sombre \fg{} \\
+    phase\_sym & Gabor en quadrature : polarité sombre \\
+    cos2$\theta$, sin2$\theta$, scale, abs\_energy & orientation, largeur,
+      confiance absolue \\
+    \bottomrule
+  \end{tabularx}
+
+  \source{\texttt{cracktree200\_6774}. \texttt{ofa} est le canal
+  \emph{anti}-ombre : c'est lui qui récuse ce que \texttt{ofs} propose.}
+\end{frame}
+
+% -----------------------------------------------------------------------------
+\begin{frame}{L'architecture : \texttt{geo}, contre la \texttt{baseline}}
+  \centering
+  \vspace{0.30cm}
+  \begin{tikzpicture}[font=\scriptsize,>=Latex]
+    \node[rounded corners=4pt,draw=black!30,fill=softgray,text width=1.8cm,
+      align=center,inner sep=5pt] at (0,1.25) (rgb) {Image RGB\\$448^2$};
+    \node[rounded corners=4pt,draw=warning!55,fill=warning!8,text width=2.5cm,
+      align=center,inner sep=5pt] at (3.3,1.25) (hiera) {%
+      \textbf{SAM 2 Hiera-L}\\LoRA $q/v$, rang 4};
+
+    \node[rounded corners=4pt,draw=black!30,fill=softgray,text width=1.8cm,
+      align=center,inner sep=5pt] at (0,-1.25) (geo) {11 canaux\\$224^2$};
+    \node[rounded corners=4pt,draw=inkblue!55,fill=softblue,text width=2.5cm,
+      align=center,inner sep=5pt] at (3.3,-1.25) (enc) {%
+      \textbf{Encodeur géométrique}\\projections à zéro};
+
+    \node[circle,draw=success!60,fill=softgreen,inner sep=2.5pt,
+      font=\large] at (6.5,0) (plus) {$+$};
+    \node[rounded corners=4pt,draw=black!30,fill=softgray,text width=1.8cm,
+      align=center,inner sep=5pt] at (9.0,0) (dec) {Mask decoder};
+    \node[rounded corners=4pt,draw=success!50,fill=softgreen,text width=1.6cm,
+      align=center,inner sep=5pt] at (11.6,0) (out) {masque\\$448^2$};
+
+    \draw[->,black!45] (rgb) -- (hiera);
+    \draw[->,black!45] (geo) -- (enc);
+    \draw[->,black!45] (hiera) -- (plus);
+    \draw[->,inkblue!70] (enc) -- (plus);
+    \draw[->,black!45] (plus) -- (dec);
+    \draw[->,black!45] (dec) -- (out);
+
+    \node[font=\fontsize{5.8}{6.6}\selectfont,text=black!58,align=center]
+      at (6.55,1.05) {3 échelles};
+    \node[font=\fontsize{5.8}{6.6}\selectfont,text=inkblue,align=center]
+      at (6.55,-1.05) {3 corrections};
+  \end{tikzpicture}
+
+  \vspace{0.30cm}
+  {\small L'évidence est \textbf{ajoutée} aux traits de SAM 2, à trois échelles :
+  $32{\times}256^2$, $64{\times}128^2$, $256{\times}64^2$. Jamais par
+  \texttt{mask\_input}.}
+
+  \vspace{0.30cm}
+  {\small Les projections partent de \textbf{zéro} : à l'initialisation la
+  correction est nulle, et \texttt{geo} \emph{est} la \texttt{baseline}, au bit
+  près. Une seule chose les sépare : \textbf{290\,801} paramètres et onze
+  canaux.}
+
+  \source{L'invite dense de juillet coûtait $-0{,}0979$ d'IoU : cette interface
+  reste un contrôle négatif, jamais un chemin d'entraînement.}
 \end{frame}
 
 % -----------------------------------------------------------------------------
@@ -276,84 +531,8 @@
       603 gains, 866 pertes.}};
   \end{tikzpicture}
 
-  \vspace{0.30cm}
-  \statusbadge{inkblue}{6 variantes, budget strictement égal, 1\,695 images de test}
-
   \source{Khánh Hà, monomodal visible. 8--9 août 2026, RTX PRO 6000 Blackwell.
   Le modèle ne voit pas la différence.}
-\end{frame}
-
-% -----------------------------------------------------------------------------
-\begin{frame}{Ce qu'on ajoute à la Frangi--similarité}
-  \centering
-  \vspace{0.04cm}
-  \widepanel{Image}{b2t_gain_ct6774_image.jpg}\hfill
-  \widepanel{\texttt{frangi\_sim}}{b2t_gain_ct6774_frangi.jpg}\hfill
-  \widepanel{\texttt{ofs}}{b2t_gain_ct6774_ofs.jpg}\hfill
-  \widepanel{\texttt{ofa}}{b2t_gain_ct6774_ofa.jpg}\hfill
-  \widepanel{\texttt{phase\_sym}}{b2t_gain_ct6774_phase.jpg}
-
-  \vspace{0.22cm}
-  \small
-  \begin{tabularx}{0.94\linewidth}{>{\ttfamily\footnotesize}p{4.1cm}X}
-    \toprule
-    \normalfont\bfseries 11 canaux, jamais multipliés &
-      \normalfont\bfseries Rôle \\
-    \midrule
-    frangi\_sim & la carte des essais précédents : propose \\
-    ofs, ofa, abs\_energy & flux orienté : récuse une frontière d'ombre \\
-    even\_odd, dbic, profile & modèle explicite : ligne ou marche \\
-    phase\_sym & Gabor en quadrature : polarité sombre \\
-    cos2$\theta$, sin2$\theta$, scale & orientation et largeur \\
-    \bottomrule
-  \end{tabularx}
-
-  \vspace{0.18cm}
-  \statusbadge{failure}{filtres accordés sur 19,1 px : trop épais pour ces fissures}
-
-  \source{\texttt{cracktree200\_6774}. Évidence calculée à $224^2$.}
-\end{frame}
-
-% -----------------------------------------------------------------------------
-\begin{frame}{Où elle entre dans SAM 2}
-  \centering
-  \vspace{0.10cm}
-  \begin{tikzpicture}[>=Latex,font=\scriptsize]
-    \node[rounded corners=4pt,draw=black!30,fill=softgray,text width=2.0cm,
-      align=center,inner sep=4pt] at (0,0.95) (rgb) {Image RGB\\$448^2$};
-    \node[rounded corners=4pt,draw=warning!55,fill=warning!8,text width=2.35cm,
-      align=center,inner sep=4pt] at (3.0,0.95) (hiera) {%
-      \textbf{SAM 2 Hiera-L}\\LoRA q/v $r=4$\\453\,248 params};
-    \node[rounded corners=4pt,draw=black!30,fill=softgray,text width=2.0cm,
-      align=center,inner sep=4pt] at (0,-1.15) (geo) {11 canaux\\$224^2$};
-    \node[rounded corners=4pt,draw=inkblue!55,fill=softblue,text width=2.35cm,
-      align=center,inner sep=4pt] at (3.0,-1.15) (enc) {%
-      \textbf{Encodeur géométrique}\\290\,801 params};
-    \node[rounded corners=4pt,draw=inkblue!45,fill=white,text width=3.35cm,
-      align=left,inner sep=4pt] at (7.1,-1.15) (inj) {%
-      \textcolor{inkblue}{\textbf{3 projections init. à ZÉRO}}\\[1.5pt]
-      $+$ \texttt{high\_res[0]} \hfill $32{\times}256^2$\\
-      $+$ \texttt{high\_res[1]} \hfill $64{\times}128^2$\\
-      $+$ \texttt{embeddings} \hfill $256{\times}64^2$};
-    \node[rounded corners=4pt,draw=success!50,fill=softgreen,text width=2.35cm,
-      align=center,inner sep=4pt] at (10.7,0.95) (dec) {%
-      \textbf{Mask decoder}\\logits $448^2$};
-    \draw[->,thick] (rgb) -- (hiera);
-    \draw[->,thick] (geo) -- (enc);
-    \draw[->,thick] (enc) -- (inj);
-    \draw[->,thick] (hiera) -- (dec);
-    \draw[->,thick] (inj.east) -| (dec.south);
-  \end{tikzpicture}
-
-  \vspace{0.30cm}
-  \statusbadge{inkblue}{à l'initialisation, le modèle \emph{est} la baseline}
-  \hspace{0.3cm}
-  \statusbadge{success}{correction additive, révocable}
-  \hspace{0.3cm}
-  \statusbadge{failure}{\texttt{mask\_input} jamais utilisé}
-
-  \source{L'invite dense de juillet coûtait $-0{,}0979$ d'IoU : cette interface
-  reste un contrôle négatif.}
 \end{frame}
 
 % -----------------------------------------------------------------------------
@@ -406,7 +585,7 @@
         \bottomrule
       \end{tabularx}
       \\[6pt]
-      \statusbadge{failure}{l'alignement ne sert à rien}
+      {\footnotesize L'alignement ne sert à rien.}
     \end{column}
     \begin{column}{0.55\textwidth}
       \centering
@@ -422,7 +601,8 @@
 
   \vspace{0.26cm}
   \centering
-  \statusbadge{inkblue}{l'adapter s'active pourtant : projections jusqu'à $1{,}79\times10^{-3}$}
+  {\small L'adapter s'active pourtant : projections jusqu'à
+  $1{,}79\times10^{-3}$.}
 
   \source{Le déficit résiduel de \texttt{geo\_tol3} face à \texttt{tol3} vient
   des 290\,801 paramètres ajoutés, non d'un mauvais usage de la géométrie.}
@@ -435,9 +615,10 @@
   \vspace{0.22cm}
   \threewayrow{\texttt{Rissbilder\_for\_Florian}}{b2t_loss_riss}{t2g_gain_riss}{0,422 $\rightarrow$ 0,153 $\rightarrow$ 0,405}
 
-  \vspace{0.14cm}
+  \vspace{0.16cm}
   \centering
-  \statusbadge{failure}{la géométrie rend ce que la tolérance avait coûté, et reste sous la baseline}
+  {\small La géométrie rend ce que la tolérance avait coûté, et reste sous la
+  baseline.}
 
   \vspace{0.10cm}
   {\fontsize{6.4}{7.4}\selectfont \colourkey}
@@ -461,12 +642,13 @@
     \bottomrule
   \end{tabularx}
 
-  \vspace{0.30cm}
+  \vspace{0.32cm}
   \centering
-  \statusbadge{failure}{à ne pas faire : plus de capacité, plus d'époques, un GNN}
+  {\small À ne pas faire : plus de capacité, plus d'époques, un GNN.}
 
-  \vspace{0.20cm}
-  \statusbadge{warning}{limites : 5 époques et non 20, pas d'IC95, une seule échelle d'évidence}
+  \vspace{0.18cm}
+  {\small Limites : 5 époques et non 20, pas d'IC95, une seule échelle
+  d'évidence.}
 
   \source{Sur ce corpus --- monomodal visible, annotations épaisses, baseline
   supervisée sur le même domaine --- le Frangi généralisé n'apporte aucune
@@ -474,9 +656,11 @@
 \end{frame}
 
 % -----------------------------------------------------------------------------
-\begin{frame}{Digression : ce que l'IoU stricte mesure vraiment}
+\begin{frame}{La tolérance de 3 px : en quoi elle consiste}
   \centering
-  {\small Rien à voir avec la géométrie. Mais c'est le seul gain de l'étude.}
+  {\small Un pixel prédit compte comme juste s'il tombe à moins de $k$ pixels de
+  la vérité terrain --- et réciproquement. Une \textbf{distance
+  d'appariement}, pas une dilatation.}
 
   \vspace{0.12cm}
   \synthpanel{parfait}{synth_perfect.png}\hfill
@@ -508,7 +692,7 @@
       \textbf{0,881} contre elle-même, et \textbf{0,799} à deux pixels.\\[4pt]
       Baseline, à 1 px de tolérance : la précision passe de 0,759 à
       \textbf{0,888}, le rappel seulement de 0,761 à 0,812.\\[4pt]
-      \statusbadge{failure}{un décalage de 2 px est plus puni qu'une rupture de 20 px}
+      {\footnotesize Un décalage de 2 px est plus puni qu'une rupture de 20 px.}
     \end{column}
   \end{columns}
 
@@ -518,18 +702,21 @@
 \end{frame}
 
 % -----------------------------------------------------------------------------
-\begin{frame}{Digression : tolérer 3 px fait gagner, même en strict}
+\begin{frame}{\texttt{baseline} contre \texttt{tol3} : ce que la tolérance gagne}
   \caserow{\texttt{cracktree200\_6774} --- réseau fin entièrement
     manqué}{b2t_gain_ct6774}{Baseline}{Avec
     \texttt{tol3}}{success}{0,000 $\rightarrow$ 0,219}
 
-  \vspace{0.12cm}
-  \caserow{\texttt{GAPS384\_0552} --- la contrepartie : débordement le long
-    d'un bord clair}{b2t_loss_gaps552}{Baseline}{Avec
-    \texttt{tol3}}{failure}{0,517 $\rightarrow$ 0,308}
+  \vspace{0.10cm}
+  \caserow{\texttt{cracktree200\_6243} --- même régime : fines, peu
+    contrastées}{b2t_gain_ct6243}{Baseline}{Avec
+    \texttt{tol3}}{success}{0,000 $\rightarrow$ 0,238}
 
-  \vspace{0.12cm}
+  \vspace{0.10cm}
   \centering
+  {\fontsize{6.4}{7.4}\selectfont \colourkey}
+
+  \vspace{0.14cm}
   \small
   \setlength{\tabcolsep}{5pt}%
   \begin{tabular}{lrrrr}
@@ -541,6 +728,10 @@
       \textbf{0,9346} \\
     \bottomrule
   \end{tabular}
+
+  \source{\texttt{tol3} l'emporte à toutes les tolérances, y compris en strict.
+  Les gains se concentrent sur \texttt{cracktree200}. Contrepartie mesurée : sur
+  \texttt{GAPS384\_0552}, le débordement coûte \texttt{0,517} à \texttt{0,308}.}
 \end{frame}
 
 \end{document}

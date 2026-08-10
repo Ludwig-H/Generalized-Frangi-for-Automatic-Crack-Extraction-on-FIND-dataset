@@ -1,6 +1,6 @@
 # CrackSAM-GeoLoRA — présentation du 9 août 2026
 
-Treize planches Beamer sur le gabarit Inria, copié dans [`theme/`](theme/).
+Dix-sept planches Beamer sur le gabarit Inria, copié dans [`theme/`](theme/).
 Rapport complet : [`../../RAPPORT.md`](../../RAPPORT.md).
 
 **La question.** Une fissure a une forme : fine, longue, continue. Le Frangi
@@ -10,13 +10,17 @@ généralisé la décrit, SAM 2 non. Peut-on la lui donner, et sous quelle forme
 d'une autre image. Les deux se valent : `|Δ| < 0,001` partout, et la mauvaise
 gagne cinq fois sur six. Le modèle ne voit pas la différence.
 
-Les planches : d'où l'on part (CrackSAM) · ce qu'est une LoRA de rang 4 · et
-pourquoi seulement sur `q` et `v` · la question et la réponse · les 11 canaux
-ajoutés à la Frangi-similarité · où ils entrent dans SAM 2 · les six barreaux et
-le contrôle · la géométrie ne fait rien · la galerie de gains trompe · la suite.
-Puis, **en digression**, ce que
-l'IoU stricte mesure vraiment et ce qu'on gagne à tolérer 3 pixels — un
-résultat annexe, sans rapport avec le guidage géométrique.
+Le fil : le corpus Khánh Hà, illustré par sous-corpus · la force de CrackSAM,
+le bruit et le hors-domaine · ce qu'est une LoRA de rang 4 · pourquoi seulement
+sur `q` et `v` · la première tentative, la géométrie en `mask_input` · pourquoi
+elle échoue, une frontière d'ombre étant localement une vallée · l'idée, séparer
+la partie paire de la partie impaire d'un profil · les onze canaux · l'architecture,
+`geo` contre `baseline` · la question et la réponse · les six barreaux et le
+contrôle · la géométrie ne fait rien · la galerie de gains trompe · la suite.
+
+Puis, **en clôture**, le seul gain de l'étude, sans rapport avec le guidage
+géométrique : ce qu'est la tolérance de 3 px, et ce qu'elle fait gagner à
+`tol3` contre la `baseline`.
 
 ## Compilation
 
@@ -50,13 +54,30 @@ Building Materials* 431:136573, 2024). Le modèle décrit est `CrackSAM_LoRA`
 (q/v, `r=4`), celui dont notre `baseline` descend — et non `CrackSAM_adapter`,
 qui fait mieux sur `Facade390` (0,4718).
 
-La comparaison zéro-shot du tableau 6 n'est plus montrée : la planche qui la
-portait a été retirée. Ses vignettes `cs_zs_*` restent produites par
-`tools/make_figures.py`, sans être utilisées.
-
 Les effectifs du corpus viennent des listes officielles versionnées sous
 `ISPRS/CrackSAM/protocol/cracksam_paper/lists/lists_khanhha/` : 9 121 / 481 /
-1 695, onze sous-ensembles, 12,5 % d'images sans fissure.
+1 695, onze sous-ensembles, 12,5 % d'images sans fissure. Les effectifs par
+sous-corpus affichés sous les vignettes sont comptés dans `test_vol.txt` et
+somment bien à 1 695 : Rissbilder 573, CRACK500 505, noncrack 212, Volker 148,
+DeepCrack 78, GAPS384 76, cracktree200 31, Sylvie 28, forest 18, CFD 18,
+Eugen 8.
+
+## Les vignettes du corpus
+
+Le corpus n'est pas versionné, et il n'est pas monté sur toutes les machines.
+Chaque vignette `kh_*` est donc le **panneau d'entrée d'une planche par cas déjà
+archivée**, et non une image tirée du jeu de données. Deux sources : les planches
+de cette étude sous `figures/generated/`, et celles de l'étude anti-ombre du
+8 août — seul endroit versionné où figurent Volker, DeepCrack, Sylvie et les
+images sans fissure.
+
+`forest` (18 images de test) et `Eugen` (8) ne figurent dans aucune planche
+archivée. Ils ne sont pas illustrés, et la planche le dit plutôt que de les
+passer sous silence.
+
+Les trois panneaux `ombre_*` viennent de `Sylvie_Chambon_319`, qui porte à la
+fois une vraie fissure et une ombre portée franche. Le panneau de droite est
+`node_sim_max` — exactement la carte qui était injectée dans `mask_input`.
 
 ## Provenance des chiffres de la LoRA
 
