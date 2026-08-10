@@ -51,14 +51,24 @@
   \end{tikzpicture}%
 }
 % Vignette d'un sous-corpus : image, nom, effectif de test.
-\newcommand{\corpusthumb}[2]{%
-  \begin{minipage}[t]{0.185\textwidth}
+\newcommand{\corpusthumb}[3]{%
+  \begin{minipage}[t]{0.157\textwidth}
     \centering
     \setlength{\fboxsep}{0.7pt}%
-    \fcolorbox{black!16}{white}{\includegraphics[height=1.62cm]{#2}}\par
+    \fcolorbox{black!16}{white}{\includegraphics[height=1.48cm]{#3}}\par
     \vspace{1.5pt}
-    {\fontsize{6.4}{7.0}\selectfont\bfseries #1}
+    {\fontsize{5.9}{6.4}\selectfont\bfseries #1}\par
+    {\fontsize{5.7}{6.2}\selectfont\color{black!55} #2}
   \end{minipage}%
+}
+% Une rangée de la galerie du prompt dense : entrée, vérité, carte injectée,
+% prédiction obtenue.
+\newcommand{\denserow}[3]{%
+  \noindent{\scriptsize\bfseries #1}\par\vspace{1pt}
+  \compactpanel{Image}{#2_image.jpg}\hfill
+  \compactpanel{Vérité terrain}{#2_gt.jpg}\hfill
+  \compactpanel{\textcolor{failure}{Carte injectée}}{#2_prompt.jpg}\hfill
+  \compactpanel{#3}{#2_pred.jpg}%
 }
 % Vignette d'une grille de comparaison : largeur au choix, en-tête facultatif
 % (vide pour les rangées qui suivent la première).
@@ -156,19 +166,24 @@
   \textbf{9\,121} images d'entraînement, \textbf{1\,695} de test, dont 12\,\%
   sans aucune fissure.}
 
-  \vspace{0.34cm}
-  \corpusthumb{Rissbilder}{kh_rissbilder}\hfill
-  \corpusthumb{CRACK500}{kh_crack500}\hfill
-  \corpusthumb{noncrack}{kh_noncrack}\hfill
-  \corpusthumb{Volker}{kh_volker}\hfill
-  \corpusthumb{DeepCrack}{kh_deepcrack}
+  \vspace{0.30cm}
+  \corpusthumb{Rissbilder}{573}{kh_rissbilder}\hfill
+  \corpusthumb{CRACK500}{505}{kh_crack500}\hfill
+  \corpusthumb{noncrack}{212}{kh_noncrack}\hfill
+  \corpusthumb{Volker}{148}{kh_volker}\hfill
+  \corpusthumb{DeepCrack}{78}{kh_deepcrack}\hfill
+  \corpusthumb{GAPS384}{76}{kh_gaps384}
 
-  \vspace{0.26cm}
-  \corpusthumb{GAPS384}{kh_gaps384}\hfill
-  \corpusthumb{cracktree200}{kh_cracktree200}\hfill
-  \corpusthumb{Sylvie Chambon}{kh_sylvie}\hfill
-  \corpusthumb{CFD}{kh_cfd}\hfill
-  \begin{minipage}[t]{0.185\textwidth}\ \end{minipage}
+  \vspace{0.20cm}
+  \corpusthumb{cracktree200}{31}{kh_cracktree200}\hfill
+  \corpusthumb{Sylvie Chambon}{28}{kh_sylvie}\hfill
+  \corpusthumb{forest}{18}{kh_forest}\hfill
+  \corpusthumb{CFD}{18}{kh_cfd}\hfill
+  \corpusthumb{Eugen Müller}{8}{kh_eugen}\hfill
+  \begin{minipage}[t]{0.157\textwidth}\ \end{minipage}
+
+  \vspace{0.18cm}
+  {\small Sous chaque vignette, son effectif de test.}
 \end{frame}
 
 % -----------------------------------------------------------------------------
@@ -310,56 +325,29 @@
     \draw[->,black!45] (l) -- (m);
   \end{tikzpicture}
 
-  \vspace{0.40cm}
-  {\small Une \textbf{affinité locale} est présentée à SAM 2 comme une
-  \textbf{hypothèse de segmentation déjà faite}.}
+  \vspace{0.34cm}
+  \denserow{\texttt{cracktree200\_6266} --- la carte s'allume sur un reflet}%
+    {dense_reflet}{Préd. Frangi}
 
-  \vspace{0.45cm}
-  \metriccard{inkblue}{Baseline}{0,5675}{IoU macro}
-  \hspace{0.25cm}
-  \metriccard{failure}{Frangi dense}{0,5563}{IoU macro}
-  \hspace{0.25cm}
-  \metriccard{warning}{Sur poids gelés}{$-0{,}0979$}{le prompt correct coûte}
+  \vspace{0.14cm}
+  \denserow{\texttt{noncrack\_concrete\_wall\_43\_50} --- aucune fissure à
+    trouver}{dense_noncrack}{Préd. Frangi}
 
-  \vspace{0.35cm}
-  {\small Et pourtant l'alignement \emph{est} lu : le prompt correct vaut
-  \textbf{$+0{,}2473$} contre un prompt permuté. L'information est là,
-  l'encodage nuit.}
-
-  \source{Matrice causale du 20 juillet 2026. Le MST, les composantes et la
-  centralité ne participaient pas : l'extracteur rendait \texttt{node\_sim\_max}
-  avant eux.}
+  \vspace{0.18cm}
+  \centering
+  {\small IoU \textbf{0,197} $\rightarrow$ \textbf{0,027} \quad\quad
+  IoU \textbf{1,000} $\rightarrow$ \textbf{0,000} \quad\quad
+  macro : 0,5675 $\rightarrow$ 0,5563}
 \end{frame}
 
 % -----------------------------------------------------------------------------
 \begin{frame}{Pourquoi : une frontière d'ombre est une vallée, localement}
   \centering
   \vspace{0.10cm}
-  \csrowpanel{0.245}{Image}{3.05cm}{ombre_image}\hfill
-  \csrowpanel{0.245}{Vérité terrain}{3.05cm}{ombre_gt}\hfill
-  \csrowpanel{0.245}{\textcolor{failure}{La carte injectée}}{3.05cm}{ombre_frangi}
-
-  \vspace{0.22cm}
-  {\small Une fissure fine à gauche, une ombre portée à droite. La carte répond
-  sur l'\textbf{ombre}, que la vérité terrain ignore.}
-
-  \vspace{0.30cm}
-  \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.48\textwidth}
-      {\footnotesize Une Hessienne locale ne voit pas \og une grande région
-      sombre \fg{}. Elle voit une transition étroite : fine, contrastée,
-      allongée, orientée, cohérente sur une longue distance.}
-    \end{column}
-    \begin{column}{0.48\textwidth}
-      {\footnotesize Tout est normalisé \textbf{par l'image} : maximum par
-      échelle, candidats relatifs, fraction d'arêtes conservée. Une image sans
-      fissure produit donc une structure forte \emph{relativement à elle-même}.}
-    \end{column}
-  \end{columns}
-
-  \source{\texttt{Sylvie\_Chambon\_319}, étude anti-ombre du 8 août 2026. Le
-  panneau de droite est \texttt{node\_sim\_max}, exactement la carte qui était
-  injectée.}
+  \vspace{0.35cm}
+  \csrowpanel{0.30}{Image}{4.05cm}{ombre_image}\hfill
+  \csrowpanel{0.30}{Vérité terrain}{4.05cm}{ombre_gt}\hfill
+  \csrowpanel{0.30}{\textcolor{failure}{La carte injectée}}{4.05cm}{ombre_frangi}
 \end{frame}
 
 % -----------------------------------------------------------------------------
@@ -379,19 +367,13 @@
     \node[text=black!58] at (6.0,-1.72) {profil \textbf{impair}};
   \end{tikzpicture}
 
-  \vspace{0.40cm}
+  \vspace{0.55cm}
   {\large $I(x) \;=\; \underbrace{P(x)}_{P(-x)\,=\,P(x)} \;+\;
    \underbrace{M(x)}_{M(-x)\,=\,-M(x)}$}
 
-  \vspace{0.40cm}
+  \vspace{0.50cm}
   {\small Tout profil transverse se décompose en une partie \textbf{paire} et
-  une partie \textbf{impaire}. Une fissure met son énergie dans $P$, une ombre
-  dans $M$. Chaque canal mesure cet écart à sa façon --- et aucun n'est
-  multiplié aux autres.}
-
-  \source{C'est la seule idée de l'évidence géométrique. Les onze canaux en sont
-  onze mesures indépendantes, calculées à $224^2$ pour des fissures de
-  \texttt{19,1}\,px à $448^2$.}
+  une partie \textbf{impaire}.}
 \end{frame}
 
 % -----------------------------------------------------------------------------

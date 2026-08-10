@@ -22,6 +22,7 @@ change de longueur d'une planche à l'autre.
 from __future__ import annotations
 
 import importlib.util
+import os
 from pathlib import Path
 import sys
 
@@ -229,6 +230,40 @@ SHADOW: tuple[str, dict[str, int]] = (
 )
 
 
+#: Les deux sous-corpus qui n'apparaissent dans aucune planche par cas. Ils
+#: viennent du corpus lui-même, téléchargé par ``prepare_cracksam2_data.py``
+#: (identifiant Drive ``1xrOqv0-3uMHjZyEUrerOYiYXW_E8SUMP``). Le corpus n'étant
+#: pas versionné, la racine est lue dans ``CRACKSAM2_DATA_ROOT`` ; si elle est
+#: absente, les deux vignettes déjà commitées sont conservées telles quelles.
+KHANHHA_FROM_DATASET: dict[str, str] = {
+    "kh_forest": "forest_022.jpg",
+    "kh_eugen": "Eugen_Muller_7723_0_0_714_429.jpg",
+}
+
+#: Rapport des jalons Frangi : les deux cas les plus parlants de l'interface
+#: dense. Grille de huit panneaux — entrée, vérité terrain, prompt baseline
+#: (absent), prompt Frangi, prédiction baseline, erreurs baseline, prédiction
+#: Frangi, erreurs Frangi. On garde les quatre qui montrent la mécanique.
+MILESTONE_CASES = (
+    GEOLORA.parent
+    / "CrackSAM"
+    / "results"
+    / "frangi_milestone_report"
+    / "figures"
+    / "cases"
+    / "khanhha_original"
+)
+
+DENSE_PANELS = {"image": 0, "gt": 1, "prompt": 3, "pred": 6}
+
+DENSE_CASES: dict[str, str] = {
+    # Le prompt s'allume sur un reflet : IoU 0,197 -> 0,027.
+    "dense_reflet": "gain_baseline__cracktree200_6266.jpg.jpg",
+    # Aucune fissure : la baseline est parfaite, le prompt en fait inventer une.
+    "dense_noncrack": "sparse_divergent__noncrack_noncrack_concrete_wall_43_50.jpg.jpg.jpg",
+}
+
+
 def square(image: Image.Image, size: int = 320) -> Image.Image:
     """Recadre au centre en carré, puis met à l'échelle.
 
@@ -343,6 +378,24 @@ def main() -> int:
     for name, column in columns.items():
         square(row[column]).save(OUTPUT / f"ombre_{name}.jpg", quality=92)
     print(f"vignettes ombre_* ({filename})")
+
+    for slug, filename in DENSE_CASES.items():
+        row = split_grid(MILESTONE_CASES / filename)[0]
+        for name, column in DENSE_PANELS.items():
+            square(row[column]).save(OUTPUT / f"{slug}_{name}.jpg", quality=92)
+        print(f"vignettes {slug}_* ({filename})")
+
+    root = os.environ.get("CRACKSAM2_DATA_ROOT")
+    images = Path(root) / "khanhha" / "test" / "images" if root else None
+    for slug, filename in KHANHHA_FROM_DATASET.items():
+        source = images / filename if images is not None else None
+        if source is None or not source.exists():
+            print(f"vignette {slug} : corpus absent, vignette commitée conservée")
+            continue
+        square(Image.open(source).convert("RGB")).save(
+            OUTPUT / f"{slug}.jpg", quality=92
+        )
+        print(f"vignette {slug} ({filename})")
 
     metric = _load_metric()
     radii = (0, 1, 2, 3, 5, 8)
