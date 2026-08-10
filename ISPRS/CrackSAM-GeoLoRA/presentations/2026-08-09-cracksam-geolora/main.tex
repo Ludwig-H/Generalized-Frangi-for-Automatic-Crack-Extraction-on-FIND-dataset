@@ -61,14 +61,24 @@
     {\fontsize{5.7}{6.2}\selectfont\color{black!55} #2}
   \end{minipage}%
 }
-% Une rangée de la galerie du prompt dense : entrée, vérité, carte injectée,
-% prédiction obtenue.
-\newcommand{\denserow}[3]{%
+% Panneau de la galerie du prompt dense : cinq colonnes, hauteur réduite.
+\newcommand{\densepanel}[2]{%
+  \begin{minipage}[t]{0.188\textwidth}
+    \centering
+    {\fontsize{6.1}{6.8}\selectfont\bfseries #1}\par\vspace{1pt}
+    \setlength{\fboxsep}{0.7pt}%
+    \fcolorbox{black!16}{white}{%
+      \includegraphics[width=0.94\linewidth,height=1.36cm,keepaspectratio]{#2}}
+  \end{minipage}%
+}
+% Une rangée : entrée, vérité, carte injectée, puis les deux prédictions.
+\newcommand{\denserow}[2]{%
   \noindent{\scriptsize\bfseries #1}\par\vspace{1pt}
-  \compactpanel{Image}{#2_image.jpg}\hfill
-  \compactpanel{Vérité terrain}{#2_gt.jpg}\hfill
-  \compactpanel{\textcolor{failure}{Carte injectée}}{#2_prompt.jpg}\hfill
-  \compactpanel{#3}{#2_pred.jpg}%
+  \densepanel{Image}{#2_image.jpg}\hfill
+  \densepanel{Vérité terrain}{#2_gt.jpg}\hfill
+  \densepanel{\textcolor{failure}{Carte injectée}}{#2_prompt.jpg}\hfill
+  \densepanel{\texttt{baseline}}{#2_base.jpg}\hfill
+  \densepanel{\textcolor{failure}{$+$ \texttt{mask\_input}}}{#2_pred.jpg}%
 }
 % Vignette d'une grille de comparaison : largeur au choix, en-tête facultatif
 % (vide pour les rangées qui suivent la première).
@@ -333,19 +343,24 @@
     \draw[->,black!45] (l) -- (m);
   \end{tikzpicture}
 
-  \vspace{0.34cm}
-  \denserow{\texttt{cracktree200\_6266} --- la carte s'allume sur un reflet}%
-    {dense_reflet}{Préd. Frangi}
-
   \vspace{0.14cm}
-  \denserow{\texttt{noncrack\_concrete\_wall\_43\_50} --- aucune fissure à
-    trouver}{dense_noncrack}{Préd. Frangi}
-
-  \vspace{0.18cm}
   \centering
-  {\small IoU \textbf{0,197} $\rightarrow$ \textbf{0,027} \quad\quad
-  IoU \textbf{1,000} $\rightarrow$ \textbf{0,000} \quad\quad
-  macro : 0,5675 $\rightarrow$ 0,5563}
+  {\fontsize{6.6}{7.4}\selectfont
+   \texttt{baseline} $=$ SAM 2 Hiera-L $+$ LoRA $q/v$ \quad---\quad
+   \textcolor{failure}{$+$ \texttt{mask\_input}} $=$ la même, avec la
+   Frangi-similarité injectée}
+
+  \vspace{0.20cm}
+  \denserow{\texttt{Facade390 / DJ\_Wall\_231} --- débordement :
+    IoU \textbf{0,750} $\rightarrow$ \textbf{0,294}}{dense_facade}
+
+  \vspace{0.16cm}
+  \denserow{\texttt{Road420 / IMG\_6033} --- effondrement, alors que la carte
+    désigne la fissure : IoU \textbf{0,720} $\rightarrow$
+    \textbf{0,040}}{dense_road}
+
+  \vspace{0.20cm}
+  {\small macro : 0,5675 $\rightarrow$ 0,5563}
 \end{frame}
 
 % -----------------------------------------------------------------------------
@@ -362,25 +377,31 @@
 \begin{frame}{L'idée : distinguer la vallée de la marche}
   \centering
   \vspace{0.30cm}
-  \begin{tikzpicture}[font=\scriptsize]
+  \begin{tikzpicture}[font=\scriptsize,>=Latex]
     \draw[inkblue,very thick,rounded corners=3pt]
       (-1.7,0.45) -- (-0.55,0.45) -- (-0.16,-0.45) -- (0.16,-0.45)
       -- (0.55,0.45) -- (1.7,0.45);
-    \node[font=\small,text=inkblue] at (0,-1.15) {\textbf{fissure} : vallée};
-    \node[text=black!58] at (0,-1.72) {profil \textbf{pair}};
+    \draw[->,black!45] (-1.9,-0.85) -- (1.9,-0.85)
+      node[right,font=\scriptsize,text=black!60] {$t$};
+    \node[font=\small,text=inkblue] at (0,-1.35) {\textbf{fissure} : vallée};
 
     \draw[failure,very thick,rounded corners=3pt]
       (4.3,0.45) -- (5.6,0.45) -- (6.2,-0.45) -- (7.7,-0.45);
-    \node[font=\small,text=failure] at (6.0,-1.15) {\textbf{ombre} : marche};
-    \node[text=black!58] at (6.0,-1.72) {profil \textbf{impair}};
+    \draw[->,black!45] (4.1,-0.85) -- (7.9,-0.85)
+      node[right,font=\scriptsize,text=black!60] {$t$};
+    \node[font=\small,text=failure] at (6.0,-1.35) {\textbf{ombre} : marche};
   \end{tikzpicture}
 
-  \vspace{0.50cm}
-  {\large $I(x) \;=\; \textcolor{inkblue}{P(x)} \;+\; \textcolor{failure}{M(x)}$}
+  \vspace{0.42cm}
+  {\large $I_{x,\theta}(t) \;=\; I(x + t\,n_\theta)$},
+  \quad {\small $n_\theta \perp$ structure, $\theta$ donné par la Hessienne}
 
-  \vspace{0.40cm}
-  {\large $\textcolor{inkblue}{P(x) = \dfrac{I(x)+I(-x)}{2}}$ \qquad
-   $\textcolor{failure}{M(x) = \dfrac{I(x)-I(-x)}{2}}$}
+  \vspace{0.34cm}
+  {\large $I_{x,\theta} = \textcolor{inkblue}{P} + \textcolor{failure}{M}$ :
+   \quad
+   $\textcolor{inkblue}{P(t) = \dfrac{I_{x,\theta}(t)+I_{x,\theta}(-t)}{2}}$
+   \quad
+   $\textcolor{failure}{M(t) = \dfrac{I_{x,\theta}(t)-I_{x,\theta}(-t)}{2}}$}
 \end{frame}
 
 % -----------------------------------------------------------------------------
@@ -399,13 +420,21 @@
    \qquad
    a_r = \frac{1}{|\partial D_r|}\oint_{\partial D_r}\!\nabla I$}
 
-  \vspace{0.34cm}
+  \vspace{0.26cm}
   {\large $\texttt{ofs} = \lambda_+(Q_r)$ \qquad
-   $\texttt{ofa} = \lVert a_r \rVert$}
-
-  \vspace{0.34cm}
-  {\small vallée : $\lambda_+$ grand, $\lVert a_r\rVert \approx 0$ \qquad
+   $\texttt{ofa} = \lVert a_r \rVert$} \quad
+  {\small vallée : $\lambda_+$ grand, $\lVert a_r\rVert \approx 0$ ;
    marche : $\lVert a_r\rVert$ grand}
+
+  \vspace{0.30cm}
+  {\large $\displaystyle \texttt{phase\_sym} = \max_\theta
+   \frac{\sum_\lambda \bigl\lfloor -e_{\lambda\theta}
+   - \lvert o_{\lambda\theta}\rvert - T \bigr\rfloor_+}
+   {\sum_\lambda \sqrt{e_{\lambda\theta}^2 + o_{\lambda\theta}^2}}$}
+
+  \vspace{0.22cm}
+  {\small $(e,o)$ : paire de Gabor en quadrature --- les mêmes $P$ et $M$.
+   $-e$ : ligne \emph{sombre}. $-\lvert o\rvert$ : la marche est retranchée.}
 \end{frame}
 
 % -----------------------------------------------------------------------------

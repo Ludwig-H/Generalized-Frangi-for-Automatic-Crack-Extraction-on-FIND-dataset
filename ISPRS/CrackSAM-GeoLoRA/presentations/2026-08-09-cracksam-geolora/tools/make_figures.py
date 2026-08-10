@@ -254,13 +254,16 @@ MILESTONE_CASES = (
     / "khanhha_original"
 )
 
-DENSE_PANELS = {"image": 0, "gt": 1, "prompt": 3, "pred": 6}
+DENSE_PANELS = {"image": 0, "gt": 1, "prompt": 3, "base": 4, "pred": 6}
 
-DENSE_CASES: dict[str, str] = {
-    # Le prompt s'allume sur un reflet : IoU 0,197 -> 0,027.
-    "dense_reflet": "gain_baseline__cracktree200_6266.jpg.jpg",
-    # Aucune fissure : la baseline est parfaite, le prompt en fait inventer une.
-    "dense_noncrack": "sparse_divergent__noncrack_noncrack_concrete_wall_43_50.jpg.jpg.jpg",
+#: Les deux modes d'échec de l'interface dense, chacun sur le cas où la
+#: baseline gagne le plus. Ils sont pris hors de Khánh Hà, en zéro-shot, parce
+#: que les écarts y sont les plus nets.
+DENSE_CASES: dict[str, tuple[str, str]] = {
+    # Débordement : la prédiction s'épaissit, tout devient faux positif.
+    "dense_facade": ("facade390", "gain_baseline__DJ_Wall_231.JPG.jpg"),
+    # Effondrement : la carte désigne pourtant la fissure, la prédiction s'efface.
+    "dense_road": ("road420", "gain_baseline__2023_10_30_16_44_IMG_6033.jpg.jpg"),
 }
 
 
@@ -379,11 +382,11 @@ def main() -> int:
         square(row[column]).save(OUTPUT / f"ombre_{name}.jpg", quality=92)
     print(f"vignettes ombre_* ({filename})")
 
-    for slug, filename in DENSE_CASES.items():
-        row = split_grid(MILESTONE_CASES / filename)[0]
+    for slug, (corpus, filename) in DENSE_CASES.items():
+        row = split_grid(MILESTONE_CASES.parent / corpus / filename)[0]
         for name, column in DENSE_PANELS.items():
             square(row[column]).save(OUTPUT / f"{slug}_{name}.jpg", quality=92)
-        print(f"vignettes {slug}_* ({filename})")
+        print(f"vignettes {slug}_* ({corpus}/{filename})")
 
     root = os.environ.get("CRACKSAM2_DATA_ROOT")
     images = Path(root) / "khanhha" / "test" / "images" if root else None
