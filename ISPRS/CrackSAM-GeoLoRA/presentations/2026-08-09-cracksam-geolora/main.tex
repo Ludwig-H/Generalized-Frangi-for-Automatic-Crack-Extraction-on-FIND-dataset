@@ -50,19 +50,6 @@
     };
   \end{tikzpicture}%
 }
-% Vignette d'une grille de comparaison : largeur au choix, en-tête facultatif
-% (vide pour les rangées qui suivent la première).
-\newcommand{\csrowpanel}[4]{%
-  \begin{minipage}[t]{#1\textwidth}
-    \centering
-    \ifx\relax#2\relax\else
-      {\fontsize{6.1}{6.8}\selectfont\bfseries #2}\par\vspace{1pt}%
-    \fi
-    \setlength{\fboxsep}{0.7pt}%
-    \fcolorbox{black!16}{white}{%
-      \includegraphics[width=0.95\linewidth,height=#3,keepaspectratio]{#4}}
-  \end{minipage}%
-}
 % Vignette d'un panneau, sur cinq colonnes.
 \newcommand{\widepanel}[2]{%
   \begin{minipage}[t]{0.188\textwidth}
@@ -182,53 +169,84 @@
 \end{frame}
 
 % -----------------------------------------------------------------------------
-\begin{frame}{Sa force : hors domaine et sous bruit}
+\begin{frame}{Une LoRA de rang 4}
   \centering
-  \vspace{0.02cm}
-  {\small Entraîné sur Khánh Hà. Testé tel quel sur trois corpus qu'il n'a
-  jamais vus.}
+  \vspace{0.55cm}
+  \begin{tikzpicture}[font=\small]
+    \node[draw=black!30,fill=softgray,rounded corners=3pt,
+      minimum width=3.0cm,minimum height=3.0cm] (W) at (0,0) {\Large $W$};
+    \node[font=\Large] at (2.2,0) {$+$};
+    \node[draw=inkblue!55,fill=softblue,rounded corners=2pt,inner sep=0pt,
+      text=inkblue,font=\scriptsize,
+      minimum width=0.42cm,minimum height=3.0cm] (B) at (3.0,0) {$B$};
+    \node[draw=inkblue!55,fill=softblue,rounded corners=2pt,inner sep=0pt,
+      text=inkblue,font=\scriptsize,
+      minimum width=3.0cm,minimum height=0.42cm] (A) at (4.95,0) {$A$};
 
-  \vspace{0.16cm}
-  \small
-  \setlength{\tabcolsep}{4pt}%
-  \begin{tabular}{lrrrrr}
-    \toprule
-    IoU & test & flou fort & \texttt{Road420} & \texttt{Facade390} &
-      \texttt{Concrete3k} \\
-    \midrule
-    \textbf{CrackSAM} (LoRA \texttt{qv}, $r=4$) & 0,642 & \textbf{0,492} &
-      \textbf{0,622} & 0,454 & \textbf{0,680} \\
-    SegFormer, le meilleur des 12 autres & \textbf{0,648} & 0,444 & 0,582 &
-      \textbf{0,462} & 0,653 \\
-    \bottomrule
-  \end{tabular}
+    \draw[<->,inkblue] (2.79,1.70) -- (3.21,1.70)
+      node[midway,above,font=\scriptsize,text=inkblue] {4};
+    \draw[<->,inkblue] (6.67,-0.21) -- (6.67,0.21)
+      node[midway,right,font=\scriptsize,text=inkblue] {4};
 
-  \vspace{0.06cm}
-  {\fontsize{6.4}{7.4}\selectfont Sur image nette, il est derrière. Dès qu'on
-  dégrade ou qu'on change de domaine, il passe devant.}
+    \node[font=\scriptsize,text=black!62,align=center] at (0,-2.10)
+      {les poids de SAM 2\\\textbf{jamais modifiés}};
+    \node[font=\scriptsize,text=inkblue,align=center] at (4.7,-2.10)
+      {\textbf{4 directions}\\les seules apprises};
+  \end{tikzpicture}
 
-  \vspace{0.14cm}
-  \csrowpanel{0.155}{Image}{1.58cm}{cs_zs_reflet_image}\hfill
-  \csrowpanel{0.155}{Vérité terrain}{1.58cm}{cs_zs_reflet_gt}\hfill
-  \csrowpanel{0.155}{\textcolor{success}{CrackSAM}}{1.58cm}{cs_zs_reflet_sam}\hfill
-  \csrowpanel{0.155}{SegFormer}{1.58cm}{cs_zs_reflet_segformer}\hfill
-  \csrowpanel{0.155}{MobileNet}{1.58cm}{cs_zs_reflet_mobilenet}\hfill
-  \csrowpanel{0.155}{ResNet-50}{1.58cm}{cs_zs_reflet_resnet}
+  \vspace{0.40cm}
+  {\large $y \;=\; W x \;+\; B A x$}
 
-  \vspace{2pt}
-  \csrowpanel{0.155}{}{1.58cm}{cs_zs_ombre_image}\hfill
-  \csrowpanel{0.155}{}{1.58cm}{cs_zs_ombre_gt}\hfill
-  \csrowpanel{0.155}{}{1.58cm}{cs_zs_ombre_sam}\hfill
-  \csrowpanel{0.155}{}{1.58cm}{cs_zs_ombre_segformer}\hfill
-  \csrowpanel{0.155}{}{1.58cm}{cs_zs_ombre_mobilenet}\hfill
-  \csrowpanel{0.155}{}{1.58cm}{cs_zs_ombre_resnet}
+  \vspace{0.40cm}
+  \statusbadge{inkblue}{4\,608 poids là où $W$ en a 331\,776}
+  \hspace{0.3cm}
+  \statusbadge{success}{$B = 0$ au départ : le modèle \emph{est} SAM 2}
 
-  \vspace{0.14cm}
-  \statusbadge{inkblue}{un reflet, puis une ombre portée : c'est cette
-  robustesse que la géométrie devait renforcer}
+  \source{Exemple chiffré sur une projection $576 \times 576$ d'un bloc de
+  Hiera-L.}
+\end{frame}
 
-  \source{Tableau 6 du papier. \og Flou fort \fg{} : image réduite de moitié,
-  puis floutée. Notre \texttt{baseline} reprend la recette sur SAM 2 Hiera-L.}
+% -----------------------------------------------------------------------------
+\begin{frame}{Et seulement sur $q$ et $v$}
+  \centering
+  \vspace{0.45cm}
+  \begin{tikzpicture}[font=\small,>=Latex]
+    \node[rounded corners=4pt,draw=black!30,fill=softgray,
+      minimum width=1.7cm,minimum height=0.85cm] (x) at (0,0) {entrée};
+    \node[rounded corners=4pt,draw=inkblue!55,fill=softblue,text=inkblue,
+      minimum width=1.9cm,minimum height=0.80cm] (q) at (3.3,1.25)
+      {$q$~{\scriptsize$+\,BA$}};
+    \node[rounded corners=4pt,draw=black!22,fill=black!4,text=black!55,
+      minimum width=1.9cm,minimum height=0.80cm] (k) at (3.3,0) {$k$};
+    \node[rounded corners=4pt,draw=inkblue!55,fill=softblue,text=inkblue,
+      minimum width=1.9cm,minimum height=0.80cm] (v) at (3.3,-1.25)
+      {$v$~{\scriptsize$+\,BA$}};
+    \node[rounded corners=4pt,draw=black!30,fill=softgray,
+      minimum width=2.0cm,minimum height=0.85cm] (att) at (6.6,0) {attention};
+    \node[rounded corners=4pt,draw=black!22,fill=black!4,text=black!55,
+      minimum width=1.7cm,minimum height=0.85cm] (out) at (9.4,0) {sortie};
+
+    \foreach \dest in {q,k,v} \draw[->,black!45] (x) -- (\dest);
+    \foreach \src in {q,k,v} \draw[->,black!45] (\src) -- (att);
+    \draw[->,black!45] (att) -- (out);
+  \end{tikzpicture}
+
+  \vspace{0.45cm}
+  \statusbadge{inkblue}{$q$ : où l'on regarde}
+  \hspace{0.25cm}
+  \statusbadge{inkblue}{$v$ : ce que l'on en retient}
+  \hspace{0.25cm}
+  \statusbadge{warning}{$k$ et la sortie : intacts}
+
+  \vspace{0.40cm}
+  \metriccard{warning}{SAM 2 Hiera-L}{224,9\,M}{poids gelés}
+  \hspace{0.25cm}
+  \metriccard{inkblue}{Appris}{453\,248}{48 blocs, 7 attentions}
+  \hspace{0.25cm}
+  \metriccard{success}{Soit}{0,2\,\%}{1,8\,Mo à sauvegarder}
+
+  \source{Le \texttt{qkv} de Hiera est une projection fusionnée : la correction
+  y est écrite sur les tranches $q$ et $v$, celle de $k$ restant nulle.}
 \end{frame}
 
 % -----------------------------------------------------------------------------
