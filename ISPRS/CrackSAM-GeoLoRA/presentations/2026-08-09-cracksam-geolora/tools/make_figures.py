@@ -63,6 +63,10 @@ CASES: dict[str, str] = {
     # tol3 -> geo_tol3 : les deux plus grands gains de la géométrie
     "t2g_gain_crack171336": "case_tol3_vs_geo_tol3_reussite_05_CRACK500_20160405_171336_641_361.jpg",
     "t2g_gain_riss": "case_tol3_vs_geo_tol3_reussite_04_Rissbilder_for_Florian_9S6A2817_67_221_2558_2411.jpg",
+    # baseline -> geo : la paire de la planche de résultats
+    "b2g_gain_ct6774": "case_reussite_03_cracktree200_6774.jpg",
+    "b2g_gain_crack165333": "case_reussite_05_CRACK500_20160330_165333_1921_1081.jpg",
+    "b2g_loss_gaps552": "case_echec_00_GAPS384_train_0552_1_641.jpg",
 }
 
 #: Vert = vrai positif, rouge = faux positif, bleu = manqué. Mêmes teintes que

@@ -471,13 +471,13 @@
   \vspace{0.30cm}
   \begin{tikzpicture}[font=\scriptsize,>=Latex]
     \node[rounded corners=4pt,draw=black!30,fill=softgray,text width=1.8cm,
-      align=center,inner sep=5pt] at (0,1.25) (rgb) {Image RGB\\$448^2$};
+      align=center,inner sep=5pt] at (0,1.25) (rgb) {Image RGB};
     \node[rounded corners=4pt,draw=warning!55,fill=warning!8,text width=2.5cm,
       align=center,inner sep=5pt] at (3.3,1.25) (hiera) {%
       \textbf{SAM 2 Hiera-L}\\LoRA $q/v$, rang 4};
 
     \node[rounded corners=4pt,draw=black!30,fill=softgray,text width=1.8cm,
-      align=center,inner sep=5pt] at (0,-1.25) (geo) {11 canaux\\$224^2$};
+      align=center,inner sep=5pt] at (0,-1.25) (geo) {11 canaux};
     \node[rounded corners=4pt,draw=inkblue!55,fill=softblue,text width=2.5cm,
       align=center,inner sep=5pt] at (3.3,-1.25) (enc) {%
       \textbf{Encodeur géométrique}\\projections à zéro};
@@ -487,7 +487,7 @@
     \node[rounded corners=4pt,draw=black!30,fill=softgray,text width=1.8cm,
       align=center,inner sep=5pt] at (9.0,0) (dec) {Mask decoder};
     \node[rounded corners=4pt,draw=success!50,fill=softgreen,text width=1.6cm,
-      align=center,inner sep=5pt] at (11.6,0) (out) {masque\\$448^2$};
+      align=center,inner sep=5pt] at (11.6,0) (out) {masque};
 
     \draw[->,black!45] (rgb) -- (hiera);
     \draw[->,black!45] (geo) -- (enc);
@@ -501,40 +501,34 @@
     \node[font=\fontsize{5.8}{6.6}\selectfont,text=inkblue,align=center]
       at (6.55,-1.05) {3 corrections};
   \end{tikzpicture}
-
-  \vspace{0.34cm}
-  {\large $f_s \;\leftarrow\; f_s \;+\; \gamma\,P_s(E)$, \qquad
-   $s \in \{32{\times}256^2,\; 64{\times}128^2,\; 256{\times}64^2\}$}
-
-  \vspace{0.34cm}
-  {\large $P_s \equiv 0$ à $t=0 \;\Longrightarrow\;
-   \texttt{geo} = \texttt{baseline}$}
 \end{frame}
 
 % -----------------------------------------------------------------------------
-\begin{frame}{La question, et la réponse}
-  \centering
-  \vspace{0.10cm}
-  \vspace{0.45cm}
-  \begin{tikzpicture}
-    \node[rounded corners=6pt,draw=inkblue!50,fill=softblue,text width=5.4cm,
-      minimum height=1.9cm,align=center,inner sep=9pt,anchor=north west]
-      at (0,0) {%
-      {\large\bfseries\color{inkblue} La question}\\[7pt]
-      $E$ décrit la forme. SAM 2, non.\\[4pt]
-      Peut-on la lui donner ?};
-    \node[rounded corners=6pt,draw=failure!50,fill=softred,text width=5.4cm,
-      minimum height=1.9cm,align=center,inner sep=9pt,anchor=north west]
-      at (6.6,0) {%
-      {\large\bfseries\color{failure} La réponse : non}\\[7pt]
-      $\bigl|\IoU(E) - \IoU(E_{\pi})\bigr| < 10^{-3}$\\[4pt]
-      $E_\pi$ gagne \textbf{5 fois sur 6}};
-  \end{tikzpicture}
+\begin{frame}{\texttt{baseline} contre \texttt{geo}}
+  \caserow{\texttt{cracktree200\_6774} --- réseau fin entièrement
+    manqué}{b2g_gain_ct6774}{\texttt{baseline}}{\texttt{geo}}{success}%
+    {0,000 $\rightarrow$ 0,228}
 
-  \vspace{0.50cm}
-  {\small $E$ : la géométrie de \emph{son} image. \quad
-  $E_\pi$ : celle d'une \textbf{autre} image. \quad
-  Par image : $-0{,}0007$, 603 gains, 866 pertes.}
+  \vspace{0.10cm}
+  \caserow{\texttt{GAPS384\_0552} --- débordement le long d'un bord
+    clair}{b2g_loss_gaps552}{\texttt{baseline}}{\texttt{geo}}{failure}%
+    {0,517 $\rightarrow$ 0,205}
+
+  \vspace{0.12cm}
+  \centering
+  {\fontsize{6.4}{7.4}\selectfont \colourkey}
+
+  \vspace{0.12cm}
+  \small
+  \setlength{\tabcolsep}{5pt}%
+  \begin{tabular}{lrrrr}
+    \toprule
+    & précision & rappel & IoU & squelette couvert \\
+    \midrule
+    \ttfamily baseline & \textbf{0,759} & 0,761 & \textbf{0,624} & 0,679 \\
+    \ttfamily geo & 0,674 & \textbf{0,859} & 0,608 & \textbf{0,826} \\
+    \bottomrule
+  \end{tabular}
 \end{frame}
 
 % -----------------------------------------------------------------------------
@@ -626,73 +620,6 @@
 
   \source{Ces deux images sont les deux plus grands gains de la géométrie. Ce
   sont aussi les deux plus grandes pertes de \texttt{tol3}.}
-\end{frame}
-
-% -----------------------------------------------------------------------------
-\begin{frame}{Suite}
-  \vspace{0.30cm}
-  \begin{tabularx}{\linewidth}{c>{\raggedright\arraybackslash}X}
-    \toprule
-    \textbf{1} & \textbf{Arrêter le guidage géométrique sur Khánh Hà.} \\
-    \textbf{2} & \textbf{Aller où l'information existe : FIND multimodal}
-      --- portée et thermique, que SAM 2 n'a jamais vus. \\
-    3 & Choisir la métrique du projet : $k=0$ et $k=3$ ne donnent pas le même
-      classement. \\
-    \bottomrule
-  \end{tabularx}
-
-  \vspace{0.45cm}
-  \centering
-  {\small À ne pas faire : plus de capacité, plus d'époques, un GNN.}
-
-  \vspace{0.22cm}
-  {\small Limites : 5 époques, pas d'IC95, une seule échelle d'évidence.}
-\end{frame}
-
-% -----------------------------------------------------------------------------
-\begin{frame}{La tolérance de 3 px : en quoi elle consiste}
-  \centering
-  \vspace{0.04cm}
-  {\small $\mathrm{Pr}_k = \dfrac{|P \cap G^{\oplus k}|}{|P|}$ \quad
-   $\mathrm{Re}_k = \dfrac{|G \cap P^{\oplus k}|}{|G|}$ \quad
-   $\IoU_k = \dfrac{F_k}{2 - F_k}$, \;
-   $F_k = \dfrac{2\,\mathrm{Pr}_k \mathrm{Re}_k}{\mathrm{Pr}_k + \mathrm{Re}_k}$}
-
-  \vspace{0.14cm}
-  \synthpanel{parfait}{synth_perfect.png}\hfill
-  \synthpanel{décalé 2 px}{synth_shifted.png}\hfill
-  \synthpanel{2$\times$ trop large}{synth_wide.png}\hfill
-  \synthpanel{rompu 4 px}{synth_break4.png}\hfill
-  \synthpanel{rompu 20 px}{synth_break20.png}
-
-  \vspace{0.20cm}
-  \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.45\textwidth}
-      \centering
-      \small
-      \setlength{\tabcolsep}{4pt}%
-      \begin{tabularx}{\linewidth}{Xrr}
-        \toprule
-        IoU & strict & 3 px \\
-        \midrule
-        décalé de 2 px & 0,200 & \textbf{1,000} \\
-        2$\times$ trop large & 0,429 & \textbf{1,000} \\
-        rompu sur 4 px & 0,917 & \textbf{1,000} \\
-        rompu sur 20 px & 0,583 & 0,708 \\
-        \bottomrule
-      \end{tabularx}
-    \end{column}
-    \begin{column}{0.51\textwidth}
-      \small
-      $\IoU_0(G^{\oplus 1}, G) = \textbf{0,881}$ \qquad
-      $\IoU_0(G^{\oplus 2}, G) = \textbf{0,799}$\\[7pt]
-      Baseline, $k=1$ :\\[2pt]
-      $\mathrm{Pr} : 0{,}759 \rightarrow \textbf{0,888}$ \qquad
-      $\mathrm{Re} : 0{,}761 \rightarrow 0{,}812$\\[7pt]
-      {\footnotesize Un décalage de 2 px est plus puni qu'une rupture de
-      20 px.}
-    \end{column}
-  \end{columns}
 \end{frame}
 
 % -----------------------------------------------------------------------------
