@@ -242,8 +242,7 @@
   \csrowpanel{0.155}{ResNet-50}{1.30cm}{cs_zs_ombre_resnet}
 
   \source{\textsc{Ge} \emph{et al.}, \emph{Construction and Building Materials}
-  431:136573, 2024 --- tableau 6 et figures. SegFormer est le meilleur des douze
-  autres concurrents.}
+  431:136573, 2024 --- tableau 6 et figures.}
 \end{frame}
 
 % -----------------------------------------------------------------------------
@@ -416,9 +415,9 @@
 
   \vspace{0.34cm}
   {\large $\displaystyle
-   Q_r = \frac{1}{|\partial D_r|}\int_{D_r}\!\nabla^2 I
+   Q_r = \frac{1}{|\partial D_r|}\oint_{\partial D_r}\!\nabla I \otimes n \;ds
    \qquad
-   a_r = \frac{1}{|\partial D_r|}\oint_{\partial D_r}\!\nabla I$}
+   a_r = \frac{1}{|\partial D_r|}\oint_{\partial D_r}\!\nabla I \;ds$}
 
   \vspace{0.26cm}
   {\large $\texttt{ofs} = \lambda_+(Q_r)$ \qquad
@@ -426,21 +425,12 @@
   {\small vallée : $\lambda_+$ grand, $\lVert a_r\rVert \approx 0$ ;
    marche : $\lVert a_r\rVert$ grand}
 
-  \vspace{0.30cm}
-  {\large $\displaystyle \texttt{phase\_sym} = \max_\theta
-   \frac{\sum_\lambda \bigl\lfloor -e_{\lambda\theta}
-   - \lvert o_{\lambda\theta}\rvert - T \bigr\rfloor_+}
-   {\sum_\lambda \sqrt{e_{\lambda\theta}^2 + o_{\lambda\theta}^2}}$}
+  \vspace{0.36cm}
+  {\small \texttt{phase\_sym} : la part \textbf{paire et sombre} de la réponse
+   locale --- Gabor en quadrature, \textbf{12 orientations}.}
 
-  \vspace{0.18cm}
-  {\small \texttt{phase\_sym} : la part de la réponse locale qui est
-   \textbf{paire et sombre} plutôt qu'impaire --- une vallée, pas une marche ---
-   par une paire de Gabor en quadrature sur \textbf{12 orientations}
-   $\theta = k\pi/12$ et 4 longueurs d'onde.}
-
-  \vspace{0.12cm}
-  {\small On coupe toujours \textbf{orthogonalement à la structure} :
-   axe propre de $\lambda_+$ pour $Q_r$, direction $n_\theta$ pour $(e,o)$.}
+  \vspace{0.20cm}
+  {\small Coupe toujours \textbf{orthogonale à la structure}.}
 \end{frame}
 
 % -----------------------------------------------------------------------------
@@ -473,9 +463,6 @@
     \bottomrule
   \end{tabularx}
 
-  \vspace{0.20cm}
-  {\small Calculés sur la log-luminance à $224^2$, sauf \texttt{frangi\_sim}.
-  \textbf{Jamais multipliés entre eux.}}
 \end{frame}
 
 % -----------------------------------------------------------------------------
@@ -577,9 +564,8 @@
   \hspace{0.25cm}
   \metriccard{warning}{Durée}{40--41 min}{par variante}
 
-  \source{Le contrôle permuté a la même capacité et la même perte : seul
-  l'appariement image~$\leftrightarrow$~évidence est détruit. Sans lui, on ne
-  sépare pas la géométrie des paramètres ajoutés.}
+  \source{Contrôle permuté : même capacité, même perte, seul l'appariement
+  image~$\leftrightarrow$~évidence est détruit.}
 \end{frame}
 
 % -----------------------------------------------------------------------------
@@ -619,8 +605,8 @@
   {\small L'adapter s'active pourtant : projections jusqu'à
   $1{,}79\times10^{-3}$.}
 
-  \source{Le déficit résiduel de \texttt{geo\_tol3} face à \texttt{tol3} vient
-  des 290\,801 paramètres ajoutés, non d'un mauvais usage de la géométrie.}
+  \source{Le déficit de \texttt{geo\_tol3} face à \texttt{tol3} vient des
+  290\,801 paramètres ajoutés.}
 \end{frame}
 
 % -----------------------------------------------------------------------------
@@ -737,9 +723,8 @@
     \bottomrule
   \end{tabular}
 
-  \source{\texttt{tol3} l'emporte à toutes les tolérances, y compris en strict.
-  Les gains se concentrent sur \texttt{cracktree200}. Contrepartie mesurée : sur
-  \texttt{GAPS384\_0552}, le débordement coûte \texttt{0,517} à \texttt{0,308}.}
+  \source{Gains concentrés sur \texttt{cracktree200}. Contrepartie mesurée :
+  \texttt{GAPS384\_0552}, \texttt{0,517} $\rightarrow$ \texttt{0,308}.}
 \end{frame}
 
 \end{document}
