@@ -405,7 +405,7 @@
 \end{frame}
 
 % -----------------------------------------------------------------------------
-\begin{frame}{Onze canaux, jamais multipliés}
+\begin{frame}{Onze canaux}
   \centering
   \vspace{0.04cm}
   \widepanel{Image}{b2t_gain_ct6774_image.jpg}\hfill
@@ -441,6 +441,41 @@
   \vspace{0.12cm}
   {\small On coupe toujours \textbf{orthogonalement à la structure} :
    axe propre de $\lambda_+$ pour $Q_r$, direction $n_\theta$ pour $(e,o)$.}
+\end{frame}
+
+% -----------------------------------------------------------------------------
+\begin{frame}{Les onze canaux, en détail}
+  \centering
+  \vspace{0.10cm}
+  \footnotesize
+  \setlength{\tabcolsep}{4pt}%
+  \begin{tabularx}{0.96\linewidth}{>{\ttfamily}p{1.85cm}p{1.35cm}>{\raggedright\arraybackslash}X}
+    \toprule
+    \normalfont\bfseries Canal & \normalfont\bfseries Rôle &
+      \normalfont\bfseries Ce qu'il mesure \\
+    \midrule
+    frangi\_sim & propose & la carte des essais précédents
+      (\texttt{node\_sim\_max}) \\
+    \midrule
+    ofs & vérifie & flux orienté : vallée \\
+    even\_odd & vérifie & réponse paire moins réponse impaire \\
+    phase\_sym & vérifie & phase-symétrie sombre, Gabor en quadrature \\
+    profile & vérifie & deux flancs plus clairs au même rayon \\
+    dbic & vérifie & \og ombre seule \fg{} contre \og ombre $+$ ligne
+      sombre \fg{} \\
+    \midrule
+    ofa & \textbf{récuse} & flux antisymétrique : marche \\
+    \midrule
+    abs\_energy & décrit & énergie absolue, non relative à l'image \\
+    cos2$\theta$ & décrit & orientation retenue \\
+    sin2$\theta$ & décrit & orientation retenue \\
+    scale & décrit & rayon gagnant, ramené dans $[0,1]$ \\
+    \bottomrule
+  \end{tabularx}
+
+  \vspace{0.20cm}
+  {\small Calculés sur la log-luminance à $224^2$, sauf \texttt{frangi\_sim}.
+  \textbf{Jamais multipliés entre eux.}}
 \end{frame}
 
 % -----------------------------------------------------------------------------
