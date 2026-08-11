@@ -13,7 +13,7 @@ We propose a "universal", **training-free approach** that robustly extracts crac
 
 ## 📂 Repository Structure
 
-*   `FIND_Frangi_Fusion_Avignon_Colab.ipynb`: The main notebook reproducing all experiments (Avignon case study + [FIND Benchmark](https://zenodo.org/records/8332767) + Noise Robustness).
+*   `FIND_Frangi_Fusion_Avignon_Colab.ipynb`: The main notebook reproducing all experiments (Avignon case study + [FIND Benchmark](https://zenodo.org/records/6383044) + Noise Robustness).
 *   `src/`: Source code for the Frangi-Fusion python package.
 *   `scripts/`: Utility scripts for batch processing.
 
