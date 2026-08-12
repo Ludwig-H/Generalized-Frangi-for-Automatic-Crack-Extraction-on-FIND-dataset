@@ -119,6 +119,8 @@ ARM_FRANGI_PERMUTED: Final[str] = "frangi_permuted"
 ARM_RAW_THERMAL: Final[str] = "raw_thermal"
 ARM_FRANGI_NO_ABSTENTION: Final[str] = "frangi_no_abstention"
 ARM_POSITIVE_ONLY: Final[str] = "positive_only"
+ARM_FRANGI_WEIGHTED: Final[str] = "frangi_difficulty_weighted"
+ARM_FRANGI_WEIGHTED_PERMUTED: Final[str] = "frangi_difficulty_weighted_permuted"
 
 #: Identifiants courts du tableau de résultats, dans l'ordre du protocole.
 ARM_IDENTIFIERS: Final[dict[str, str]] = {
@@ -129,6 +131,8 @@ ARM_IDENTIFIERS: Final[dict[str, str]] = {
     "A4": ARM_RAW_THERMAL,
     "A5": ARM_FRANGI_NO_ABSTENTION,
     "A6": ARM_POSITIVE_ONLY,
+    "A7": ARM_FRANGI_WEIGHTED,
+    "A8": ARM_FRANGI_WEIGHTED_PERMUTED,
 }
 
 #: Source des canaux d'évidence donnés au correcteur.

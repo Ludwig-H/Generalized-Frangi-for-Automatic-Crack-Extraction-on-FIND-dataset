@@ -108,6 +108,7 @@ class ArmSpecification:
     evidence_source: str = EVIDENCE_SOURCE_FRANGI
     permuted: bool = False
     trained: bool = True
+    difficulty_weighted: bool = False
     model: dict[str, Any] = field(default_factory=dict)
 
     @property
@@ -185,6 +186,13 @@ def train_arm(
     permutation = (
         EvidencePermutation(samples, assignment, seed=seed) if arm.permuted else None
     )
+    sample_weights: dict[str, float] | None = None
+    if arm.difficulty_weighted:
+        from .difficulty import baseline_headroom, difficulty_weights
+
+        # Les poids sont calculés sur le **train** seul : la validation sert à
+        # sélectionner, pas à pondérer, et le test n'est pas ouvert.
+        sample_weights = difficulty_weights(baseline_headroom(train_samples, baseline_cache))
     train_dataset = IRTResidualDataset(
         train_samples,
         baseline_cache,
@@ -193,6 +201,7 @@ def train_arm(
         permutation=permutation,
         augmentation=FlipAugmentation(),
         seed=seed,
+        sample_weights=sample_weights,
     )
     validation_dataset = IRTResidualDataset(
         validation_samples,
@@ -258,6 +267,11 @@ def train_arm(
                     batch["mask"].to(resolved_device),
                     weights,
                     has_abstention=arm.has_abstention,
+                    sample_weights=(
+                        batch["sample_weight"].to(resolved_device)
+                        if arm.difficulty_weighted
+                        else None
+                    ),
                 )
             scaler.scale(loss).backward()
             if training.gradient_clip_norm > 0:
@@ -362,6 +376,7 @@ def _checkpoint_payload(
             "name": arm.name,
             "evidence_source": arm.evidence_source,
             "permuted": arm.permuted,
+            "difficulty_weighted": arm.difficulty_weighted,
             "model": dict(arm.model),
         },
         "baseline_checkpoint_sha256": record.get("baseline_checkpoint_sha256", "unknown"),

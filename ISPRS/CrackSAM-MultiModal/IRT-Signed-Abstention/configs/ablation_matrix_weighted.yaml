@@ -1,0 +1,20 @@
+# Matrice du correctif : A7 contre son contrôle permuté A8, et contre A1/A2/A3
+# déjà exécutés. Les cinq bras partagent caches, split et baseline.
+
+seeds: [13, 37, 73]
+
+arms:
+  - {identifier: A0, config: irt_baseline.yaml}
+  - {identifier: A1, config: irt_rgb_recalibration.yaml}
+  - {identifier: A2, config: irt_signed_abstention_v1.yaml}
+  - {identifier: A3, config: irt_frangi_permuted.yaml}
+  - {identifier: A7, config: irt_frangi_difficulty_weighted.yaml}
+  - {identifier: A8, config: irt_frangi_difficulty_weighted_permuted.yaml}
+
+comparisons:
+  - A7-A1
+  - A7-A8
+  - A7-A2
+  - A2-A1
+  - A2-A3
+  - A1-A0

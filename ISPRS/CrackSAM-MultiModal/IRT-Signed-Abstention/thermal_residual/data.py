@@ -148,6 +148,7 @@ class IRTResidualDataset(Dataset):
         modality_present: bool = True,
         seed: int = 0,
         preload: bool = False,
+        sample_weights: Mapping[str, float] | None = None,
     ) -> None:
         if evidence_source not in EVIDENCE_SOURCES:
             raise ValueError(
@@ -161,6 +162,7 @@ class IRTResidualDataset(Dataset):
         self.permutation = permutation
         self.augmentation = augmentation
         self.modality_present = bool(modality_present)
+        self.sample_weights = dict(sample_weights or {})
         self.seed = int(seed)
         self.epoch = 0
         self._mapping: dict[str, str] = {}
@@ -247,6 +249,9 @@ class IRTResidualDataset(Dataset):
             "thermal_evidence": torch.from_numpy(np.ascontiguousarray(evidence, dtype=np.float32)),
             "mask": torch.from_numpy(np.ascontiguousarray(mask, dtype=np.float32)),
             "modality_present": torch.tensor(self.modality_present, dtype=torch.bool),
+            "sample_weight": torch.tensor(
+                float(self.sample_weights.get(sample.sample_id, 1.0)), dtype=torch.float32
+            ),
         }
 
 
@@ -260,6 +265,7 @@ def collate(batch: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
         "thermal_evidence": torch.stack([item["thermal_evidence"] for item in batch]),
         "mask": torch.stack([item["mask"] for item in batch]),
         "modality_present": torch.stack([item["modality_present"] for item in batch]),
+        "sample_weight": torch.stack([item["sample_weight"] for item in batch]),
     }
 
 

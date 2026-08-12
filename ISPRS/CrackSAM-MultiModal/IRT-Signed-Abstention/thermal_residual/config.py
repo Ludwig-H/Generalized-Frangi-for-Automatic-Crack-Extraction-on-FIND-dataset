@@ -51,6 +51,7 @@ class ArmConfig:
                 "evidence_source": self.arm.evidence_source,
                 "permuted": self.arm.permuted,
                 "trained": self.arm.trained,
+                "difficulty_weighted": self.arm.difficulty_weighted,
                 "model": dict(self.arm.model),
             },
             "training": self.training.to_json(),
@@ -98,6 +99,7 @@ def parse_arm_config(payload: Mapping[str, Any], *, source: Path | None = None) 
         evidence_source=evidence_source,
         permuted=bool(arm_payload.get("permuted", False)),
         trained=bool(arm_payload.get("trained", True)),
+        difficulty_weighted=bool(arm_payload.get("difficulty_weighted", False)),
         model=model,
     )
     return ArmConfig(

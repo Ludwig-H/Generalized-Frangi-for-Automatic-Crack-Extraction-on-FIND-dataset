@@ -14,19 +14,8 @@ import numpy as np
 import pytest
 import torch
 
-from thermal_residual.cache import (
-    CacheWriter,
-    extractor_digest,
-    open_cache,
-    validate_baseline_cache,
-    validate_thermal_cache,
-)
-from thermal_residual.constants import (
-    BASELINE_CACHE_VERSION,
-    EVIDENCE_CHANNELS,
-    SPLIT_TEST,
-    THERMAL_CACHE_VERSION,
-)
+from thermal_residual.cache import validate_baseline_cache, validate_thermal_cache
+from thermal_residual.constants import SPLIT_TEST
 from thermal_residual.data import IRTResidualDataset, collate
 from thermal_residual.evaluation import evaluate_arm, read_per_image_csv, write_per_image_csv
 from thermal_residual.losses import LossWeights, corrector_loss
@@ -38,58 +27,6 @@ from thermal_residual.thermal_frangi import (
 from thermal_residual.training import ArmSpecification, TrainingConfig, train_arm
 
 THERMAL_CONFIG = ThermalEvidenceConfig(encoding="auto", scales=(1.0, 3.0, 5.0), R=3, tau=0.18)
-
-
-@pytest.fixture(scope="module")
-def caches(tmp_path_factory, fake_manifest):
-    """Construit les deux caches, avec le vrai extracteur Frangi sur CPU."""
-
-    root = tmp_path_factory.mktemp("caches")
-
-    thermal_writer = CacheWriter(
-        root / "thermal",
-        schema_version=THERMAL_CACHE_VERSION,
-        kind="thermal_evidence",
-        parameters={**THERMAL_CONFIG.to_json(), "extractor_sha256": extractor_digest()},
-        extra={"channels": list(EVIDENCE_CHANNELS)},
-    )
-    baseline_writer = CacheWriter(
-        root / "baseline",
-        schema_version=BASELINE_CACHE_VERSION,
-        kind="baseline_logits",
-        parameters={"checkpoint_sha256": "f" * 64},
-    )
-
-    rng = np.random.default_rng(4)
-    from thermal_residual.data import load_mask
-
-    for sample in fake_manifest:
-        evidence = generate_dual_polarity_thermal_evidence(
-            sample.thermal_path, device="cpu", config=THERMAL_CONFIG
-        )
-        decoding = evidence.pop("decoding")
-        thermal_writer.write(
-            sample.sample_id,
-            {
-                name: np.asarray(evidence[name], dtype=np.float32)
-                for name in ("thermal_decoded", *EVIDENCE_CHANNELS)
-            },
-            {"source_thermal_sha256": sample.thermal_sha256, "decoding": decoding.to_json()},
-        )
-
-        mask = load_mask(sample.mask_path)
-        degraded = mask.copy()
-        degraded[:, degraded.shape[1] // 2 :] = 0.0  # la moitié droite est perdue
-        logits = 6.0 * degraded - 3.0 + rng.normal(0.0, 0.2, degraded.shape).astype(np.float32)
-        baseline_writer.write(
-            sample.sample_id,
-            {"baseline_logits": logits[None, ...].astype(np.float32)},
-            {"source_rgb_sha256": sample.rgb_sha256},
-        )
-
-    thermal_writer.finalize()
-    baseline_writer.finalize()
-    return open_cache(root / "baseline"), open_cache(root / "thermal")
 
 
 def test_les_caches_sont_valides(caches, fake_manifest) -> None:

@@ -22,10 +22,10 @@ SHARED_MARKER = "# Bloc partagé"
 
 
 def _config_files() -> list[Path]:
-    return sorted(path for path in CONFIG_DIR.glob("*.yaml") if path.name != "ablation_matrix.yaml")
+    return sorted(p for p in CONFIG_DIR.glob("*.yaml") if not p.name.startswith("ablation_matrix"))
 
 
-def test_les_sept_bras_existent() -> None:
+def test_tous_les_bras_declares_existent() -> None:
     configs = {load_arm_config(path).identifier for path in _config_files()}
     assert configs == set(ARM_IDENTIFIERS)
 
@@ -107,7 +107,7 @@ def test_bornes_fixees_par_la_mesure_et_non_par_la_specification() -> None:
 
 def test_matrice_d_ablations_resout_les_chemins() -> None:
     protocol = load_ablation_matrix(CONFIG_DIR / "ablation_matrix.yaml")
-    assert [entry["identifier"] for entry in protocol["arms"]] == sorted(ARM_IDENTIFIERS)
+    assert [entry["identifier"] for entry in protocol["arms"]] == ["A%d" % i for i in range(7)]
     assert protocol["seeds"] == [13, 37, 73]
     assert "A2-A1" in protocol["comparisons"]
     assert "A2-A3" in protocol["comparisons"]
@@ -133,3 +133,32 @@ def test_empreinte_de_configuration_stable() -> None:
     assert first.digest() == second.digest()
     other = load_arm_config(CONFIG_DIR / "irt_raw_thermal.yaml")
     assert first.digest() != other.digest()
+
+
+def test_a7_ne_differe_de_a2_que_par_la_ponderation() -> None:
+    """Le correctif ne doit changer *que* la pondération de la perte."""
+
+    a2 = load_arm_config(CONFIG_DIR / "irt_signed_abstention_v1.yaml")
+    a7 = load_arm_config(CONFIG_DIR / "irt_frangi_difficulty_weighted.yaml")
+    assert a2.arm.model == a7.arm.model
+    assert a2.arm.evidence_source == a7.arm.evidence_source
+    assert a2.arm.permuted == a7.arm.permuted is False
+    assert a2.training.to_json() == a7.training.to_json()
+    assert a2.loss.to_json() == a7.loss.to_json()
+    assert a2.arm.difficulty_weighted is False and a7.arm.difficulty_weighted is True
+
+
+def test_a8_est_le_controle_permute_de_a7() -> None:
+    a7 = load_arm_config(CONFIG_DIR / "irt_frangi_difficulty_weighted.yaml")
+    a8 = load_arm_config(CONFIG_DIR / "irt_frangi_difficulty_weighted_permuted.yaml")
+    assert a7.arm.model == a8.arm.model
+    assert a7.arm.difficulty_weighted == a8.arm.difficulty_weighted is True
+    assert a7.arm.permuted is False and a8.arm.permuted is True
+
+
+def test_matrice_du_correctif() -> None:
+    protocol = load_ablation_matrix(CONFIG_DIR / "ablation_matrix_weighted.yaml")
+    identifiers = [entry["identifier"] for entry in protocol["arms"]]
+    assert "A7" in identifiers and "A8" in identifiers
+    assert "A7-A8" in protocol["comparisons"], "le contrôle permuté doit être comparé"
+    assert "A7-A1" in protocol["comparisons"]

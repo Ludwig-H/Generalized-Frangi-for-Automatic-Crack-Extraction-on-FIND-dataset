@@ -22,8 +22,8 @@ import torch.nn.functional as F
 
 from . import _repo  # noqa: F401
 
-from cracksam2.losses import binary_dice_loss  # noqa: E402
-from geolora.losses import tolerant_loss  # noqa: E402
+from cracksam2.losses import binary_dice_loss_per_image  # noqa: E402
+from geolora.losses import soft_dilate  # noqa: E402
 
 
 @dataclass(frozen=True)
@@ -64,16 +64,59 @@ class LossWeights:
         }
 
 
+def tolerant_loss_per_image(
+    probabilities: torch.Tensor,
+    targets: torch.Tensor,
+    radius: int,
+    smooth: float = 1.0,
+) -> torch.Tensor:
+    """``1 − F1`` tolérant, **une valeur par image**.
+
+    Réécriture stricte de ``geolora.losses.tolerant_loss`` sans sa moyenne
+    finale ; ``test_losses.py`` vérifie que la moyenne des deux coïncide.
+    """
+
+    if probabilities.shape != targets.shape:
+        raise ValueError(f"formes incompatibles : {probabilities.shape} et {targets.shape}")
+    dilated_targets = soft_dilate(targets, radius)
+    dilated_predictions = soft_dilate(probabilities, radius)
+    precision = (torch.sum(probabilities * dilated_targets, dim=(1, 2, 3)) + smooth) / (
+        torch.sum(probabilities, dim=(1, 2, 3)) + smooth
+    )
+    recall = (torch.sum(targets * dilated_predictions, dim=(1, 2, 3)) + smooth) / (
+        torch.sum(targets, dim=(1, 2, 3)) + smooth
+    )
+    return 1.0 - 2.0 * precision * recall / (precision + recall + 1e-8)
+
+
+def _weighted_mean(values: torch.Tensor, sample_weights: torch.Tensor | None) -> torch.Tensor:
+    if sample_weights is None:
+        return values.mean()
+    w = sample_weights.to(device=values.device, dtype=values.dtype)
+    return (values * w).sum() / w.sum().clamp_min(1e-8)
+
+
 def segmentation_loss(
-    logits: torch.Tensor, targets: torch.Tensor, weights: LossWeights
+    logits: torch.Tensor,
+    targets: torch.Tensor,
+    weights: LossWeights,
+    sample_weights: torch.Tensor | None = None,
 ) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
-    """BCE + Dice + perte tolérante, chacune rendue séparément."""
+    """BCE + Dice + perte tolérante, chacune rendue séparément.
+
+    ``sample_weights`` pondère **par image**. Sans lui, le comportement est
+    exactement la moyenne uniforme d'origine.
+    """
 
     targets = targets.to(dtype=logits.dtype)
-    bce = F.binary_cross_entropy_with_logits(logits, targets)
-    dice = binary_dice_loss(logits, targets)
+    bce_map = F.binary_cross_entropy_with_logits(logits, targets, reduction="none")
+    bce = _weighted_mean(bce_map.mean(dim=(1, 2, 3)), sample_weights)
+    dice = _weighted_mean(binary_dice_loss_per_image(logits, targets), sample_weights)
     probabilities = torch.sigmoid(logits)
-    tolerant = tolerant_loss(probabilities, targets, radius=weights.tolerant_radius)
+    tolerant = _weighted_mean(
+        tolerant_loss_per_image(probabilities, targets, radius=weights.tolerant_radius),
+        sample_weights,
+    )
     total = weights.bce * bce + weights.dice * dice + weights.tolerant * tolerant
     return total, {"bce": bce, "dice": dice, "tolerant": tolerant}
 
@@ -84,6 +127,7 @@ def corrector_loss(
     weights: LossWeights,
     *,
     has_abstention: bool = True,
+    sample_weights: torch.Tensor | None = None,
 ) -> tuple[torch.Tensor, dict[str, float]]:
     """Coût complet et journal détaillé de ses composantes.
 
@@ -95,7 +139,7 @@ def corrector_loss(
 
     logits = outputs["logits"]
     residual = outputs["residual_logits"]
-    segmentation, components = segmentation_loss(logits, targets, weights)
+    segmentation, components = segmentation_loss(logits, targets, weights, sample_weights)
 
     residual_l1 = residual.abs().mean()
     conflict = (
