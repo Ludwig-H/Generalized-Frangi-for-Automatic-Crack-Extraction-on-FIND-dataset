@@ -4,17 +4,22 @@
 
 | Statut | Modèle principal | Second modèle | Jeu multimodal | Portée |
 |:--:|:--:|:--:|:--:|:--:|
-| **Spécification implémentée · campagne exécutée · verdict négatif** | CrackSAM 2 + LoRA `tol3`, entraîné sur Khánh Hà RGB | petit correcteur résiduel thermique (20 835 paramètres) | IRT-Crack, 448 paires | MVP causal avant Frangi-graphe |
+| **Spécification implémentée · campagne exécutée · signal causal établi, gain net absent** | CrackSAM 2 + LoRA `tol3`, entraîné sur Khánh Hà RGB | petit correcteur résiduel thermique (20 835 paramètres) | IRT-Crack, 448 paires | MVP causal avant Frangi-graphe |
 
 </div>
 
 > [!IMPORTANT]
-> **État au 12 août 2026, après exécution.** La campagne A0–A6 × 3 graines a
-> tourné sur IRT-Crack (448 paires, split officiel 358/90, baseline `tol3`
-> gelée). **Le critère de succès pré-enregistré n'est atteint sur aucune
-> métrique** : `A2 − A1` est négatif en IoU stricte, et `A2 − A3` est
-> indiscernable de zéro. L'audit de recalage, mené *avant* l'entraînement, dit
-> pourquoi : la thermique distribuée est décalée de `10,1 px` du RGB.
+> **État au 12 août 2026, après exécution.** La campagne A0–A6 puis le correctif
+> A7/A8 ont tourné sur IRT-Crack (448 paires, split officiel 358/90, baseline
+> `tol3` gelée), 25 exécutions. **Le critère pré-enregistré n'est pas atteint** —
+> aucun bras thermique ne bat A1 avec un IC95 excluant zéro.
+>
+> Mais le diagnostic est plus précis que « ça ne marche pas » : l'évidence
+> thermique **aide là où la baseline échoue** (`+0,013` sur le tiers difficile,
+> les trois conditions du critère y étant remplies) et **nuit là où elle
+> réussit**, et les deux s'annulent. Sous pondération par la difficulté, l'écart
+> aligné-contre-permuté devient significatif globalement (`A7 − A8 = +0,0041`,
+> IC95 `[+0,0016 ; +0,0067]`) — le premier de toute la ligne CrackSAM.
 >
 > * les résultats, le mécanisme et les incidents : [`RAPPORT.md`](RAPPORT.md) ;
 >

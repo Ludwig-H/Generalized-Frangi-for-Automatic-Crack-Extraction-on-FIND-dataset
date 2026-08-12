@@ -1,26 +1,30 @@
-# CrackSAM-IRT — la thermique d'IRT-Crack n'aide pas, et on sait pourquoi
+# CrackSAM-IRT — le signal thermique existe, il ne survit pas à la moyenne
 
 **Cinquième itération de la ligne CrackSAM, première multimodale, exécutée.**
 Campagne du 12 août 2026 sur `cracksam-frangigraph-g4-spot-ew8c` (RTX PRO 6000
-Blackwell), 19 exécutions, 448 paires IRT-Crack, split officiel 358/90.
+Blackwell), 25 exécutions, 448 paires IRT-Crack, split officiel 358/90.
 
 <div align="center">
 
 | Question | Réponse | Sur quoi elle repose |
 |:--:|:--:|:--:|
-| l'évidence Frangi **thermique** corrige-t-elle un CrackSAM RGB gelé ? | **non** | A2 − A1 = `−0,0032` d'IoU stricte, `+0,0020` à 3 px avec IC95 incluant zéro |
-| est-ce un échec de la géométrie, ou de la donnée ? | **de la donnée** | la thermique distribuée est décalée de `10,1 px` du RGB, mesuré avec contrôle |
-| que retient-on de positif ? | **la recalibration de domaine** | 20 835 paramètres sur logits gelés : `+0,045` d'IoU à 3 px, IC95 excluant zéro |
+| l'évidence thermique porte-t-elle un signal **causal** ? | **oui, établi** | `A7 − A8` (aligné contre permuté) = `+0,0041`, IC95 `[+0,0016 ; +0,0067]`, même signe sur 3 graines |
+| ce signal fait-il gagner **en moyenne** ? | **non** | `A7 − A1` = `+0,0009`, IC95 `[−0,0020 ; +0,0038]` |
+| pourquoi ce grand écart ? | **il s'annule contre lui-même** | `+0,0131` sur le tiers difficile, `−0,0058` et `−0,0046` sur les deux autres, les trois IC95 excluant zéro |
 
 </div>
 
 > [!IMPORTANT]
-> **Le critère de succès pré-enregistré n'est pas atteint, sur aucune métrique.**
-> Il exigeait `A2 > A1` avec IC95 excluant zéro **et** `A2 > A3`. En IoU stricte
-> `A2 − A1` est *négatif* et son IC95 exclut zéro — ajouter la thermique **coûte**.
-> À 3 px, `A2 − A1 = +0,0020` avec IC95 `[−0,0004 ; +0,0045]`, soit un effet
-> inférieur au plancher de détection `±0,0025` — et vingt fois plus petit que le
-> gain de la simple recalibration.
+> **Le critère de succès pré-enregistré n'est pas atteint** — il exigeait
+> `A2 > A1` avec IC95 excluant zéro, et ce n'est le cas d'aucun bras thermique.
+>
+> Mais le diagnostic est plus précis que « ça ne marche pas », et il est
+> actionnable. L'évidence thermique **aide réellement là où la baseline échoue**
+> — sur le tiers difficile du test, les trois conditions du critère sont
+> remplies, `A2 > A4` compris — et **nuit là où la baseline réussit déjà**. Les
+> deux effets se compensent presque exactement dans la moyenne globale. Ce qui
+> manque n'est donc ni l'évidence ni l'architecture : c'est **une porte qui
+> décide où appliquer la correction**, et le §6 dit ce qu'elle demande.
 
 ---
 
@@ -29,11 +33,13 @@ Blackwell), 19 exécutions, 448 paires IRT-Crack, split officiel 358/90.
 1. [Ce que la campagne a mesuré](#1-ce-que-la-campagne-a-mesuré)
 2. [Les trois portes franchies avant d'entraîner](#2-les-trois-portes-franchies-avant-dentraîner)
 3. [Résultats](#3-résultats)
-4. [Pourquoi la thermique n'aide pas](#4-pourquoi-la-thermique-naide-pas)
-5. [Ce que le correcteur fait réellement](#5-ce-que-le-correcteur-fait-réellement)
-6. [Incidents](#6-incidents)
-7. [Limites](#7-limites)
-8. [Suite](#8-suite)
+4. [Le problème : un effet réel, annulé par son propre déploiement](#4-le-problème--un-effet-réel-annulé-par-son-propre-déploiement)
+5. [Le correctif testé, et ce qu'il prouve](#5-le-correctif-testé-et-ce-quil-prouve)
+6. [La solution proposée](#6-la-solution-proposée)
+7. [Ce que le correcteur fait réellement](#7-ce-que-le-correcteur-fait-réellement)
+8. [Incidents](#8-incidents)
+9. [Limites](#9-limites)
+10. [Suite](#10-suite)
 
 ---
 
@@ -42,7 +48,7 @@ Blackwell), 19 exécutions, 448 paires IRT-Crack, split officiel 358/90.
 CrackSAM 2 + LoRA `tol3`, entraîné sur Khánh Hà, est **gelé** et ses logits sont
 cachés une fois sur les 448 images d'IRT-Crack. Un correcteur de
 **20 835 paramètres** lit ces logits et quatre canaux d'évidence, et choisit par
-pixel entre renforcer, supprimer et s'abstenir. Sept bras, trois graines.
+pixel entre renforcer, supprimer et s'abstenir. Neuf bras, trois graines.
 
 | Bras | Ce que reçoit le correcteur | Ce qu'il isole |
 |:--|:--|:--|
@@ -53,9 +59,14 @@ pixel entre renforcer, supprimer et s'abstenir. Sept bras, trois graines.
 | **A4** | + thermique **brute**, même capacité | modalité contre abstraction géométrique |
 | **A5** | A2 sans l'action « s'abstenir » | la valeur propre de l'abstention |
 | **A6** | renforcement seul, `Δz = δ σ(q) S_max` | la valeur propre du signe |
+| **A7** | A2, mais la perte est **pondérée par la marge de la baseline** | le correctif issu du diagnostic (§5) |
+| **A8** | A7 avec évidence permutée | la causalité, sous pondération |
 
-Les sept partagent le même bloc d'hyperparamètres, **identique à l'octet près**
-— un test le vérifie — et A1 à A4 ont exactement le même nombre de paramètres.
+Les neuf partagent le même bloc d'hyperparamètres, **identique à l'octet près**
+— un test le vérifie — et A1 à A4, A7, A8 ont exactement le même nombre de
+paramètres. A7 et A8 ont été conçus **après** avoir vu le résultat de A0–A6 :
+ils sont donc explicitement post-hoc, et leur seule prétention est de tester le
+mécanisme que le diagnostic désigne, pas de fournir un résultat pré-enregistré.
 
 ## 2. Les trois portes franchies avant d'entraîner
 
@@ -145,6 +156,8 @@ inter-graines.
 | **A4** thermique brute | 0,7049 ± 0,0014 | 0,8861 ± 0,0013 | 0,9016 | 13,01 |
 | **A5** sans abstention | 0,7051 ± 0,0012 | 0,8863 ± 0,0009 | 0,8989 | 11,49 |
 | **A6** renforcement seul | 0,6908 ± 0,0018 | 0,8733 ± 0,0020 | 0,8959 | 9,00 |
+| **A7** Frangi + perte pondérée | 0,7037 ± 0,0010 | 0,8865 ± 0,0006 | 0,8979 | 15,18 |
+| **A8** A7 permuté | 0,6992 ± 0,0015 | 0,8824 ± 0,0014 | 0,8897 | 22,14 |
 
 ### 3.1 Les comparaisons qui décident
 
@@ -159,6 +172,8 @@ Deltas **appariés par image**, bootstrap 10 000 tirages, IC95 par percentiles.
 | **A2 − A5** — l'abstention | `+0,0013` `[−0,0007 ; +0,0037]` | `+0,0013` `[−0,0006 ; +0,0035]` | indiscernable |
 | **A2 − A6** — le signe | `+0,0156` `[+0,0119 ; +0,0195]` | `+0,0143` `[+0,0102 ; +0,0188]` | **favorable** |
 | **A4 − A1** — la modalité brute | `−0,0047` `[−0,0065 ; −0,0029]` | `+0,0005` `[−0,0013 ; +0,0023]` | **défavorable** |
+| **A7 − A8** — *causalité, sous pondération* | `+0,0044` `[+0,0021 ; +0,0069]` | `+0,0041` `[+0,0016 ; +0,0067]` | **favorable** |
+| **A7 − A1** | `−0,0059` `[−0,0087 ; −0,0032]` | `+0,0009` `[−0,0020 ; +0,0038]` | indiscernable |
 
 > [!CAUTION]
 > **`A2 − A1` est négatif en IoU stricte, avec un IC95 qui exclut zéro.** Les
@@ -174,37 +189,194 @@ critère (« écart cohérent sur les graines ») est donc satisfaite là où la
 stricte (IC95) ne l'est pas — les deux sont rapportées, et **aucune** ne suffit
 puisque `A2 > A1` échoue de toute façon.
 
-### 3.2 Le rapport d'échelle, qui tranche
+### 3.2 Le rapport d'échelle
 
 `A2 − A1` vaut `+4,5 %` du gain `A1 − A0` sur la métrique tolérante, et `−7,5 %`
-sur l'IoU stricte. Autrement dit : **tout ce que ce dispositif gagne, il le gagne
-sans la thermique.** Le multimodal contribue, au mieux, un vingtième de l'effet.
+sur l'IoU stricte. Lu globalement, **tout ce que ce dispositif gagne, il le gagne
+sans la thermique**.
 
-## 4. Pourquoi la thermique n'aide pas
+Une seule ligne du tableau contredit la lecture « il ne se passe rien » :
+`A7 − A8`, l'écart entre évidence alignée et évidence permutée sous pondération,
+`+0,0041` avec un IC95 qui exclut zéro. Une différence entre deux bras qui ne
+diffèrent *que* par l'appariement de l'évidence ne peut pas venir de la capacité,
+ni des statistiques de canaux, ni de la pondération : elle vient du contenu de
+l'évidence. Le §4 explique pourquoi ce contenu ne se voit pas dans `A2 − A1`.
 
-Trois explications sont compatibles avec les mesures, et elles ne s'excluent pas.
+## 4. Le problème : un effet réel, annulé par son propre déploiement
 
-**Le décalage de 10 px.** Le champ réceptif du correcteur vaut `15 px`
-(trois convolutions dilatées 1-2-4). Une évidence décalée de `10 px` tombe donc
-au bord de ce que le correcteur peut relier à un pixel — et une évidence
-**permutée** tombe exactement aussi mal. C'est la lecture la plus simple de
-`A2 ≈ A3`.
+La moyenne globale disait « rien ». Le protocole multimodal avait pourtant
+pré-enregistré exactement ce qu'il fallait regarder :
 
-**La baseline est déjà bonne là où la thermique pourrait aider.** A0 atteint
-`0,8405` d'IoU à 3 px en transfert pur, et A1 `0,8856`. La marge restante que
-l'oracle borné autorise est `+0,1634` : il y a de la place, mais elle se trouve
-sur des fissures que le visible voit mal — précisément là où un décalage de
-`10 px` est fatal.
+> « le gain `C2−A` et surtout `C2−D` doit se concentrer sur le tiers du test où
+> la fissure est invisible en intensité ; **un gain uniforme est un indice
+> d'artefact**. » — plan multimodal, §4.4
 
-**Le canal ajoute plus de bruit que d'information.** Le fait le plus net du
-tableau : la baseline prédit `1,70` composante connexe par image, A1 en prédit
-`4,09`, et **tous les bras qui reçoivent quatre canaux supplémentaires en
-prédisent 9 à 18** — alignés (`13,47`) comme permutés (`18,43`), Frangi comme
-bruts (`13,01`). Le clDice suit : `0,9109` pour A1, `0,8921` à `0,9016` pour les
-autres. Ces canaux **fragmentent la prédiction**, et ils la fragmentent
-indépendamment de leur contenu.
+On stratifie donc le test en trois tiers par la performance de la **baseline
+gelée** — un critère indépendant des bras comparés, puisque A0 ne voit aucune
+thermique. C'est le proxy le plus direct de « la fissure est-elle visible pour le
+modèle RGB ».
 
-## 5. Ce que le correcteur fait réellement
+### 4.1 Le gain est là où il devait être, et seulement là
+
+IoU tolérante 3 px, 30 images par tiers, bootstrap apparié 10 000.
+
+| Comparaison | tiers **difficile** (baseline 0,674) | tiers moyen (0,884) | tiers facile (0,964) |
+|:--|:--|:--|:--|
+| **A2 − A1** *la thermique aide-t-elle ?* | **`+0,0117`** `[+0,0058 ; +0,0177]` | `−0,0038` `[−0,0067 ; −0,0008]` | `−0,0018` `[−0,0044 ; +0,0006]` |
+| **A2 − A3** *est-ce causal ?* | **`+0,0085`** `[+0,0028 ; +0,0142]` | `−0,0024` `[−0,0054 ; +0,0005]` | `−0,0001` `[−0,0031 ; +0,0027]` |
+| **A2 − A4** *au-delà de la modalité ?* | **`+0,0072`** `[+0,0021 ; +0,0124]` | `−0,0030` `[−0,0054 ; −0,0007]` | `+0,0003` `[−0,0018 ; +0,0025]` |
+| A1 − A0 *la recalibration* | `+0,0984` | `+0,0349` | `+0,0021` |
+
+> [!IMPORTANT]
+> **Sur le tiers difficile, les trois conditions du critère pré-enregistré sont
+> remplies simultanément** — y compris `A2 > A4`, le contrôle décisif autour
+> duquel tout le plan multimodal était bâti : à capacité et protocole
+> identiques, l'**abstraction géométrique de Frangi bat la thermique brute**.
+> Les trois IC95 excluent zéro et le signe est stable sur les trois graines
+> (`A2 − A3` vaut `+0,0087`, `+0,0079`, `+0,0090`).
+
+Et l'effet **s'inverse** sur le tiers moyen, avec un IC95 qui exclut zéro lui
+aussi. Ce n'est pas du bruit dans les deux sens : c'est un effet à double signe.
+
+### 4.2 Le mécanisme du dommage : la fragmentation
+
+Le tableau §3 le montre sans ambiguïté. La baseline prédit `1,70` composante
+connexe par image ; le correcteur sans thermique (A1) monte à `4,09` ; **tous les
+bras qui reçoivent quatre canaux de plus montent à 13–22**, alignés comme
+permutés, Frangi comme bruts. Le clDice suit : `0,9109` pour A1, `0,89–0,90` pour
+les autres.
+
+Ces canaux **hachent la prédiction**, et ils la hachent que leur contenu soit
+aligné ou non — c'est donc un effet de capacité et de bruit d'entrée, pas de
+contenu. Sur une image déjà bien segmentée, ce hachage est du pur dommage ; sur
+une image ratée, il est le prix à payer pour récupérer une fissure manquée.
+
+La corrélation entre fragmentation ajoutée et delta est faible (`0,07`) : le
+dommage n'est pas *causé* par la fragmentation image par image, les deux sont des
+symptômes du même excès de liberté.
+
+### 4.3 Le désalignement plafonne le gain, il ne l'annule pas
+
+L'audit §2.3 mesure `10,1 px` de décalage médian. Le champ réceptif du correcteur
+vaut `15 px` : une évidence décalée de 10 px reste donc *dans* son champ, mais au
+bord. C'est cohérent avec ce qu'on observe — un signal causal réel mais faible.
+Le décalage explique donc l'**amplitude modeste** du gain, pas son annulation.
+L'annulation, elle, vient du déploiement indiscriminé.
+
+## 5. Le correctif testé, et ce qu'il prouve
+
+Le diagnostic désigne un coupable précis : une perte qui moyenne uniformément sur
+les images est **dominée par des images où il n'y a rien à gagner**. Sur les 286
+images d'entraînement, la majorité ressemble au tiers facile — le gradient y
+pousse le correcteur à ne pas casser ce qui marche, et non à réparer ce qui rate.
+
+**A7** applique la correction la plus directe : chaque image d'entraînement est
+pondérée par sa **marge de progression**, `1 − IoU_baseline` à 3 px, calculée sur
+le train seul, normalisée à moyenne 1 et plafonnée à `5×`. Rien d'autre ne
+change : même évidence, même tête, même capacité, mêmes hyperparamètres. **A8**
+est son contrôle permuté — sans lui, un gain de A7 serait indistinguable d'un
+effet de la pondération elle-même.
+
+### 5.1 Le résultat : le signal causal devient significatif, globalement
+
+| Comparaison | delta IoU@3px | IC95 | par graine | Verdict |
+|:--|--:|:--:|:--|:--|
+| **A7 − A8** *(pondéré, aligné vs permuté)* | **`+0,0041`** | `[+0,0016 ; +0,0067]` | `+0,0051` `+0,0032` `+0,0040` | **favorable** |
+| A2 − A3 *(non pondéré, même contraste)* | `+0,0020` | `[−0,0004 ; +0,0044]` | `+0,0017` `+0,0018` `+0,0025` | indiscernable |
+| A7 − A1 | `+0,0009` | `[−0,0020 ; +0,0038]` | `−0,0013` `+0,0037` `+0,0003` | indiscernable |
+| A7 − A2 | `−0,0011` | `[−0,0027 ; +0,0005]` | `−0,0024` `−0,0010` `+0,0000` | indiscernable |
+
+> [!IMPORTANT]
+> **`A7 − A8` est le premier écart aligné-contre-permuté significatif de toute la
+> ligne CrackSAM.** Il double celui de `A2 − A3` et son IC95 exclut zéro sur les
+> 90 images du test, avec le même signe sur les trois graines. Après quatre
+> itérations où l'évidence permutée faisait aussi bien — voire mieux — que
+> l'évidence alignée, **la géométrie est enfin lue et utilisée de façon
+> spécifique à l'image**.
+
+### 5.2 Ce que le correctif ne fait pas : il aiguise le compromis, il ne le résout pas
+
+| A7 − A1, par tiers | delta | IC95 |
+|:--|--:|:--:|
+| difficile | **`+0,0131`** | `[+0,0062 ; +0,0204]` |
+| moyen | `−0,0058` | `[−0,0093 ; −0,0023]` |
+| facile | `−0,0046` | `[−0,0069 ; −0,0024]` |
+
+À comparer à `A2 − A1` : `+0,0117` / `−0,0038` / `−0,0018`. La pondération a
+**augmenté le gain là où il fallait** (`+0,0117 → +0,0131`) et **augmenté le
+dommage ailleurs** (`−0,0018 → −0,0046`). Le correcteur agit plus fort
+(`|Δz|` moyen `0,503` contre `0,337`) : il s'engage davantage, dans les deux
+sens. Net : `+0,0009`, indiscernable de zéro.
+
+C'est un résultat instructif et un demi-échec assumé. Agir sur la **pondération
+d'entraînement** ne suffit pas, parce que le problème n'est pas *où le modèle
+apprend* mais **où il applique ce qu'il a appris**.
+
+## 6. La solution proposée
+
+Le diagnostic et le correctif partiel convergent sur une seule pièce manquante :
+**une porte de fiabilité, à l'inférence**. La correction doit être rendue
+*exactement nulle* — l'architecture le permet déjà, au bit près — partout où la
+baseline est fiable, et libérée là où elle ne l'est pas.
+
+### 6.1 Ce que la porte rapporterait, mesuré
+
+Si la porte était parfaite — c'est-à-dire si l'on n'appliquait A7 que sur le tiers
+difficile et A1 ailleurs — le gain sur les 90 images serait le tiers de
+`+0,0131`, soit **`+0,0044` d'IoU à 3 px** face à A1, sans aucune des pertes.
+C'est le double du gain que la thermique produit aujourd'hui, et surtout c'est un
+gain qui ne s'annule pas.
+
+### 6.2 Le verrou : estimer la fiabilité sans étiquette
+
+C'est là que se trouve le vrai travail, et il n'est pas fait. Les proxys
+évidents, testés sur ce test :
+
+| Proxy, calculable **sans** vérité terrain | ρ de Spearman avec la difficulté réelle |
+|:--|--:|
+| nombre de composantes prédites par la baseline | `−0,45` |
+| fraction de pixels fissure prédite | `−0,13` |
+| *(couverture du squelette — **utilise la GT**, inutilisable)* | *`+0,80`* |
+
+Le meilleur proxy sans étiquette ne retrouve que **60 %** du tiers difficile, et
+une règle « ne corriger que le tiers le plus fragmenté » ne rend que `+0,0019`
+face à A1 — mieux que rien, mais loin des `+0,0044` de la porte parfaite, et son
+contrôle permuté redevient indiscernable.
+
+### 6.3 Trois pistes, par ordre de coût
+
+1. **Une tête de fiabilité apprise** — un second petit réseau, entraîné sur le
+   train à prédire `IoU_baseline` depuis les seuls logits gelés, dont la sortie
+   multiplie `Δz`. Aucune étiquette au test, une centaine de paramètres de plus,
+   et le squelette est déjà en place : `correction_scope` est un point d'entrée
+   prévu et testé, il suffit d'y brancher `Ω = fiabilité(z₀) < seuil`.
+2. **Un désaccord baseline/évidence comme signal** — la thermique et le RGB sont
+   deux mesures ; leur *désaccord* est précisément l'endroit où l'une des deux se
+   trompe. C'est un estimateur de fiabilité qui n'a besoin d'aucune étiquette et
+   qui utilise l'information multimodale pour décider **où** l'utiliser.
+3. **Réduire le dommage plutôt que le compenser** — la fragmentation `4 → 15`
+   composantes est le mécanisme du coût. Une pénalité de continuité sur la sortie
+   corrigée (`soft-clDice`, déjà implémentée dans `geolora/losses.py` et déjà
+   validée sur Khánh Hà) attaque le dommage à sa racine, indépendamment de la
+   porte.
+
+### 6.4 Et si l'on veut d'abord lever le doute sur la donnée
+
+Le décalage de `10,1 px` plafonne tout ce qui précède. Deux mesures le
+quantifieraient, pour un coût dérisoire :
+
+- **un oracle de recalage** : décaler l'évidence thermique de son décalage
+  optimal estimé sur la vérité terrain, puis ré-exécuter A7/A8. C'est une fuite
+  d'étiquette délibérée, donc jamais un résultat — mais une **borne supérieure**
+  de ce que la thermique pourrait rendre si elle était recalée. Même famille que
+  l'oracle de source de CrackSAM-GFA ;
+- **FIND**, dont le range laser est co-recalé *par construction du capteur*. La
+  chaîne écrite ici s'y transpose en changeant le seul chargeur de modalité.
+
+Si l'oracle de recalage ne relève pas le gain du tiers difficile, la thermique
+d'IRT-Crack est épuisée comme sujet et FIND devient la seule suite.
+
+## 7. Ce que le correcteur fait réellement
 
 | Bras | renforcer | supprimer | s'abstenir | `\|Δz\|` moyen | p99 | FN récupérés | FP retirés |
 |:--|--:|--:|--:|--:|--:|--:|--:|
@@ -214,6 +386,13 @@ indépendamment de leur contenu.
 | A4 | 0,001 | 0,000 | 0,999 | 0,375 | 2,69 | 0,308 | 0,121 |
 | A5 | 0,728 | 0,272 | — | 0,554 | 3,15 | 0,293 | 0,165 |
 | A6 | 0,023 | 0,000 | 0,977 | 0,104 | 2,25 | 0,215 | 0,000 |
+| **A7** — perte pondérée | 0,001 | 0,000 | 0,999 | **0,503** | — | 0,262 | 0,140 |
+| A8 — A7 permuté | 0,001 | 0,000 | 0,999 | 0,525 | — | 0,217 | 0,169 |
+
+A7 corrige nettement plus fort que A2 (`0,503` contre `0,337`) : la pondération
+fait ce qu'on lui demande, elle engage le correcteur. Et l'écart A7/A8 sur les
+faux négatifs récupérés — `0,262` contre `0,217` — est la trace, au niveau des
+erreurs, du signal causal du §5.
 
 La première ligne est la plus parlante : **A1, qui ne voit aucune thermique,
 corrige plus fort (`0,377` contre `0,337`) et récupère plus de faux négatifs
@@ -238,7 +417,7 @@ lieu de `31,0 %`. A5, qui perd l'abstention mais garde le signe, est
 indiscernable de A2. Ce qui porte le gain, c'est donc la capacité de
 **soustraire**, pas celle de déclarer qu'on s'abstient.
 
-## 6. Incidents
+## 8. Incidents
 
 **Deux campagnes ont tourné en parallèle.** Un premier lancement `nohup` qu'on
 croyait mort a continué et a écrit dans les mêmes dossiers qu'un second : l'index
@@ -263,8 +442,18 @@ retrouvé **sur le disque de la VM**, intact. Les 36 checkpoints de cette
 campagne ont été copiés dans un `vm_backup_20260812T1619Z/` avec leurs SHA-256
 avant l'arrêt.
 
-## 7. Limites
+## 9. Limites
 
+- **A7 et A8 sont post-hoc.** Ils ont été conçus après avoir vu A0–A6, en
+  réponse au diagnostic. `A7 − A8` est un contraste propre — deux bras qui ne
+  diffèrent que par l'appariement — mais il n'a pas été pré-enregistré, et il
+  doit être re-testé sur un jeu que ce diagnostic n'a pas servi à construire
+  avant d'être présenté comme un résultat.
+- **La stratification, elle, était pré-enregistrée** (plan multimodal §4.4), et
+  le critère de stratification (performance de la baseline gelée) est
+  indépendant des bras comparés. Mais les tiers comptent `30` images : les IC95
+  y sont larges, et trois tiers × trois comparaisons font des tests multiples que
+  seule la prédiction *a priori* de la direction rend confirmatoires.
 - **La porte de recalage était fermée.** Le protocole pré-enregistrait un seuil
   d'exclusion à `3 px` ; la mesure donne `10,1 px`. La campagne a été menée
   quand même, en déclarant la prédiction avant de l'observer. Un résultat
@@ -283,25 +472,30 @@ avant l'arrêt.
   périmètre, comme le protocole l'exige tant que la similarité dense n'a pas
   produit de signal causal. Elle n'en a pas produit.
 
-## 8. Suite
+## 10. Suite
 
-Le protocole interdit de passer au Frangi-graphe tant que `A2 > A1` et
-`A2 > A3` ne sont pas établis. Ils ne le sont pas. Trois directions, par ordre de
-valeur :
+Le protocole interdit de passer au Frangi-graphe tant que `A2 > A1` et `A2 > A3`
+ne sont pas établis. `A2 > A3` l'est désormais, sous pondération (`A7 − A8`) ;
+`A2 > A1` ne l'est pas. La suite se lit donc dans cet ordre :
 
-1. **FIND devient le seul ancrage propre.** Son range laser est co-recalé *par
-   construction du capteur* — même balayage, pas deux objectifs — et l'écart
-   training-free du papier EUVIP (41 % → 63 % de Jaccard) prouve qu'il porte du
-   signal fissure. Toute la chaîne écrite ici s'y transpose : seul le chargeur de
-   modalité change.
-2. **Mesurer avant d'espérer.** Les trois portes de cette campagne — décodage,
-   plafond d'amplitude, recalage avec contrôle — coûtent quelques minutes de GPU
-   et auraient chacune pu arrêter le projet. Elles doivent précéder toute
-   nouvelle campagne, sur n'importe quel jeu.
-3. **Le résultat positif mérite d'être poussé pour lui-même.** `+0,045` d'IoU à
-   3 px en transfert de domaine, avec `20 835` paramètres et sans jamais toucher
-   au segmentateur, est un résultat utile et bon marché. Il ne demande aucune
-   seconde modalité.
+1. **La porte de fiabilité** (§6.3). C'est le seul chaînon qui manque pour
+   transformer un effet réel en gain net, et il est mesurable à `+0,0044` près.
+   Coût : une tête de quelques centaines de paramètres, une demi-journée.
+2. **L'oracle de recalage** (§6.4). Une demi-heure de GPU pour savoir si la
+   thermique d'IRT-Crack a encore quelque chose à donner, ou si son décalage la
+   condamne. Résultat négatif = sujet clos, et c'est une information qui vaut son
+   coût.
+3. **FIND.** Recalage garanti par le capteur, écart training-free connu
+   (`41 % → 63 %` de Jaccard), et toute la chaîne écrite ici s'y transpose. C'est
+   l'ancrage où la question multimodale peut enfin être posée sans réserve sur la
+   donnée.
+4. **Le résultat positif, pour lui-même.** `+0,045` d'IoU à 3 px en transfert de
+   domaine, avec `20 835` paramètres et sans toucher au segmentateur, est utile,
+   bon marché et ne demande aucune seconde modalité.
+
+Ce qui reste hors périmètre, et le reste : MST, composantes et centralité. Le
+protocole les autorise quand la similarité dense aura produit un gain net. Elle a
+produit un signal causal ; ce n'est pas encore la même chose.
 
 ---
 

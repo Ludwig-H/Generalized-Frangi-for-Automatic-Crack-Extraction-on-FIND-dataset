@@ -18,9 +18,11 @@ qu'aucun n'existe.*
 > le verdict et les incidents sont dans [`RAPPORT.md`](RAPPORT.md) ; les données
 > par image dans `results/2026-08-12_campagne_irt_crack/`.
 >
-> Réponse courte : **la thermique n'aide pas**, et l'audit de recalage — mené
-> avant l'entraînement — dit pourquoi. Le résultat utile est ailleurs : la
-> recalibration de domaine seule vaut `+0,045` d'IoU à 3 px.
+> Réponse courte : **le signal thermique existe mais ne survit pas à la
+> moyenne**. Il aide sur le tiers du test où la baseline échoue et nuit ailleurs.
+> Sous pondération par la difficulté, l'écart aligné-contre-permuté devient
+> significatif (`+0,0041`, IC95 excluant zéro). Ce qui manque est une porte de
+> fiabilité à l'inférence — le §6 du rapport la spécifie.
 
 ---
 

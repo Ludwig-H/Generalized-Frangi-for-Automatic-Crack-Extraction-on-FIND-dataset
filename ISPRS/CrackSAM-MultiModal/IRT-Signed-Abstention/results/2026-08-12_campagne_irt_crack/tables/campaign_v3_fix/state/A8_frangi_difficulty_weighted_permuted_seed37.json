@@ -1,0 +1,9 @@
+{
+  "arm": "frangi_difficulty_weighted_permuted",
+  "elapsed_seconds": 898.5326609611511,
+  "identifier": "A8",
+  "iou": 0.7011602890114582,
+  "iou_buffered_tol3": 0.8840112099739413,
+  "run_dir": "/home/louis_hauseux_gmail_com/irt-run/results/campaign_v3_fix/frangi_difficulty_weighted_permuted/seed_37",
+  "seed": 37
+}
