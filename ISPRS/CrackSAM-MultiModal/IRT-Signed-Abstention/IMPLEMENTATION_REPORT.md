@@ -8,7 +8,7 @@ qu'aucun n'existe.*
 
 | Code | Tests | Chaîne validée à blanc | Campagne sur IRT-Crack |
 |:--:|:--:|:--:|:--:|
-| 48 fichiers · ≈ 7 200 lignes | **116, tous verts, CPU** | **oui**, bout en bout | **non exécutée** |
+| 51 fichiers · ≈ 7 700 lignes | **121, tous verts, CPU** | **oui**, bout en bout | **non exécutée** |
 
 </div>
 
@@ -38,13 +38,14 @@ qu'aucun n'existe.*
 | `losses.py` | segmentation + trois régularisations, sur les pertes maintenues | 123 |
 | `metrics.py` | IoU tolérante, topologie, clDice, statistiques d'actions | 235 |
 | `stats.py` | bootstrap apparié, variance inter-graines, plancher de détection | 165 |
+| `ceiling.py` | oracle borné par `delta_max` : le plafond de la méthode | 175 |
 | `config.py` | chargement et validation stricte des YAML | 134 |
 | `data.py` | dataset sur caches, contrôle permuté, augmentation covariante | 274 |
 | `training.py` | boucle reprenable, sélection sur validation, checkpoints tracés | 410 |
 | `evaluation.py` | métriques par image, diagnostics, deltas d'erreurs | 238 |
 
-Huit CLI (`scripts/00` à `07`), sept configurations de bras plus la matrice, une
-orchestration VM par jalons (`workflows/run_irt_vm.sh`), dix fichiers de tests.
+Neuf CLI (`scripts/00` à `08`), sept configurations de bras plus la matrice, une
+orchestration VM par jalons (`workflows/run_irt_vm.sh`), onze fichiers de tests.
 
 ### 1.2 Ce qui est réutilisé plutôt que réécrit
 
@@ -69,7 +70,7 @@ implémentations sur 24 combinaisons (6 masques × 4 tolérances), à `10⁻¹²
 
 ```console
 $ python -m pytest "ISPRS/CrackSAM-MultiModal/IRT-Signed-Abstention/tests" -q
-116 passed in 7.57s
+121 passed in 16.47s
 ```
 
 Sans GPU, sans SAM 2, sans le jeu réel. Les fixtures écrivent un faux IRT-Crack
@@ -92,6 +93,7 @@ Les résultats qui valent d'être cités :
 | permutation sans point fixe, jamais entre splits | `test_permutation_control` | vérifié par split |
 | gris naïf non monotone sur une palette JET | `test_thermal_decode` | vert médian > rouge maximal |
 | IoU tolérante ≡ implémentation GeoLoRA | `test_metrics` | 24 cas, `10⁻¹²` |
+| un faux négatif à `z₀ = −6` est **inatteignable** à `δ_max = 4` | `test_ceiling` | IoU oracle `0,000` contre `1,000` à `δ_max = 8` |
 
 ### 2.2 La chaîne complète, à blanc
 
@@ -118,9 +120,13 @@ A0 … A6 : 7 exécutions
 
 $ python scripts/07_report.py --bootstrap 2000
 [tableaux + verdict pré-enregistré]
+
+$ python scripts/08_correction_ceiling.py --split validation
+quantiles de |z0| : p50 2.48 · p90 2.95 · p95 3.08 · p99 3.31 · p999 3.48
+[balayage de delta_max, marge de l'oracle borné, erreurs hors portée]
 ```
 
-Cette exécution prouve que les huit scripts s'enchaînent, que les jalons de
+Cette exécution prouve que les neuf scripts s'enchaînent, que les jalons de
 reprise fonctionnent, que les caches se valident et que `07_report.py` produit
 les deltas appariés, les IC95 et le verdict. **Elle ne prouve rien d'autre** :
 les logits baseline étaient fabriqués, six époques ne convergent pas, et le jeu
@@ -136,23 +142,30 @@ appelée pour de vrai.
 
 ## 3. Écarts à la spécification
 
-Neuf points, dont deux bloquants, détaillés avec leur vérification dans
+Dix points, dont trois bloquants, détaillés avec leur vérification dans
 [`ERRATA.md`](ERRATA.md). En résumé :
 
 1. `tau_mask` est vide sans MST → support reconstruit, égalité prouvée ;
-2. l'import `ISPRS.CrackSAM.…` est impossible (tirets) → `_repo.py` ;
-3. le split 358/90 n'est pas distribué → split dérivé, marqué comme tel ;
-4. l'identité bit-à-bit est **impossible** pour A6 → borne `1,3·10⁻³`, démontrée ;
-5. la résolution de travail n'était pas fixée → `448²` pour SAM, natif partout ailleurs ;
-6. l'encodeur démarre au pas 1, pas au pas 0 → mesuré, testé ;
-7. terme d'activité constant sans abstention → neutralisé sur A5 et A6 ;
-8. sélection de checkpoint stricte → tolérante 3 px, sur consigne de campagne ;
-9. plusieurs affirmations de la spécification vérifiées **exactes**, dont le
-   contrat à cinq valeurs de l'extracteur et l'initialisation `(−2, −2, +2)`.
+2. les imports du §10.1 et les commandes du §12 sont incompatibles → `_repo.py` ;
+3. **`delta_max = 4` borne la fenêtre corrigeable à `|z₀| < 4`** → porte de
+   plafond `08_correction_ceiling.py`, à franchir avant tout entraînement ;
+4. le split 358/90 n'est pas distribué → split dérivé, marqué comme tel ;
+5. l'identité bit-à-bit est **impossible** pour A6 → borne `1,3·10⁻³`, démontrée ;
+6. la résolution de travail n'était pas fixée → `448²` pour SAM, natif partout ailleurs ;
+7. l'encodeur démarre au pas 1, pas au pas 0 → mesuré, testé ;
+8. terme d'activité constant sans abstention → neutralisé sur A5 et A6 ;
+9. sélection de checkpoint stricte → tolérante 3 px, sur consigne de campagne ;
+10. plusieurs affirmations de la spécification vérifiées **exactes**, dont le
+    contrat à cinq valeurs de l'extracteur et l'initialisation `(−2, −2, +2)`.
+
+Le point 3 est le plus dangereux des trois bloquants : il aurait laissé la
+campagne tourner et rendre un résultat plat, sans qu'on puisse distinguer « la
+thermique n'aide pas » de « la borne d'amplitude est trop petite ».
 
 Ajouts non demandés, tous justifiés : `configs/irt_baseline.yaml` (pour que A0
 passe par la même chaîne d'évaluation que les autres, sans ré-inférence),
-`splits.py`, `stats.py`, `config.py`, `07_report.py`, `workflows/run_irt_vm.sh`.
+`splits.py`, `stats.py`, `ceiling.py`, `config.py`, `07_report.py`,
+`08_correction_ceiling.py`, `workflows/run_irt_vm.sh`.
 
 ## 4. Reproduire
 
@@ -168,6 +181,10 @@ export CRACKSAM_LORA_CHECKPOINT="$HOME/checkpoints/tol3_best.pt"
 export IRT_OFFICIAL_SPLIT="$HOME/irt-crack/00_List"   # facultatif
 bash ISPRS/CrackSAM-MultiModal/IRT-Signed-Abstention/workflows/run_irt_vm.sh
 ```
+
+La chaîne s'arrête sur la **porte de plafond** entre le cache de logits et la
+campagne : `08_correction_ceiling.py` doit être lu, et `delta_max` fixé dans les
+sept configurations, avant le premier entraînement.
 
 Chaque étape écrit un jalon dans `${IRT_RUN_ROOT}/state` ; une préemption Spot ne
 coûte au pire qu'une étape. Le script ne démarre ni n'arrête aucune VM.

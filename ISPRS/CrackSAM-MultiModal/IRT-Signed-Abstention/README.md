@@ -10,11 +10,11 @@
 
 > [!IMPORTANT]
 > **État au 12 août 2026.** Le code de cette spécification est écrit, et
-> `116 tests` passent sur CPU sans SAM 2 ni GPU ni jeu de données réel. **Aucun
+> `121 tests` passent sur CPU sans SAM 2 ni GPU ni jeu de données réel. **Aucun
 > chiffre expérimental n'existe encore** : la campagne A0–A6 demande une VM G4,
 > le jeu IRT-Crack et le checkpoint `tol3`.
 >
-> * ce que l'implémentation a dû corriger dans ce document : [`ERRATA.md`](ERRATA.md) — deux points étaient **bloquants** ;
+> * ce que l'implémentation a dû corriger dans ce document : [`ERRATA.md`](ERRATA.md) — trois points étaient **bloquants**, dont un qui aurait rendu la campagne inconcluante sans l'empêcher de tourner ;
 > * ce qui a été écrit, lancé, et ce qui ne l'a pas été : [`IMPLEMENTATION_REPORT.md`](IMPLEMENTATION_REPORT.md).
 >
 > Les sections ci-dessous sont la spécification d'origine, amendée en place là où
@@ -454,6 +454,20 @@ où :
 - $m\in\{0,1\}$ indique la présence de la modalité thermique ;
 - $\delta_{\max}>0$ borne l'amplitude de correction ;
 - valeur initiale recommandée : `delta_max = 4.0`.
+
+> [!CAUTION]
+> **Amendement — [errata §3](ERRATA.md#3-delta_max--4-borne-la-fenêtre-corrigeable--bloquant).**
+> Cette borne est aussi une **borne de faisabilité**, et elle contredit le §5.1
+> du même document : la décision étant `z₀ + Δz > 0` avec `|Δz| ≤ δ_max`, un
+> pixel n'est corrigeable que si `|z₀| < δ_max`. À `δ_max = 4`, tout faux négatif
+> confiant de la baseline est hors d'atteinte, quelle que soit l'évidence
+> thermique — et une campagne plate ne saurait alors pas distinguer « la
+> thermique n'aide pas » de « la borne est trop petite ».
+>
+> `scripts/08_correction_ceiling.py` mesure ce plafond **avant** tout
+> entraînement : quantiles de `|z₀|`, fraction des erreurs hors portée, et IoU
+> d'un oracle borné par `δ_max`. La valeur retenue doit être inscrite dans les
+> sept configurations avant le premier run.
 
 La sortie est :
 
@@ -1139,6 +1153,7 @@ ISPRS/CrackSAM-MultiModal/IRT-Signed-Abstention/
 │   ├── losses.py
 │   ├── metrics.py
 │   ├── stats.py                +  bootstrap apparié
+│   ├── ceiling.py              +  oracle borné par delta_max
 │   ├── config.py               +  chargement et validation des YAML
 │   ├── data.py
 │   ├── training.py
@@ -1151,10 +1166,11 @@ ISPRS/CrackSAM-MultiModal/IRT-Signed-Abstention/
 │   ├── 04_train.py
 │   ├── 05_evaluate.py
 │   ├── 06_run_ablations.py
-│   └── 07_report.py            +  deltas appariés et tableaux
+│   ├── 07_report.py            +  deltas appariés et tableaux
+│   └── 08_correction_ceiling.py +  porte de plafond, avant tout entraînement
 ├── workflows/
 │   └── run_irt_vm.sh           +  chaîne VM reprenable par jalons
-├── tests/                      10 fichiers, 116 tests, CPU
+├── tests/                      11 fichiers, 121 tests, CPU
 └── results/.gitkeep
 ```
 

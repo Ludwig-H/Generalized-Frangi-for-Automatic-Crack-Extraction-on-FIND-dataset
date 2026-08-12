@@ -5,23 +5,29 @@ La spécification [`README.md`](README.md) a été suivie à la lettre partout o
 vérification qui l'établit et la correction retenue. Chaque correction est
 couverte par un test.
 
-Deux points sont *bloquants* : sans eux le code ne peut pas s'écrire du tout.
+Trois points sont *bloquants*. Les deux premiers empêchent d'écrire le code ; le
+troisième l'aurait laissé s'écrire, tourner, et produire une campagne
+**inconcluante** — c'est le plus dangereux des trois.
 
 <div align="center">
 
 | # | Gravité | Point | Statut |
 |:--:|:--:|:--|:--:|
 | 1 | **bloquant** | `tau_mask` est vide quand `compute_centrality=False` | corrigé |
-| 2 | **bloquant** | `from ISPRS.CrackSAM.cracksam2… ` n'est pas un import Python valide | corrigé |
-| 3 | sérieux | le split officiel 358/90 n'est pas distribué avec le jeu | contourné, signalé |
-| 4 | sérieux | l'identité bit-à-bit est **impossible** pour le bras A6 | prouvé, borné |
-| 5 | sérieux | la résolution de travail n'est pas spécifiée | fixée et justifiée |
-| 6 | mineur | l'encodeur ne reçoit pas de gradient **au premier pas** | mesuré, documenté |
-| 7 | mineur | terme d'activité constant sur une tête sans abstention | neutralisé |
-| 8 | mineur | sélection de checkpoint : stricte → tolérante 3 px | changé sur demande |
-| 9 | — | « la carte utilisée est la deuxième valeur renvoyée » | **vérifié exact** |
+| 2 | **bloquant** | les imports du §10.1 et les commandes du §12 sont incompatibles | corrigé |
+| 3 | **bloquant** | `delta_max = 4` borne la fenêtre corrigeable à `\|z₀\| < 4` | porte de plafond ajoutée |
+| 4 | sérieux | le split officiel 358/90 n'est pas distribué avec le jeu | contourné, signalé |
+| 5 | sérieux | l'identité bit-à-bit est **impossible** pour le bras A6 | prouvé, borné |
+| 6 | sérieux | la résolution de travail n'est pas spécifiée | fixée et justifiée |
+| 7 | mineur | l'encodeur ne reçoit pas de gradient **au premier pas** | mesuré, documenté |
+| 8 | mineur | terme d'activité constant sur une tête sans abstention | neutralisé |
+| 9 | mineur | sélection de checkpoint : stricte → tolérante 3 px | changé sur demande |
+| 10 | — | « la carte utilisée est la deuxième valeur renvoyée » | **vérifié exact** |
 
 </div>
+
+*Les numéros ci-dessous suivent ce tableau ; l'entrée 3 a été ajoutée après coup,
+à la suite d'une contre-expertise adversariale de la spécification.*
 
 ---
 
@@ -62,29 +68,86 @@ assertionne aussi que la branche rapide renvoie bien un plan vide — si
 l'extracteur venait à le remplir, le test casse et signale qu'il faut repasser à
 une lecture directe.
 
-## 2. L'import de la spécification est syntaxiquement impossible — bloquant
+## 2. Les imports du §10.1 et les commandes du §12 sont incompatibles — bloquant
 
 **Ce que dit la spécification.** §4.3 et §10.1 :
-`from ISPRS.CrackSAM.cracksam2.frangi import extract_frangi_graph_gpu`.
+`from ISPRS.CrackSAM.cracksam2.frangi import extract_frangi_graph_gpu`. §12 lance
+les scripts depuis `IRT-Signed-Abstention/` (`python scripts/00_build_manifest.py`,
+chemins relatifs `configs/`, `data/`).
 
-**Ce qui est vrai.** `CrackSAM`, `CrackSAM-GeoLoRA` et `CrackSAM-MultiModal`
-contiennent des tirets, interdits dans un identifiant Python : aucun de ces
-dossiers ne peut être un composant de chemin d'import. (`ISPRS.src`, lui,
-fonctionne — c'est d'ailleurs ce que fait `cracksam2/frangi.py:51` en repli.)
+**Ce qui est vrai**, vérifié :
+
+- `from ISPRS.CrackSAM.cracksam2.frangi import …` **fonctionne** — `ISPRS` est un
+  paquet-espace-de-noms PEP 420 (`ISPRS.__file__ is None`) et ni `ISPRS` ni
+  `CrackSAM` ne contiennent de tiret. Mais cela exige **la racine du dépôt sur
+  `sys.path`**, ce que les commandes du §12 ne fournissent pas : lancé depuis
+  `IRT-Signed-Abstention/`, `sys.path[0]` vaut `…/scripts` ;
+- `pip install -e .` à la racine n'aide pas : `setup.cfg` n'expose que
+  `frangi_fusion` depuis `src/` ;
+- les tirets mordent ailleurs, et durement : `geolora` vit sous
+  `CrackSAM-GeoLoRA`, et `thermal_residual` sous **deux** dossiers à tirets.
+  Aucun des deux ne peut être atteint par un chemin de paquet, jamais, quel que
+  soit le `sys.path`.
 
 **Correction.** `thermal_residual/_repo.py` est le **seul** module qui touche à
-`sys.path` ; il y insère `ISPRS/CrackSAM` et `ISPRS/CrackSAM-GeoLoRA`, après quoi
-`from cracksam2.frangi import …` et `from geolora.losses import …` fonctionnent.
-C'est le mécanisme déjà employé par les tests de `ISPRS/CrackSAM`. Un
-`conftest.py` à la racine de l'étude fait la même chose pour pytest, de sorte que
+`sys.path` ; il y insère la racine du dépôt, `ISPRS/CrackSAM` et
+`ISPRS/CrackSAM-GeoLoRA`, après quoi `from cracksam2.frangi import …` et
+`from geolora.losses import …` fonctionnent quel que soit le répertoire de
+travail. Chaque script insère en tête sa propre racine d'étude. C'est le
+mécanisme déjà employé par les tests de `ISPRS/CrackSAM`. Un `conftest.py` à la
+racine de l'étude fait la même chose pour pytest, de sorte que les deux formes
+marchent :
 
 ```bash
-python -m pytest "ISPRS/CrackSAM-MultiModal/IRT-Signed-Abstention/tests"
+python -m pytest "ISPRS/CrackSAM-MultiModal/IRT-Signed-Abstention/tests"   # depuis la racine
+cd ISPRS/CrackSAM-MultiModal/IRT-Signed-Abstention && python -m pytest -q  # 116 passed
 ```
 
-marche depuis n'importe quel répertoire de travail.
+*Correction de correction : une première version de cet errata affirmait que
+`CrackSAM` contenait un tiret. C'est faux, et le chemin d'import de la
+spécification est valide en soi — c'est le répertoire de lancement qui le casse.*
 
-## 3. Le split officiel 358/90 n'est pas distribué avec le jeu — sérieux
+## 3. `delta_max = 4` borne la fenêtre corrigeable — bloquant
+
+**Ce que dit la spécification.** §5.1 normalise l'entrée par
+`clip(z₀, −10, 10)/10`. §5.3 : « valeur initiale recommandée : `delta_max = 4.0` ».
+
+**Ce qui est vrai.** Les deux phrases se contredisent. Le document clippe à ±10
+*parce qu'il sait* que `|z₀|` dépasse 10 — puis borne la correction à 4. Or la
+décision est `z₀ + Δz > 0` et `|Δz| ≤ δ_max`, donc
+
+> un pixel n'est corrigeable que si `|z₀| < δ_max`,
+
+c'est-à-dire, à `δ_max = 4`, si `p₀ ∈ (0,018 ; 0,982)`. **Tout faux négatif
+confiant de CrackSAM est hors d'atteinte par construction**, quelle que soit la
+qualité de l'évidence thermique. Vérifié sur des cas synthétiques à évidence
+thermique parfaite : une fissure dont le logit baseline vaut `−6` reste manquée à
+`δ_max = 4` (IoU oracle `0,000`) et est parfaitement retrouvée à `δ_max = 8`
+(IoU oracle `1,000`).
+
+Le danger n'est pas seulement de perdre du gain : c'est que la campagne
+**devienne inconcluante**. Un résultat plat ne saurait pas distinguer « la
+thermique n'aide pas » — la conclusion scientifique visée — de « la borne
+d'amplitude est trop petite » — un défaut de réglage.
+
+**Correction.** `scripts/08_correction_ceiling.py` est une **porte chiffrée**, à
+franchir après le cache de logits et avant tout entraînement. Elle ne coûte ni
+GPU ni entraînement, et elle mesure sur la **validation** :
+
+* les quantiles de `|z₀|` — la spécification n'en donnait aucun ;
+* la fraction des erreurs de la baseline hors de la fenêtre `±δ_max`, faux
+  négatifs et faux positifs séparés ;
+* l'**oracle borné** — `+δ_max` sur la vérité, `−δ_max` ailleurs — qui est la
+  meilleure correction bornée possible, donc le plafond de toute la méthode, tous
+  encodeurs et toutes évidences confondus.
+
+C'est le pendant, pour la borne d'amplitude, de l'oracle de source de
+CrackSAM-GFA : si la marge `oracle − baseline` n'excède pas nettement le plancher
+de détection au `N` du test, la campagne ne peut pas conclure et `δ_max` doit
+être relevé au q99 de `|z₀|` — **avant** le premier entraînement, jamais après
+avoir vu les résultats.
+
+## 4. Le split officiel 358/90 n'est pas distribué avec le jeu — sérieux
 
 **Ce que dit la spécification.** §7.1 annonce « split canonique annoncé : 358
 entraînement, 90 test » avec pour sources Zenodo 11624965 et
@@ -110,7 +173,7 @@ Le split porte alors `origin: "derived"`, le script l'affiche en majuscules et l
 rapport doit le dire : les chiffres publiés (IRFusionFormer IoU 0,818, etc.) ne
 sont **pas** comparables au pixel près à un split dérivé.
 
-## 4. L'identité bit-à-bit est impossible pour A6 — sérieux, et c'est un théorème
+## 5. L'identité bit-à-bit est impossible pour A6 — sérieux, et c'est un théorème
 
 **Ce que dit la spécification.** §14 exige « la sortie initiale est bit-à-bit
 égale à la baseline », et §8.4 définit le bras A6 par
@@ -135,7 +198,7 @@ est exactement `0,0`.
 lu comme portant sur les têtes signées (A1–A5), pour lesquelles il est vérifié
 au bit près, avant **et après** entraînement.
 
-## 5. La résolution de travail n'était pas spécifiée — sérieux
+## 6. La résolution de travail n'était pas spécifiée — sérieux
 
 **Ce que dit la spécification.** §7.5 impose la « résolution originale » pour le
 cache thermique, et ne dit rien de la résolution des logits.
@@ -157,7 +220,7 @@ Sur des structures larges de quelques pixels, rééchantillonner l'annotation
 coûterait plus que tous les écarts qu'on cherche à mesurer — le rapport GeoLoRA
 mesure déjà `0,881` d'IoU d'un masque dilaté d'un seul pixel contre lui-même.
 
-## 6. L'encodeur ne reçoit pas de gradient au premier pas — mineur, mais réel
+## 7. L'encodeur ne reçoit pas de gradient au premier pas — mineur, mais réel
 
 **Ce que dit la spécification.** §5.4 : l'initialisation choisie « évite le
 mauvais couplage […] qui peut empêcher tout signal d'apprentissage d'atteindre la
@@ -176,14 +239,14 @@ nul, et il reçoit du gradient. C'est un retard d'un pas, pas un gel. Le test
 `test_l_encodeur_recoit_du_gradient_des_le_second_pas` fixe cette propriété pour
 qu'une régression ne la transforme pas silencieusement en gel.
 
-## 7. Le terme d'activité est une constante sur une tête sans abstention — mineur
+## 8. Le terme d'activité est une constante sur une tête sans abstention — mineur
 
 `L_active = moyenne(1 − π⁰)`. La tête à deux actions de A5 n'a pas de `π⁰` : le
 terme y vaut `1` partout. Les gradients sont inchangés — une constante ne
 contribue pas — mais les valeurs de perte deviennent incomparables entre bras.
 `corrector_loss(..., has_abstention=False)` le neutralise pour A5 et A6.
 
-## 8. Sélection de checkpoint : IoU stricte → IoU tolérante 3 px — changé sur demande
+## 9. Sélection de checkpoint : IoU stricte → IoU tolérante 3 px — changé sur demande
 
 §7.6 dit « Le checkpoint est choisi sur l'IoU stricte de validation ». La
 consigne de campagne étant « une baseline tol3 avec une tolérance de 3 pixels »,
@@ -193,7 +256,7 @@ l'IoU stricte reste rapportée à côté dans tous les tableaux. `selection_metr
 est un champ de configuration : revenir à `iou` est un changement d'une ligne,
 tracé dans `training.json`.
 
-## 9. Points de la spécification vérifiés **exacts**
+## 10. Points de la spécification vérifiés **exacts**
 
 Il faut aussi dire ce qui a tenu.
 
@@ -212,7 +275,7 @@ Il faut aussi dire ce qui a tenu.
   le vert médian y dépasse le rouge maximal (`test_thermal_decode.py`), pour un
   écart moyen de `0,29` au décodage correct sur le faux jeu.
 
-## 10. Deux remarques de méthode, hors correction
+## 11. Deux remarques de méthode, hors correction
 
 **La perte tolérante ne pénalise pas une rupture plus courte que `k`.** Le
 rapport GeoLoRA écrit « Une rupture reste pénalisée à toutes les tolérances ».

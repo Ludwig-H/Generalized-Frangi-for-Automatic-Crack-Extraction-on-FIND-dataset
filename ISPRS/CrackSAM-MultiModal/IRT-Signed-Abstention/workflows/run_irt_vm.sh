@@ -83,6 +83,25 @@ cache_baseline() {
     --device "${DEVICE}"
 }
 
+ceiling() {
+  python scripts/08_correction_ceiling.py \
+    --manifest "${DATA}/manifest.csv" \
+    --split-file "${DATA}/split.json" \
+    --baseline-cache "${CACHE}/baseline/manifest.json" \
+    --output "${RESULTS}/correction_ceiling" \
+    --split validation
+  echo
+  echo "PORTE DE PLAFOND : lire le tableau ci-dessus avant d'entraîner quoi que ce soit."
+  echo "  Si la marge oracle-baseline est du même ordre que le plancher de détection,"
+  echo "  relever delta_max dans les SEPT configurations, puis relancer — jamais après"
+  echo "  avoir vu les résultats des bras."
+  if [[ "${IRT_CONFIRM_CEILING:-}" != "1" ]]; then
+    echo
+    echo "Relancer avec IRT_CONFIRM_CEILING=1 pour poursuivre vers la campagne."
+    return 1
+  fi
+}
+
 ablations() {
   # shellcheck disable=SC2086
   python scripts/06_run_ablations.py \
@@ -109,8 +128,9 @@ step "01_manifest"     manifest
 step "02_audit"        audit
 step "03_thermal"      cache_thermal
 step "04_baseline"     cache_baseline
-step "05_ablations"    ablations
-step "06_report"       report
+step "05_ceiling"      ceiling
+step "06_ablations"    ablations
+step "07_report"       report
 
 echo
 echo "Terminé. Résultats : ${RESULTS}/ablation_matrix"
