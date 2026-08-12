@@ -12,6 +12,8 @@ A0 ne dépend d'aucune graine : il est évalué une fois et réutilisé.
 from __future__ import annotations
 
 import argparse
+import fcntl
+import os
 import sys
 import time
 from pathlib import Path
@@ -61,6 +63,22 @@ def main() -> int:
     output = args.output
     output.mkdir(parents=True, exist_ok=True)
     (output / "state").mkdir(exist_ok=True)
+
+    # Verrou exclusif : deux campagnes concurrentes sur le même dossier
+    # entrelaceraient leurs per_image.csv et leurs checkpoints, et le mélange ne
+    # se voit qu'après coup, dans des deltas qui changent d'une lecture à
+    # l'autre. C'est arrivé ; le verrou l'interdit.
+    lock_path = output / "campaign.lock"
+    lock_handle = open(lock_path, "w", encoding="utf-8")
+    try:
+        fcntl.flock(lock_handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        raise SystemExit(
+            f"une autre campagne écrit déjà dans {output} (verrou {lock_path}). "
+            "Attendre sa fin ou choisir un autre --output."
+        )
+    lock_handle.write(f"pid={os.getpid()} depuis={time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())}\n")
+    lock_handle.flush()
 
     samples = read_manifest(args.manifest)
     split = read_split(args.split_file)
