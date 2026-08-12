@@ -1,0 +1,28 @@
+# Matrice d'ablations A0–A6 et comparaisons appariées pré-enregistrées.
+#
+# L'ordre d'exécution est celui de la §15 : la causalité (A0–A4) d'abord, le
+# mécanisme (A5, A6) seulement ensuite. Le rapport doit dire A2−A1 et A2−A3
+# AVANT A2−A0 : un gain contre A0 seul ne prouve rien de multimodal.
+
+seeds: [13, 37, 73]
+
+arms:
+  - {identifier: A0, config: irt_baseline.yaml}
+  - {identifier: A1, config: irt_rgb_recalibration.yaml}
+  - {identifier: A2, config: irt_signed_abstention_v1.yaml}
+  - {identifier: A3, config: irt_frangi_permuted.yaml}
+  - {identifier: A4, config: irt_raw_thermal.yaml}
+  - {identifier: A5, config: irt_no_abstention.yaml}
+  - {identifier: A6, config: irt_positive_only.yaml}
+
+# « la Frangi thermique aide » exige A2>A1 ET A2>A3.
+# « l'abstraction géométrique aide au-delà de la modalité » exige A2>A4.
+comparisons:
+  - A2-A1
+  - A2-A3
+  - A2-A4
+  - A2-A5
+  - A2-A6
+  - A2-A0
+  - A1-A0
+  - A4-A1

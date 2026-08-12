@@ -1,0 +1,52 @@
+# A3 — contrôle permuté : l'évidence Frangi vient d'une AUTRE image.
+#
+# Re-tirée à chaque époque à l'entraînement, figée par la graine du run à
+# l'évaluation, jamais entre splits, jamais hors de la strate horaire. Si A3
+# égale A2, le gain n'est pas causal : c'est une statistique de canaux.
+
+identifier: A3
+name: frangi_permuted
+
+arm:
+  evidence_source: frangi
+  permuted: true
+  trained: true
+  model:
+    head: signed_abstention
+    hidden_channels: 32
+    delta_max: 4.0
+    correction_scope: global
+
+# --------------------------------------------------------------------------- #
+# Bloc partagé — identique dans les sept fichiers, à la ligne près.
+# Un réglage par bras se verrait immédiatement dans le diff : c'est le but.
+# --------------------------------------------------------------------------- #
+
+thermal:
+  encoding: auto
+  scales: [1.0, 3.0, 5.0, 9.0, 15.0]
+  R: 3
+  tau: 0.18
+  K: 1
+
+loss:
+  bce_weight: 0.5
+  dice_weight: 0.5
+  tolerant_weight: 0.25
+  tolerant_radius: 3
+  regularization:
+    residual_l1_weight: 1.0e-3
+    active_weight: 1.0e-4
+    conflict_weight: 1.0e-3
+
+training:
+  optimizer: adamw
+  learning_rate: 3.0e-4
+  weight_decay: 1.0e-4
+  batch_size: 8
+  max_epochs: 100
+  early_stopping_patience: 15
+  gradient_clip_norm: 1.0
+  amp: true
+  selection_metric: iou_buffered_tol3
+  seeds: [13, 37, 73]

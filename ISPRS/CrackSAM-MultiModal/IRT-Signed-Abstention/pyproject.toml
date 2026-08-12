@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "thermal-residual"
+version = "0.1.0"
+description = "CrackSAM-IRT — correction thermique signée avec abstention sur une baseline CrackSAM 2 gelée"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Louis Hauseux" }]
+dependencies = [
+    "numpy>=1.24",
+    "scipy>=1.10",
+    "torch>=2.1",
+    "pillow>=10.0",
+    "matplotlib>=3.7",
+    "scikit-image>=0.21",
+    "opencv-python-headless>=4.8",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+# SAM 2 n'est requis que pour 02_cache_cracksam_logits.py ; tout le reste — y
+# compris la totalité des tests — tourne sans lui.
+sam2 = ["sam2"]
+dev = ["pytest>=7.4"]
+
+[tool.setuptools]
+packages = ["thermal_residual"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["error::RuntimeWarning"]

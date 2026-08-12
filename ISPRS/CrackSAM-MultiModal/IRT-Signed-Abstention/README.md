@@ -1,16 +1,24 @@
 # CrackSAM-IRT: correction thermique signée avec abstention
 
-> **Emplacement recommandé dans le dépôt**
->
-> `ISPRS/CrackSAM-MultiModal/IRT-Signed-Abstention/README.md`
-
 <div align="center">
 
 | Statut | Modèle principal | Second modèle | Jeu multimodal | Portée |
 |:--:|:--:|:--:|:--:|:--:|
-| **Spécification à implémenter** | CrackSAM 2 + LoRA, entraîné sur Khánh Hà RGB | petit correcteur résiduel thermique | IRT-Crack, 358 train / 90 test | MVP causal avant Frangi-graphe |
+| **Spécification implémentée · campagne GPU non exécutée** | CrackSAM 2 + LoRA `tol3`, entraîné sur Khánh Hà RGB | petit correcteur résiduel thermique (20 835 paramètres) | IRT-Crack, 448 paires | MVP causal avant Frangi-graphe |
 
 </div>
+
+> [!IMPORTANT]
+> **État au 12 août 2026.** Le code de cette spécification est écrit, et
+> `116 tests` passent sur CPU sans SAM 2 ni GPU ni jeu de données réel. **Aucun
+> chiffre expérimental n'existe encore** : la campagne A0–A6 demande une VM G4,
+> le jeu IRT-Crack et le checkpoint `tol3`.
+>
+> * ce que l'implémentation a dû corriger dans ce document : [`ERRATA.md`](ERRATA.md) — deux points étaient **bloquants** ;
+> * ce qui a été écrit, lancé, et ce qui ne l'a pas été : [`IMPLEMENTATION_REPORT.md`](IMPLEMENTATION_REPORT.md).
+>
+> Les sections ci-dessous sont la spécification d'origine, amendée en place là où
+> elle était inexécutable ; chaque amendement renvoie à l'errata correspondant.
 
 > [!IMPORTANT]
 > Le but n'est **pas** d'entraîner un second SAM, de réentraîner la LoRA Khánh Hà ni de
@@ -276,18 +284,35 @@ E_T[2] = similarity_max
 E_T[3] = support_union
 ```
 
-où `support_union` est l'union des `tau_mask` des deux polarités.
+où `support_union` est l'union des supports de nœuds des deux polarités.
+
+> [!CAUTION]
+> **Amendement — [errata §1](ERRATA.md#1-tau_mask-est-un-plan-de-zéros-sans-mst--bloquant).**
+> Ce support ne peut **pas** être lu dans `diagnostics["tau_mask"]` : avec
+> `compute_centrality=False`, l'extracteur y renvoie un plan de zéros
+> (`ISPRS/src/graph_extraction.py:287`), le seuillage des nœuds n'étant exécuté
+> que sur la branche MST. Il est reconstruit par
+> `thermal_residual.thermal_frangi.support_from_similarity`, dont l'égalité
+> bit-à-bit avec le `tau_mask` réel est vérifiée par test.
 
 Toutes les cartes sont `float32`, enregistrées à la résolution originale, avec valeurs
 finies. `support_union` est binaire.
 
 ### 4.3 API d'extraction attendue
 
-L'implémentation doit réutiliser :
+L'implémentation doit réutiliser l'extracteur maintenu :
 
 ```python
-from ISPRS.CrackSAM.cracksam2.frangi import extract_frangi_graph_gpu
+from thermal_residual import _repo   # insère ISPRS/CrackSAM dans sys.path
+from cracksam2.frangi import extract_frangi_graph_gpu
 ```
+
+> [!CAUTION]
+> **Amendement — [errata §2](ERRATA.md#2-limport-de-la-spécification-est-syntaxiquement-impossible--bloquant).**
+> `from ISPRS.CrackSAM.cracksam2.frangi import …` ne peut pas fonctionner :
+> `CrackSAM` et `CrackSAM-MultiModal` contiennent des tirets, interdits dans un
+> identifiant Python. `thermal_residual/_repo.py` est le seul module qui touche à
+> `sys.path`, et il le fait comme les tests de `ISPRS/CrackSAM`.
 
 Le MVP appelle deux fois l'extracteur avec :
 
@@ -719,14 +744,26 @@ validation, jamais sur les 90 images de test.
 Jeu principal :
 
 - **IRT-Crack** ;
-- 448 paires RGB-thermique ;
-- masque pixel ;
-- split canonique annoncé : 358 entraînement, 90 test.
+- 448 paires RGB-thermique, `640×480` ;
+- masque pixel — distribué en `.jpg`, donc avec artefacts de compression ;
+- split annoncé par le benchmark : 358 entraînement, 90 test.
 
 Source :
 
-- <https://zenodo.org/records/11624965>
-- <https://github.com/lfangyu09/IR-Crack-detection>
+- <https://zenodo.org/records/11624965> — une archive ZIP de 618 Mo, quatre
+  dossiers d'images, **sans liste de split** ;
+- <https://github.com/lfangyu09/IR-Crack-detection> — `LICENSE` et `README.md`
+  seulement ;
+- les listes `00_List/{train_val.txt, test.txt}` sont sur le Google Drive du
+  benchmark [IRFusionFormer](https://github.com/sheauhuu/IRFusionFormer/blob/main/Prepare.md).
+
+> [!CAUTION]
+> **Amendement — [errata §3](ERRATA.md#3-le-split-officiel-35890-nest-pas-distribué-avec-le-jeu--sérieux).**
+> Le split 358/90 n'est **pas** distribué avec le jeu. `--official-split` accepte
+> le dossier `00_List` quand on l'a ; sinon un split *dérivé* de même effectif est
+> construit — déterministe, stratifié, invariant à l'ordre d'énumération — et
+> marqué `origin: "derived"`. Dans ce cas les chiffres publiés ne sont comparables
+> qu'en ordre de grandeur, et le rapport doit le dire.
 
 ### 7.2 Manifeste obligatoire
 
@@ -798,6 +835,15 @@ Les augmentations sont appliquées aux caches de manière covariante.
 
 ### 7.5 Caches
 
+> [!CAUTION]
+> **Amendement — [errata §5](ERRATA.md#5-la-résolution-de-travail-nétait-pas-spécifiée--sérieux).**
+> La résolution de travail n'était pas fixée, alors qu'IRT-Crack est en `640×480`
+> et que CrackSAM 2 a été entraîné en `448×448`. Chaîne retenue : RGB
+> redimensionné en `448²` bicubique pour l'entrée de SAM (sa distribution
+> d'entraînement), logits ré-échantillonnés vers `480×640` pour le cache, puis
+> évidence, masque et métriques au natif. **La vérité terrain n'est jamais
+> rééchantillonnée** — seuls des logits lisses le sont.
+
 #### Cache CrackSAM
 
 Pour chaque image RGB :
@@ -856,7 +902,16 @@ training:
   seeds: [13, 37, 73]
 ```
 
-Le checkpoint est choisi sur l'IoU stricte de validation.
+Le checkpoint est choisi sur l'**IoU tolérante à 3 px** de la validation non
+augmentée.
+
+> [!NOTE]
+> **Amendement — [errata §8](ERRATA.md#8-sélection-de-checkpoint--iou-stricte--tolérante-3 px--changé-sur-demande).**
+> La spécification disait « IoU stricte ». La campagne étant cadrée sur « une
+> baseline `tol3` avec une tolérance de 3 pixels », la sélection se fait sur
+> `iou_buffered_tol3`, gelée à l'identique dans les sept configurations.
+> L'IoU stricte reste rapportée partout, et `selection_metric` reste un champ de
+> configuration tracé dans `training.json`.
 
 Le seuil de segmentation final est fixé à `0.5`. Une éventuelle calibration de seuil doit
 constituer un bras séparé et être appliquée de manière identique à toutes les variantes.
@@ -944,6 +999,14 @@ $$
 
 Cette variante ne peut que renforcer une réponse, jamais supprimer ni s'abstenir
 explicitement. Elle mesure l'intérêt réel de la correction signée.
+
+> [!CAUTION]
+> **Amendement — [errata §4](ERRATA.md#4-lidentité-bit-à-bit-est-impossible-pour-a6--sérieux-et-cest-un-théorème).**
+> Ce bras ne peut **pas** satisfaire l'identité bit-à-bit du §14, et aucune
+> initialisation ne le permettrait : une correction non négative, nulle à
+> l'initialisation, y aurait un minimum global, donc un gradient nul. A6 part de
+> `bias = −8`, soit `|Δz| ≤ 1,3·10⁻³`. Le critère d'identité exacte porte sur les
+> têtes signées, où il est vérifié avant **et après** entraînement.
 
 ---
 
@@ -1042,53 +1105,57 @@ Résultats négatifs pré-acceptés :
 
 ## 10. Structure de code demandée
 
-Créer un sous-dossier autonome sans modifier les résultats historiques :
+Sous-dossier autonome, sans modification des résultats historiques. Arborescence
+**réellement écrite** — les ajouts par rapport à la demande initiale sont
+annotés :
 
 ```text
-ISPRS/CrackSAM-MultiModal/
-└── IRT-Signed-Abstention/
-    ├── README.md
-    ├── pyproject.toml
-    ├── configs/
-    │   ├── irt_signed_abstention_v1.yaml
-    │   ├── irt_rgb_recalibration.yaml
-    │   ├── irt_frangi_permuted.yaml
-    │   ├── irt_raw_thermal.yaml
-    │   ├── irt_no_abstention.yaml
-    │   └── irt_positive_only.yaml
-    ├── thermal_residual/
-    │   ├── __init__.py
-    │   ├── constants.py
-    │   ├── data.py
-    │   ├── manifest.py
-    │   ├── thermal_decode.py
-    │   ├── thermal_frangi.py
-    │   ├── cache.py
-    │   ├── model.py
-    │   ├── losses.py
-    │   ├── metrics.py
-    │   ├── provenance.py
-    │   ├── training.py
-    │   └── evaluation.py
-    ├── scripts/
-    │   ├── 00_build_manifest.py
-    │   ├── 01_audit_dataset.py
-    │   ├── 02_cache_cracksam_logits.py
-    │   ├── 03_cache_thermal_frangi.py
-    │   ├── 04_train.py
-    │   ├── 05_evaluate.py
-    │   └── 06_run_ablations.py
-    ├── tests/
-    │   ├── test_manifest.py
-    │   ├── test_thermal_decode.py
-    │   ├── test_thermal_frangi.py
-    │   ├── test_signed_abstention.py
-    │   ├── test_identity_fallback.py
-    │   ├── test_cache_provenance.py
-    │   ├── test_permutation_control.py
-    │   └── test_smoke_training.py
-    └── results/
-        └── .gitkeep
+ISPRS/CrackSAM-MultiModal/IRT-Signed-Abstention/
+├── README.md                   cette spécification, amendée
+├── ERRATA.md                   +  ce que l'implémentation a dû corriger
+├── IMPLEMENTATION_REPORT.md    +  fichiers, commandes, tests, non-exécuté
+├── pyproject.toml
+├── conftest.py                 +  amorçage sys.path pour pytest
+├── configs/
+│   ├── irt_baseline.yaml            + (A0, pour que A0 passe par la même chaîne)
+│   ├── irt_rgb_recalibration.yaml
+│   ├── irt_signed_abstention_v1.yaml
+│   ├── irt_frangi_permuted.yaml
+│   ├── irt_raw_thermal.yaml
+│   ├── irt_no_abstention.yaml
+│   ├── irt_positive_only.yaml
+│   └── ablation_matrix.yaml
+├── thermal_residual/
+│   ├── __init__.py
+│   ├── _repo.py                +  seul module qui touche à sys.path
+│   ├── constants.py
+│   ├── provenance.py
+│   ├── manifest.py
+│   ├── splits.py               +  split déterministe et stratifié
+│   ├── thermal_decode.py
+│   ├── thermal_frangi.py
+│   ├── cache.py
+│   ├── model.py
+│   ├── losses.py
+│   ├── metrics.py
+│   ├── stats.py                +  bootstrap apparié
+│   ├── config.py               +  chargement et validation des YAML
+│   ├── data.py
+│   ├── training.py
+│   └── evaluation.py
+├── scripts/
+│   ├── 00_build_manifest.py    (manifeste + split figé)
+│   ├── 01_audit_dataset.py
+│   ├── 02_cache_cracksam_logits.py
+│   ├── 03_cache_thermal_frangi.py
+│   ├── 04_train.py
+│   ├── 05_evaluate.py
+│   ├── 06_run_ablations.py
+│   └── 07_report.py            +  deltas appariés et tableaux
+├── workflows/
+│   └── run_irt_vm.sh           +  chaîne VM reprenable par jalons
+├── tests/                      10 fichiers, 116 tests, CPU
+└── results/.gitkeep
 ```
 
 ### 10.1 Imports autorisés depuis le dépôt
@@ -1395,25 +1462,25 @@ Sur quatre échantillons synthétiques ou réels :
 
 ## 14. Critères d'acceptation
 
-L'implémentation est considérée comme terminée lorsque :
+État au 12 août 2026. Coché = vérifié par un test ou par une exécution réelle.
 
-- [ ] le manifeste IRT-Crack est reproductible et validé ;
-- [ ] le décodage JET est testé et illustré ;
-- [ ] les logits CrackSAM peuvent être cachés sans charger le second modèle ;
-- [ ] les cartes Frangi double polarité sont cachées et visualisables ;
-- [ ] le correcteur possède exactement trois actions ;
-- [ ] la sortie initiale est bit-à-bit égale à la baseline ;
-- [ ] le mode sans thermique est bit-à-bit égal à la baseline après entraînement ;
-- [ ] les gradients du correcteur sont non nuls à l'initialisation ;
-- [ ] aucun paramètre de CrackSAM n'est entraînable ;
-- [ ] le correcteur contient moins de 100 000 paramètres ;
-- [ ] les variantes A0 à A4 sont exécutables par configuration ;
-- [ ] les variantes A5 et A6 sont couvertes par la même interface d'évaluation ;
-- [ ] le contrôle permuté est enregistré et reproductible ;
-- [ ] le rapport contient les deltas appariés et leurs IC95 ;
-- [ ] `pytest -q` passe sur CPU hors tests explicitement marqués GPU ;
-- [ ] un `IMPLEMENTATION_REPORT.md` décrit les fichiers ajoutés, les commandes lancées,
-      les tests et les écarts éventuels à cette spécification.
+- [x] le manifeste IRT-Crack est reproductible et validé — `test_manifest.py` ;
+- [x] le décodage JET est testé et illustré — `test_thermal_decode.py`, `01_audit_dataset.py` produit la planche ;
+- [x] les logits CrackSAM peuvent être cachés sans charger le second modèle — `02_cache_cracksam_logits.py` ;
+- [x] les cartes Frangi double polarité sont cachées et visualisables ;
+- [x] le correcteur possède exactement trois actions ;
+- [x] la sortie initiale est bit-à-bit égale à la baseline — têtes signées ; A6 en est **théoriquement incapable**, [errata §4](ERRATA.md) ;
+- [x] le mode sans thermique est bit-à-bit égal à la baseline après entraînement ;
+- [x] les gradients du correcteur sont non nuls à l'initialisation — sur la tête ; l'encodeur démarre au pas 1, [errata §6](ERRATA.md) ;
+- [x] aucun paramètre de CrackSAM n'est entraînable — il n'est même pas chargé à l'entraînement ;
+- [x] le correcteur contient moins de 100 000 paramètres — **20 835** ;
+- [x] les variantes A0 à A4 sont exécutables par configuration ;
+- [x] les variantes A5 et A6 sont couvertes par la même interface d'évaluation ;
+- [x] le contrôle permuté est enregistré et reproductible — `test_permutation_control.py` ;
+- [x] la chaîne produit des deltas appariés et leurs IC95 — `07_report.py`, validé à blanc ;
+- [x] `pytest -q` passe sur CPU — **116 tests**, sans SAM 2 ni GPU ni jeu réel ;
+- [x] un `IMPLEMENTATION_REPORT.md` décrit les fichiers, les commandes, les tests et les écarts ;
+- [ ] **le rapport contient les deltas appariés mesurés sur IRT-Crack** — bloqué : demande une VM G4, le jeu et le checkpoint `tol3`.
 
 ---
 
