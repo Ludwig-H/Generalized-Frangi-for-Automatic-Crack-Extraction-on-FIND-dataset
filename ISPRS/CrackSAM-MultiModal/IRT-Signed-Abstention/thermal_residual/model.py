@@ -103,7 +103,8 @@ class ThermalSignedAbstentionAdapter(nn.Module):
         self,
         evidence_channels: int = len(EVIDENCE_CHANNELS),
         hidden_channels: int = 32,
-        delta_max: float = 4.0,
+        delta_max: float = 12.0,
+        logit_clip: float = LOGIT_CLIP,
         head: str = HEAD_SIGNED_ABSTENTION,
         correction_scope: str = SCOPE_GLOBAL,
         support_dilation: int = 3,
@@ -116,6 +117,8 @@ class ThermalSignedAbstentionAdapter(nn.Module):
             raise ValueError("hidden_channels doit être positif")
         if delta_max <= 0.0:
             raise ValueError("delta_max doit être strictement positif")
+        if logit_clip <= 0.0:
+            raise ValueError("logit_clip doit être strictement positif")
         if head not in HEADS:
             raise ValueError(f"tête inconnue : {head!r} (attendu {HEADS})")
         if correction_scope not in SCOPES:
@@ -126,6 +129,7 @@ class ThermalSignedAbstentionAdapter(nn.Module):
         self.evidence_channels = int(evidence_channels)
         self.hidden_channels = int(hidden_channels)
         self.delta_max = float(delta_max)
+        self.logit_clip = float(logit_clip)
         self.head = str(head)
         self.correction_scope = str(correction_scope)
         self.support_dilation = int(support_dilation)
@@ -185,6 +189,7 @@ class ThermalSignedAbstentionAdapter(nn.Module):
             "evidence_channels": self.evidence_channels,
             "hidden_channels": self.hidden_channels,
             "delta_max": self.delta_max,
+            "logit_clip": self.logit_clip,
             "head": self.head,
             "correction_scope": self.correction_scope,
             "support_dilation": self.support_dilation,
@@ -247,7 +252,7 @@ class ThermalSignedAbstentionAdapter(nn.Module):
 
         features = torch.cat(
             (
-                z0.clamp(-LOGIT_CLIP, LOGIT_CLIP) / LOGIT_CLIP,
+                z0.clamp(-self.logit_clip, self.logit_clip) / self.logit_clip,
                 p0,
                 entropy,
                 thermal_evidence.to(dtype=z0.dtype),
@@ -312,7 +317,8 @@ def build_adapter(config: dict[str, Any]) -> ThermalSignedAbstentionAdapter:
     return ThermalSignedAbstentionAdapter(
         evidence_channels=int(config.get("evidence_channels", len(EVIDENCE_CHANNELS))),
         hidden_channels=int(config.get("hidden_channels", 32)),
-        delta_max=float(config.get("delta_max", 4.0)),
+        delta_max=float(config.get("delta_max", 12.0)),
+        logit_clip=float(config.get("logit_clip", LOGIT_CLIP)),
         head=str(config.get("head", HEAD_SIGNED_ABSTENTION)),
         correction_scope=str(config.get("correction_scope", SCOPE_GLOBAL)),
         support_dilation=int(config.get("support_dilation", 3)),

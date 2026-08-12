@@ -27,7 +27,13 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from thermal_residual.data import load_mask  # noqa: E402
 from thermal_residual.manifest import read_manifest  # noqa: E402
+from thermal_residual.registration import (  # noqa: E402
+    best_contrast_shift,
+    summarize,
+    verdict,
+)
 from thermal_residual.provenance import atomic_write_json  # noqa: E402
 from thermal_residual.thermal_decode import (  # noqa: E402
     PALETTE_ERROR_WARNING,
@@ -39,41 +45,9 @@ from thermal_residual.thermal_decode import (  # noqa: E402
 #: Seuil d'exclusion pré-enregistré, en pixels.
 ALIGNMENT_THRESHOLD_PX = 3.0
 
-
-def estimate_shift(reference: np.ndarray, moving: np.ndarray, radius: int = 8) -> tuple[float, float, float]:
-    """Décalage entier maximisant la corrélation croisée normalisée.
-
-    Recherche exhaustive dans ``[-radius, radius]²`` sur les gradients : le
-    contraste absolu n'est pas comparable entre visible et thermique, mais les
-    bords le sont. Retourne ``(dy, dx, corrélation)``.
-    """
-
-    from scipy import ndimage as ndi
-
-    def edges(image: np.ndarray) -> np.ndarray:
-        smoothed = ndi.gaussian_filter(image.astype(np.float32), 2.0)
-        gy, gx = np.gradient(smoothed)
-        magnitude = np.hypot(gy, gx)
-        centred = magnitude - magnitude.mean()
-        norm = float(np.linalg.norm(centred))
-        return centred / norm if norm > 0 else centred
-
-    left = edges(reference)
-    right = edges(moving)
-    best = (0.0, 0.0, -2.0)
-    height, width = left.shape
-    for dy in range(-radius, radius + 1):
-        for dx in range(-radius, radius + 1):
-            y0, y1 = max(0, dy), min(height, height + dy)
-            x0, x1 = max(0, dx), min(width, width + dx)
-            if y1 - y0 < height // 2 or x1 - x0 < width // 2:
-                continue
-            a = left[y0:y1, x0:x1]
-            b = right[y0 - dy : y1 - dy, x0 - dx : x1 - dx]
-            score = float((a * b).sum())
-            if score > best[2]:
-                best = (float(dy), float(dx), score)
-    return best
+#: Rayon de recherche du décalage. Toute estimation qui l'atteint est marquée
+#: « saturée » : elle mesure la fenêtre, pas les données.
+ALIGNMENT_RADIUS = 10
 
 
 def parse_args() -> argparse.Namespace:
@@ -135,6 +109,8 @@ def main() -> int:
     rows: list[dict] = []
     errors: list[dict] = []
     gallery: list[dict] = []
+    thermal_shifts: list = []
+    control_shifts: list = []
 
     for index, sample in enumerate(samples):
         try:
@@ -159,15 +135,21 @@ def main() -> int:
         row.pop("percentiles", None)
 
         if args.alignment_samples and index < args.alignment_samples:
-            dy, dx, score = estimate_shift(rgb.mean(axis=-1), decoding.normalized)
-            row.update(
-                {
-                    "shift_dy": dy,
-                    "shift_dx": dx,
-                    "shift_norm": float(np.hypot(dy, dx)),
-                    "shift_score": score,
-                }
-            )
+            mask = load_mask(sample.mask_path) > 0.5
+            if mask.any():
+                thermal_shift = best_contrast_shift(decoding.normalized, mask, ALIGNMENT_RADIUS)
+                control_shift = best_contrast_shift(rgb.mean(axis=-1), mask, ALIGNMENT_RADIUS)
+                thermal_shifts.append(thermal_shift)
+                control_shifts.append(control_shift)
+                row.update(
+                    {
+                        "shift_dy": thermal_shift.dy,
+                        "shift_dx": thermal_shift.dx,
+                        "shift_norm": thermal_shift.norm,
+                        "shift_saturated": float(thermal_shift.saturated),
+                        "control_shift_norm": control_shift.norm,
+                    }
+                )
 
         rows.append(row)
         if len(gallery) < args.gallery_size:
@@ -192,11 +174,17 @@ def main() -> int:
         writer.writeheader()
         writer.writerows(errors)
 
-    shifts = [row["shift_norm"] for row in rows if "shift_norm" in row]
+    alignment = (
+        verdict(
+            summarize("thermique", thermal_shifts),
+            summarize("rgb (contrôle)", control_shifts),
+            threshold_px=ALIGNMENT_THRESHOLD_PX,
+        )
+        if thermal_shifts
+        else {"decision": "inconnu", "control_is_clean": False}
+    )
     encodings = {row["encoding"] for row in rows}
     palette_errors = [row["palette_error_mean"] for row in rows]
-    median_shift = float(np.median(shifts)) if shifts else float("nan")
-
     report = {
         "manifest": str(args.manifest),
         "requested_encoding": args.thermal_encoding,
@@ -211,17 +199,7 @@ def main() -> int:
         )
         if rows
         else 0.0,
-        "alignment": {
-            "sampled": len(shifts),
-            "median_shift_px": median_shift,
-            "p90_shift_px": float(np.percentile(shifts, 90)) if shifts else float("nan"),
-            "threshold_px": ALIGNMENT_THRESHOLD_PX,
-            "verdict": (
-                "inconnu"
-                if not shifts
-                else ("accepté" if median_shift <= ALIGNMENT_THRESHOLD_PX else "REJETÉ")
-            ),
-        },
+        "alignment": alignment,
         "rows": rows,
     }
     atomic_write_json(args.output / "report.json", report)
@@ -233,12 +211,21 @@ def main() -> int:
         f"écart au gris naïf : {report['naive_grayscale_divergence_mean']:.4f} "
         "— non nul signifie que la conversion standard aurait corrompu la Hessienne"
     )
-    if shifts:
+    if thermal_shifts:
+        control = alignment["control"]
+        thermal = alignment["thermal"]
         print(
-            f"désalignement médian : {median_shift:.2f} px "
-            f"→ {report['alignment']['verdict']} (seuil {ALIGNMENT_THRESHOLD_PX} px)"
+            f"contrôle RGB       : médiane {control['median_shift_px']:.1f} px, "
+            f"{control['fraction_exact']:.0%} exactement à 0 px "
+            f"→ estimateur {'fiable' if alignment['control_is_clean'] else 'NON FIABLE'}"
         )
-    return 0 if report["alignment"]["verdict"] != "REJETÉ" else 2
+        print(
+            f"thermique          : médiane {thermal['median_shift_px']:.1f} px, "
+            f"{thermal['fraction_within_2px']:.0%} à moins de 2 px, "
+            f"saturation {thermal['saturation_rate']:.0%}"
+        )
+        print(f"verdict de recalage : {alignment['decision']} (seuil {ALIGNMENT_THRESHOLD_PX} px)")
+    return 0 if alignment["decision"] != "REJETÉ" else 2
 
 
 if __name__ == "__main__":

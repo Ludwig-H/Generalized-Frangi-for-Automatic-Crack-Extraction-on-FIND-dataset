@@ -90,6 +90,21 @@ def test_tolerance_primaire_gelee_a_trois_pixels() -> None:
         assert config.training.selection_metric == "iou_buffered_tol3"
 
 
+def test_bornes_fixees_par_la_mesure_et_non_par_la_specification() -> None:
+    """``delta_max`` et ``logit_clip`` viennent de la porte de plafond, pas du §5.
+
+    Mesuré sur la validation d'IRT-Crack avec la baseline ``tol3`` gelée :
+    ``|z₀|`` a pour médiane ``12,27`` et pour q99 ``16,90``. La valeur ``4,0``
+    recommandée par la spécification laissait ``18,9 %`` des erreurs hors de
+    portée, et son ``clip(z₀, −10, 10)`` saturait **plus d'un pixel sur deux**.
+    """
+
+    for path in _config_files():
+        config = load_arm_config(path)
+        assert config.arm.model["delta_max"] == 12.0
+        assert config.arm.model["logit_clip"] == 20.0
+
+
 def test_matrice_d_ablations_resout_les_chemins() -> None:
     protocol = load_ablation_matrix(CONFIG_DIR / "ablation_matrix.yaml")
     assert [entry["identifier"] for entry in protocol["arms"]] == sorted(ARM_IDENTIFIERS)
