@@ -499,6 +499,8 @@ produit un signal causal ; ce n'est pas encore la même chose.
 
 ---
 
+*Version courte et illustrée : [`SYNTHESE.md`](SYNTHESE.md).*
+
 *Données : [`results/2026-08-12_campagne_irt_crack/`](results/2026-08-12_campagne_irt_crack/) —
 métriques par image des 19 exécutions, audit du jeu, plafond de correction,
 split officiel. Spécification et ses corrections :

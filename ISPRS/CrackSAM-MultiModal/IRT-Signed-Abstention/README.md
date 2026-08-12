@@ -21,6 +21,7 @@
 > aligné-contre-permuté devient significatif globalement (`A7 − A8 = +0,0041`,
 > IC95 `[+0,0016 ; +0,0067]`) — le premier de toute la ligne CrackSAM.
 >
+> * **une page illustrée** : [`SYNTHESE.md`](SYNTHESE.md) ;
 > * les résultats, le mécanisme et les incidents : [`RAPPORT.md`](RAPPORT.md) ;
 >
 > * ce que l'implémentation a dû corriger dans ce document : [`ERRATA.md`](ERRATA.md) — trois points étaient **bloquants** ;

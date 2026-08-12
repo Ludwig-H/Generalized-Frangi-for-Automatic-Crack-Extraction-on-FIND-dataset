@@ -54,6 +54,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--right", default="frangi_signed_abstention", help="bras de droite (thermique)")
     parser.add_argument("--left-config", default="irt_rgb_recalibration.yaml")
     parser.add_argument("--right-config", default="irt_signed_abstention_v1.yaml")
+    # Les titres des vignettes doivent nommer ce qui est comparé. Sans cela une
+    # planche « permuté contre aligné » s'affiche « sans thermique contre avec
+    # thermique », ce qui est faux et se lit sans qu'on s'en aperçoive.
+    parser.add_argument("--left-title", default="sans thermique")
+    parser.add_argument("--right-title", default="avec thermique")
     parser.add_argument("--seed", type=int, default=13)
     parser.add_argument("--output", required=True, type=Path)
     return parser.parse_args()
@@ -111,8 +116,8 @@ def main() -> int:
             (entry["thermal_decoded"], "inferno", "thermique décodée"),
             (entry["similarity_max"], "magma", "similarité Frangi thermique"),
             (overlay(base_pred, truth), None, f"baseline gelée — {score(base_pred):.3f}"),
-            (overlay(left_pred, truth), None, f"sans thermique — {score(left_pred):.3f}"),
-            (overlay(right_pred, truth), None, f"avec thermique — {score(right_pred):.3f}"),
+            (overlay(left_pred, truth), None, f"{args.left_title} — {score(left_pred):.3f}"),
+            (overlay(right_pred, truth), None, f"{args.right_title} — {score(right_pred):.3f}"),
         ]
         figure, axes = plt.subplots(2, 3, figsize=(13.5, 7.2))
         for axis, (image, cmap, title) in zip(axes.ravel(), panels):
