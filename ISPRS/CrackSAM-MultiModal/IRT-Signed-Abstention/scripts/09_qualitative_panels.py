@@ -126,7 +126,7 @@ def main() -> int:
         )
         figure.tight_layout()
         destination = args.output / f"panel_{sample_id}.jpg"
-        figure.savefig(destination, dpi=120, quality=90)
+        figure.savefig(destination, dpi=120, pil_kwargs={"quality": 90})
         plt.close(figure)
         print(f"  écrit {destination}")
     return 0
