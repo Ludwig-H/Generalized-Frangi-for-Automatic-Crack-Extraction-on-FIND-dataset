@@ -66,7 +66,7 @@ modalité cachée améliore-t-elle SAM 2 + LoRA au-delà (a) de la baseline mono
 | Jeu | Modalités (recalage) | Taille | GT | Accès | Rôle |
 |:---|:---|:---|:---|:---|:---|
 | **FIND** — Zhou, Canchila & Song, 2022 | intensité laser + **range laser actif** + range filtré + fusion — co-recalés **par construction du capteur** (même balayage) | 2 500 patchs 256² par type | masques denses pixel | [Zenodo 6383044](https://zenodo.org/records/6383044) · CC-BY 4.0 | **jeu principal.** Seul cas où la non-redondance avec l'entrée de SAM est garantie par la physique. Split CrackSegDiff 2000/500 réutilisable ; plafond supervisé connu (91,9 % IoU dense ; 87 % en protocole EUVIP) |
-| **IRT-Crack** — Liu, Liu & Wang, IEEE T-ITS 2022 | RGB + thermique FLIR (co-recalage caméra bi-objectif IR-Fusion™) + fusion 50/50 | 448 paires 640×480 · split canonique 358/90 | masques pixel (Photoshop) | [Zenodo 11624965](https://zenodo.org/records/11624965) · CC BY 4.0 | **réplication + voie déployable.** Benchmark RGB-T standard : IRFusionFormer IoU 81,8, ablation publiée RGB 83,3 / IR 64,4 / fusion 85,4 % F1 — le schéma EUVIP en supervisé |
+| **IRT-Crack** — Liu, Liu & Wang, IEEE T-ITS 2022 | RGB + thermique FLIR + fusion 50/50. ⚠️ **le co-recalage IR-Fusion™ ne vaut que pour la fusion** : l'infrarouge brut distribué est décalé de `10,1 px` en médiane (mesuré, §2.5) | 448 paires 640×480 · split 358/90, **non distribué avec le jeu** | masques pixel (Photoshop) | [Zenodo 11624965](https://zenodo.org/records/11624965) · CC BY 4.0 | **réplication + voie déployable.** Benchmark RGB-T standard : IRFusionFormer IoU 81,8, ablation publiée RGB 83,3 / IR 64,4 / fusion 85,4 % F1 — le schéma EUVIP en supervisé |
 
 > [!NOTE]
 > **Deux corrections de provenance faites ou à faire.** (1) Le lien FIND de `README.md`
@@ -85,6 +85,27 @@ modalité cachée améliore-t-elle SAM 2 + LoRA au-delà (a) de la baseline mono
 | **CrackPolar** — même archive | 986 groupes RGB + polarisation (AoP/DoP) : information physiquement absente du RGB | aucun précédent de Hessienne sur canaux polarimétriques — extension de seconde vague |
 | **Syncrack étendu** — [générateur public](https://github.com/Sutadasuto/syncrack_generator) (écosystème IFSTTAR) | la fissure y est une **courbe géométrique** : en dériver profondeur et pseudo-thermique donne des paires parfaitement recalées en volume illimité, pour pré-entraîner l'adapter | ne remplace jamais l'évaluation sur données réelles |
 | **DeLiVER / MFNet / FMB** | validation du *mécanisme* sur structures fines (poteaux, rails de sécurité) avec recalage parfait (DeLiVER : synthétique CARLA, 7 900 échantillons) | pas de fissures — jamais un résultat du projet |
+
+### 2.5 Ce que la campagne du 12 août a mesuré sur IRT-Crack
+
+L'inventaire ci-dessus supposait le co-recalage acquis. Il ne l'est pas, et
+c'est le résultat le plus utile de cette première campagne — il change ce qu'on
+peut demander à ce jeu.
+
+| Ce qui était supposé | Ce qui est mesuré |
+|:--|:--|
+| thermique co-recalée avec le RGB par IR-Fusion™ | **décalage médian `10,1 px`**, `5 %` des images sous 2 px. Le même estimateur, appliqué au RGB comme contrôle, tombe à `0 px` sur `77 %` des images : l'écart est imputable à la thermique, pas à l'estimateur |
+| la fusion 50/50 est un mélange des deux | la **fusion, elle, est recalée** (médiane `0 px`, écart-type `0,4`) — mais elle contient déjà 50 % du visible, donc elle n'est pas une modalité cachée pour SAM |
+| split canonique 358/90 disponible | **absent de Zenodo et du dépôt GitHub** ; il vit dans un `00_List` sur le Google Drive du benchmark IRFusionFormer. Récupéré, il recouvre exactement les 448 images Zenodo |
+| thermique lisible en niveaux de gris | **fausses couleurs**, sur les 448 images. La conversion standard en gris s'écarte de `0,20` du décodage correct — le notebook IRT du dépôt la corrompait bien |
+| palette JET | ni `jet` ni `turbo` ne collent (résidu `0,095` et `0,079`) ; le résidu est identique en PNG et en JPEG, donc ce n'est pas la compression mais une palette FLIR propriétaire |
+
+Conséquence pour la suite : **IRT-Crack ne peut pas servir de test de recalage
+fin**, et une correction résiduelle au pixel y est structurellement handicapée.
+Un réseau de fusion à large champ réceptif — IRFusionFormer, CMNeXt — tolère ce
+décalage bien mieux, ce qui réconcilie leurs gains publiés avec ce constat.
+FIND, dont le recalage est garanti par le balayage capteur, redevient le seul
+ancrage où la question multimodale peut être posée proprement.
 
 ### 2.3 Écartés, avec motif — pour ne pas les rechercher
 
@@ -250,7 +271,7 @@ exige un amendement commité du pré-enregistrement.
 | **La marge supervisée n'est pas chiffrée** (bloquante) | Phase 0 entière : lecture Zhou 2023 + run de cadrage + calcul de puissance, avant tout engagement |
 | **La GT est tracée sur une modalité inconnue** (sérieuse) — si c'est le range/la fusion, tout gain multimodal est en partie un artefact d'annotation | lecture des sources (1 h) ; les deltas appariés restent valides (même GT partout) ; la stratification par visibilité-en-I dit ce qu'on mesure ; le contrôle D sépare « biais capté par la modalité » de « géométrie » |
 | **Le contrôle modalité-brute peut gagner** (sérieuse — issue la plus probable au vu de MM-SAM/IRFusionFormer) | pré-enregistré comme résultat publiable : la comparaison « modalité brute vs évidence géométrique, à adapter identique » n'existe nulle part ; chercher l'avantage de Frangi là où il est plausible — très peu de shots, bruit, transfert |
-| **Recalage inter-modalités** (sérieuse) — 2-3 px de désalignement transforment l'évidence en distracteur, et punissent la géométrie fine plus que la carte brute | garanti par construction sur FIND (argument pour en faire le jeu principal) ; audit ECC sur 20 paires ailleurs ; métrique tolérante co-primaire |
+| **Recalage inter-modalités** (sérieuse) — 2-3 px de désalignement transforment l'évidence en distracteur, et punissent la géométrie fine plus que la carte brute | **objection confirmée par la mesure sur IRT-Crack** : `10,1 px` de médiane, `5 %` seulement des images sous 2 px (§2.5). Garanti par construction sur FIND, qui devient de ce fait le seul ancrage solide ; audit obligatoire, avec contrôle RGB, avant tout autre jeu |
 | **Fuite spatiale FIND** (sérieuse) — 2 500 patchs issus d'un petit nombre de dalles | split groupé par blocs contigus (primaire) + split CrackSegDiff (comparabilité, réserve écrite) |
 | **« Un U-Net early-fusion écrase tout »** (sérieuse) | il est dans le tableau d'office, et la revendication migre vers frugalité/robustesse/transfert *avant* les résultats |
 | **SAM à double distance de FIND** (gérable — intensité laser 256² vs SA-1B) | sanity check zéro-shot en Phase 0 ; baseline ré-entraînée (~10 €) ; la baseline Khánh Hà n'est *pas* présentée comme réutilisable |
