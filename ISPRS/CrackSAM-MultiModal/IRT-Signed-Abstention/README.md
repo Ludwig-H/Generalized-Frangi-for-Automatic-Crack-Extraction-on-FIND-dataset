@@ -9,11 +9,11 @@
 </div>
 
 > [!IMPORTANT]
-> **État au 12 août 2026.** Le code de cette spécification est écrit, et
-> `121 tests` passent sur CPU sans GPU ni jeu de données réel, et la chaîne a été
-> validée de bout en bout, **SAM 2 réel compris**. **Aucun
-> chiffre expérimental n'existe encore** : la campagne A0–A6 demande une VM G4,
-> le jeu IRT-Crack et le checkpoint `tol3`.
+> **État au 12 août 2026.** Le code de cette spécification est écrit. `121 tests`
+> passent sur CPU, et la chaîne a été validée de bout en bout — **SAM 2 réel
+> compris**, sur des images de substitution. **Aucun chiffre expérimental
+> n'existe pour autant** : la campagne A0–A6 demande une VM G4, le jeu IRT-Crack
+> et une baseline gelée (`tol3` est perdu ; `baseline_r4` est disponible).
 >
 > * ce que l'implémentation a dû corriger dans ce document : [`ERRATA.md`](ERRATA.md) — trois points étaient **bloquants**, dont un qui aurait rendu la campagne inconcluante sans l'empêcher de tourner ;
 > * ce qui a été écrit, lancé, et ce qui ne l'a pas été : [`IMPLEMENTATION_REPORT.md`](IMPLEMENTATION_REPORT.md).
