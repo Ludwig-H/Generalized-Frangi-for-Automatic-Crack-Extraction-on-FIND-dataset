@@ -1,0 +1,9 @@
+{
+  "arm": "frangi_no_abstention",
+  "elapsed_seconds": 2462.166841030121,
+  "identifier": "A5",
+  "iou": 0.7049651668973984,
+  "iou_buffered_tol3": 0.8862884344173959,
+  "run_dir": "/home/louis_hauseux_gmail_com/irt-run/results/campaign_v2/frangi_no_abstention/seed_13",
+  "seed": 13
+}

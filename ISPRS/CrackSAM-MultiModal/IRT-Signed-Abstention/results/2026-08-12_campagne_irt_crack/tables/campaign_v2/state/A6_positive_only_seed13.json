@@ -1,0 +1,9 @@
+{
+  "arm": "positive_only",
+  "elapsed_seconds": 3066.2068524360657,
+  "identifier": "A6",
+  "iou": 0.6887153738657001,
+  "iou_buffered_tol3": 0.8705730845493465,
+  "run_dir": "/home/louis_hauseux_gmail_com/irt-run/results/campaign_v2/positive_only/seed_13",
+  "seed": 13
+}

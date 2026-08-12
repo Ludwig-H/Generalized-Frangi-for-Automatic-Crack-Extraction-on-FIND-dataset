@@ -1,0 +1,9 @@
+{
+  "arm": "baseline",
+  "elapsed_seconds": 28.84715962409973,
+  "identifier": "A0",
+  "iou": 0.6673541257799017,
+  "iou_buffered_tol3": 0.8404719893789133,
+  "run_dir": "/home/louis_hauseux_gmail_com/irt-run/results/campaign_v2/baseline/seed_13",
+  "seed": 13
+}

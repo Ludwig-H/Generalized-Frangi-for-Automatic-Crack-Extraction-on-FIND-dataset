@@ -4,18 +4,21 @@
 
 | Statut | Modèle principal | Second modèle | Jeu multimodal | Portée |
 |:--:|:--:|:--:|:--:|:--:|
-| **Spécification implémentée · campagne GPU non exécutée** | CrackSAM 2 + LoRA `tol3`, entraîné sur Khánh Hà RGB | petit correcteur résiduel thermique (20 835 paramètres) | IRT-Crack, 448 paires | MVP causal avant Frangi-graphe |
+| **Spécification implémentée · campagne exécutée · verdict négatif** | CrackSAM 2 + LoRA `tol3`, entraîné sur Khánh Hà RGB | petit correcteur résiduel thermique (20 835 paramètres) | IRT-Crack, 448 paires | MVP causal avant Frangi-graphe |
 
 </div>
 
 > [!IMPORTANT]
-> **État au 12 août 2026.** Le code de cette spécification est écrit. `121 tests`
-> passent sur CPU, et la chaîne a été validée de bout en bout — **SAM 2 réel
-> compris**, sur des images de substitution. **Aucun chiffre expérimental
-> n'existe pour autant** : la campagne A0–A6 demande une VM G4, le jeu IRT-Crack
-> et une baseline gelée (`tol3` est perdu ; `baseline_r4` est disponible).
+> **État au 12 août 2026, après exécution.** La campagne A0–A6 × 3 graines a
+> tourné sur IRT-Crack (448 paires, split officiel 358/90, baseline `tol3`
+> gelée). **Le critère de succès pré-enregistré n'est atteint sur aucune
+> métrique** : `A2 − A1` est négatif en IoU stricte, et `A2 − A3` est
+> indiscernable de zéro. L'audit de recalage, mené *avant* l'entraînement, dit
+> pourquoi : la thermique distribuée est décalée de `10,1 px` du RGB.
 >
-> * ce que l'implémentation a dû corriger dans ce document : [`ERRATA.md`](ERRATA.md) — trois points étaient **bloquants**, dont un qui aurait rendu la campagne inconcluante sans l'empêcher de tourner ;
+> * les résultats, le mécanisme et les incidents : [`RAPPORT.md`](RAPPORT.md) ;
+>
+> * ce que l'implémentation a dû corriger dans ce document : [`ERRATA.md`](ERRATA.md) — trois points étaient **bloquants** ;
 > * ce qui a été écrit, lancé, et ce qui ne l'a pas été : [`IMPLEMENTATION_REPORT.md`](IMPLEMENTATION_REPORT.md).
 >
 > Les sections ci-dessous sont la spécification d'origine, amendée en place là où
@@ -1497,7 +1500,7 @@ Sur quatre échantillons synthétiques ou réels :
 - [x] la chaîne produit des deltas appariés et leurs IC95 — `07_report.py`, validé à blanc ;
 - [x] `pytest -q` passe sur CPU — **116 tests**, sans SAM 2 ni GPU ni jeu réel ;
 - [x] un `IMPLEMENTATION_REPORT.md` décrit les fichiers, les commandes, les tests et les écarts ;
-- [ ] **le rapport contient les deltas appariés mesurés sur IRT-Crack** — bloqué : demande une VM G4, le jeu et le checkpoint `tol3`.
+- [x] **le rapport contient les deltas appariés mesurés sur IRT-Crack** — [`RAPPORT.md`](RAPPORT.md), 19 runs, bootstrap 10 000.
 
 ---
 
@@ -1660,35 +1663,54 @@ permutation et de provenance ne passent pas.
 
 ## 18. Tableau de résultats à compléter
 
+*Rempli le 12 août 2026 — moyennes sur les graines `13/37/73`, test officiel de
+90 images. Détail par graine et par image : [`RAPPORT.md`](RAPPORT.md) et
+`results/2026-08-12_campagne_irt_crack/`.*
+
 ### 18.1 Segmentation
 
-| Variante | Seed | IoU | Dice | Précision | Rappel | IoU tol. 3 | clDice | Composantes |
-|:--|--:|--:|--:|--:|--:|--:|--:|--:|
-| A0 baseline | 13 |  |  |  |  |  |  |  |
-| A1 RGB recalibration | 13 |  |  |  |  |  |  |  |
-| A2 Frangi signé + abstention | 13 |  |  |  |  |  |  |  |
-| A3 Frangi permuté | 13 |  |  |  |  |  |  |  |
-| A4 thermique brute | 13 |  |  |  |  |  |  |  |
-| A5 sans abstention | 13 |  |  |  |  |  |  |  |
-| A6 positif uniquement | 13 |  |  |  |  |  |  |  |
+| Variante | IoU | Dice | Précision | Rappel | IoU tol. 3 | clDice | Composantes |
+|:--|--:|--:|--:|--:|--:|--:|--:|
+| A0 baseline | 0,6674 | 0,7887 | 0,8252 | 0,7860 | 0,8405 | 0,9000 | **1,70** |
+| A1 RGB recalibration | **0,7096** | **0,8213** | 0,8201 | **0,8497** | 0,8856 | **0,9109** | 4,09 |
+| A2 Frangi signé + abstention | 0,7064 | 0,8199 | 0,8188 | 0,8461 | **0,8876** | 0,8952 | 13,47 |
+| A3 Frangi permuté | 0,7064 | 0,8189 | 0,8193 | 0,8459 | 0,8856 | 0,8921 | 18,43 |
+| A4 thermique brute | 0,7049 | 0,8183 | 0,8180 | 0,8455 | 0,8861 | 0,9016 | 13,01 |
+| A5 sans abstention | 0,7051 | 0,8191 | **0,8226** | 0,8410 | 0,8863 | 0,8989 | 11,49 |
+| A6 positif uniquement | 0,6908 | 0,8078 | 0,8116 | 0,8316 | 0,8733 | 0,8959 | 9,00 |
 
 ### 18.2 Actions
 
-| Variante | Renforcer | Supprimer | Abstention | Moy. $|\Delta z|$ | Images améliorées | Delta IoU médian |
+| Variante | Renforcer | Supprimer | Abstention | Moy. $\|\Delta z\|$ | FN récupérés | FP retirés |
 |:--|--:|--:|--:|--:|--:|--:|
-| A2 |  |  |  |  |  |  |
-| A3 |  |  |  |  |  |  |
-| A4 |  |  |  |  |  |  |
+| A1 *(sans thermique)* | 0,001 | 0,000 | 0,999 | **0,377** | **0,320** | **0,159** |
+| A2 | 0,001 | 0,000 | 0,999 | 0,337 | 0,310 | 0,136 |
+| A3 | 0,001 | 0,000 | 0,999 | 0,387 | 0,314 | 0,152 |
+| A4 | 0,001 | 0,000 | 0,999 | 0,375 | 0,308 | 0,121 |
+| A5 | 0,728 | 0,272 | — | 0,554 | 0,293 | 0,165 |
+| A6 | 0,023 | 0,000 | 0,977 | 0,104 | 0,215 | 0,000 |
 
 ### 18.3 Deltas appariés
 
-| Comparaison | Delta IoU moyen | IC95 | Delta Dice moyen | IC95 | Verdict |
+Bootstrap 10 000, IC95 par percentiles, appariement par image sur les trois graines.
+
+| Comparaison | Delta IoU | IC95 | Delta IoU@3px | IC95 | Verdict |
 |:--|--:|:--:|--:|:--:|:--|
-| A2 - A1 |  |  |  |  |  |
-| A2 - A3 |  |  |  |  |  |
-| A2 - A4 |  |  |  |  |  |
-| A2 - A5 |  |  |  |  |  |
-| A2 - A6 |  |  |  |  |  |
+| **A1 − A0** | `+0,0422` | `[+0,0349 ; +0,0502]` | `+0,0451` | `[+0,0360 ; +0,0550]` | **favorable** |
+| **A2 − A1** | `−0,0032` | `[−0,0054 ; −0,0009]` | `+0,0020` | `[−0,0004 ; +0,0045]` | **défavorable / indiscernable** |
+| **A2 − A3** | `−0,0000` | `[−0,0022 ; +0,0021]` | `+0,0020` | `[−0,0004 ; +0,0044]` | **indiscernable** |
+| **A2 − A4** | `+0,0015` | `[−0,0004 ; +0,0035]` | `+0,0015` | `[−0,0005 ; +0,0036]` | indiscernable |
+| A2 − A5 | `+0,0013` | `[−0,0007 ; +0,0037]` | `+0,0013` | `[−0,0006 ; +0,0035]` | indiscernable |
+| A2 − A6 | `+0,0156` | `[+0,0119 ; +0,0195]` | `+0,0143` | `[+0,0102 ; +0,0188]` | favorable |
+| A4 − A1 | `−0,0047` | `[−0,0065 ; −0,0029]` | `+0,0005` | `[−0,0013 ; +0,0023]` | défavorable |
+
+> [!IMPORTANT]
+> **Verdict.** Le critère du §9.4 exige `A2 > A1` avec IC95 excluant zéro **et**
+> `A2 > A3`. Ni l'un ni l'autre n'est obtenu : `A2 − A1` est *négatif* en IoU
+> stricte, et `A2 − A3` est indiscernable de zéro sur les deux métriques. Parmi
+> les issues négatives pré-acceptées du §9.4, c'est **`A2 ≃ A1`** : la Frangi
+> thermique n'apporte pas de signal complémentaire. L'audit de recalage, mené
+> avant l'entraînement, en donne le mécanisme.
 
 ---
 

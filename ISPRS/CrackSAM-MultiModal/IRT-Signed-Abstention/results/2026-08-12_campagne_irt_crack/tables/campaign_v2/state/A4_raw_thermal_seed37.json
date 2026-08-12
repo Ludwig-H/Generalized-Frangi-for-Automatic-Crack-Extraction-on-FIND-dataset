@@ -1,0 +1,9 @@
+{
+  "arm": "raw_thermal",
+  "elapsed_seconds": 2087.082417011261,
+  "identifier": "A4",
+  "iou": 0.7047517211400592,
+  "iou_buffered_tol3": 0.8860616496500866,
+  "run_dir": "/home/louis_hauseux_gmail_com/irt-run/results/campaign_v2/raw_thermal/seed_37",
+  "seed": 37
+}

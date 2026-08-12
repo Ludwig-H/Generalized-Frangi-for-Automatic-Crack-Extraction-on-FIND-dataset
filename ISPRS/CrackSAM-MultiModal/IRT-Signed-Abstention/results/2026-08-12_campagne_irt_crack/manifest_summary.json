@@ -1,0 +1,17 @@
+{
+  "count": 448,
+  "counts": {
+    "test": 90,
+    "train": 286,
+    "validation": 72
+  },
+  "dataset_root": "/home/louis_hauseux_gmail_com/irt-crack/dataset",
+  "manifest": "/home/louis_hauseux_gmail_com/irt-run/data/manifest.csv",
+  "manifest_sha256": "849d500d1a761ed8307d45c3f2e9271d4103e6c09492038b6a746ea33565b117",
+  "official_split_provided": true,
+  "resolutions": [
+    "480x640"
+  ],
+  "split": "/home/louis_hauseux_gmail_com/irt-run/data/split.json",
+  "split_origin": "official"
+}

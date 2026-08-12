@@ -6,17 +6,21 @@ qu'aucun n'existe.*
 
 <div align="center">
 
-| Code | Tests | Chaîne validée à blanc | Campagne sur IRT-Crack |
+| Code | Tests | Chaîne validée | Campagne sur IRT-Crack |
 |:--:|:--:|:--:|:--:|
-| 51 fichiers · ≈ 7 700 lignes | **121, tous verts, CPU** | **oui**, SAM 2 réel compris | **non exécutée** |
+| 53 fichiers · ≈ 8 100 lignes | **131, tous verts, CPU** | **oui**, SAM 2 réel compris | **exécutée le 12/08/2026** |
 
 </div>
 
-> [!WARNING]
-> **Rien de ce dépôt ne permet aujourd'hui de dire si la thermique aide.**
-> La chaîne complète a tourné sur un jeu **synthétique** — c'est une validation
-> de plomberie, pas un résultat. Trois ressources manquent, toutes listées au
-> §5 : le jeu IRT-Crack, le checkpoint `tol3`, une VM G4.
+> [!IMPORTANT]
+> **La campagne a été exécutée.** 19 runs sur une RTX PRO 6000 Blackwell, 448
+> paires IRT-Crack, split officiel 358/90, baseline `tol3` gelée. Les résultats,
+> le verdict et les incidents sont dans [`RAPPORT.md`](RAPPORT.md) ; les données
+> par image dans `results/2026-08-12_campagne_irt_crack/`.
+>
+> Réponse courte : **la thermique n'aide pas**, et l'audit de recalage — mené
+> avant l'entraînement — dit pourquoi. Le résultat utile est ailleurs : la
+> recalibration de domaine seule vaut `+0,045` d'IoU à 3 px.
 
 ---
 

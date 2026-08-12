@@ -1,0 +1,9 @@
+{
+  "arm": "rgb_recalibration",
+  "elapsed_seconds": 252.07959008216858,
+  "identifier": "A1",
+  "iou": 0.7112157726556332,
+  "iou_buffered_tol3": 0.8869681426195326,
+  "run_dir": "/home/louis_hauseux_gmail_com/irt-run/results/campaign_v2/rgb_recalibration/seed_13",
+  "seed": 13
+}

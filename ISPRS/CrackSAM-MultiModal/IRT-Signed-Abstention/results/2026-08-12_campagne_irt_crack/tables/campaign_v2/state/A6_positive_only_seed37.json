@@ -1,0 +1,9 @@
+{
+  "arm": "positive_only",
+  "elapsed_seconds": 3396.865037202835,
+  "identifier": "A6",
+  "iou": 0.6906017556787231,
+  "iou_buffered_tol3": 0.873839420231653,
+  "run_dir": "/home/louis_hauseux_gmail_com/irt-run/results/campaign_v2/positive_only/seed_37",
+  "seed": 37
+}

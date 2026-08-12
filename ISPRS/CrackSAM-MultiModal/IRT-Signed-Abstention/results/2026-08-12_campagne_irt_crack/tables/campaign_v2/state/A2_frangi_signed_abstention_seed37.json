@@ -1,0 +1,9 @@
+{
+  "arm": "frangi_signed_abstention",
+  "elapsed_seconds": 940.2723288536072,
+  "identifier": "A2",
+  "iou": 0.7069424123829855,
+  "iou_buffered_tol3": 0.8882191292445214,
+  "run_dir": "/home/louis_hauseux_gmail_com/irt-run/results/campaign_v2/frangi_signed_abstention/seed_37",
+  "seed": 37
+}
