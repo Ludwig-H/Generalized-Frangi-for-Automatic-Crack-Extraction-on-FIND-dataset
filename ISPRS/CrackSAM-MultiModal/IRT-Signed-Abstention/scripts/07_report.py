@@ -152,17 +152,46 @@ def main() -> int:
         against_recalibration = find("A2-A1", metric)
         against_permuted = find("A2-A3", metric)
         against_raw = find("A2-A4", metric)
-        helps = bool(
+
+        # Le §9.4 demande « IC95 excluant zéro » face à A1, et « un écart
+        # cohérent sur les graines » face à A3. Les deux lectures du second
+        # critère sont rapportées : la cohérence de signe entre graines est plus
+        # facile à satisfaire qu'un IC95 par image, et un effet qui passe l'une
+        # sans l'autre doit être présenté comme tel, pas arrondi à « oui ».
+        seeds_consistent = bool(
+            against_permuted
+            and against_permuted["mean"] > 0
+            and against_permuted.get("seed_variance", {}).get("min", -1.0) > 0.0
+        )
+        interval_excludes_zero = bool(
+            against_permuted and against_permuted["mean"] > 0 and against_permuted["excludes_zero"]
+        )
+        beats_recalibration = bool(
             against_recalibration
             and against_recalibration["mean"] > 0
             and against_recalibration["excludes_zero"]
-            and against_permuted
-            and against_permuted["mean"] > 0
         )
         verdict[metric] = {
-            "la_frangi_thermique_aide": helps,
+            "A2_bat_A1_IC95": beats_recalibration,
+            "A2_bat_A3_signe_coherent_sur_les_graines": seeds_consistent,
+            "A2_bat_A3_IC95_excluant_zero": interval_excludes_zero,
+            "la_frangi_thermique_aide_lecture_stricte": bool(
+                beats_recalibration and interval_excludes_zero
+            ),
+            "la_frangi_thermique_aide_lecture_litterale": bool(
+                beats_recalibration and seeds_consistent
+            ),
             "au_dela_de_la_modalite": bool(
-                helps and against_raw and against_raw["mean"] > 0 and against_raw["excludes_zero"]
+                beats_recalibration
+                and interval_excludes_zero
+                and against_raw
+                and against_raw["mean"] > 0
+                and against_raw["excludes_zero"]
+            ),
+            "amplitude_relative_au_gain_de_recalibration": (
+                (against_recalibration["mean"] / find("A1-A0", metric)["mean"])
+                if against_recalibration and find("A1-A0", metric) and find("A1-A0", metric)["mean"]
+                else None
             ),
             "A2-A1": against_recalibration,
             "A2-A3": against_permuted,
@@ -201,10 +230,18 @@ def main() -> int:
     print("\n## Verdict pré-enregistré")
     for metric, entry in verdict.items():
         assert isinstance(entry, dict)
-        print(
-            f"  [{metric}] « la Frangi thermique aide » : {entry['la_frangi_thermique_aide']} — "
-            f"« au-delà de la modalité » : {entry['au_dela_de_la_modalite']}"
-        )
+        print(f"  [{metric}]")
+        print(f"      A2 > A1, IC95 excluant 0 ............. {entry['A2_bat_A1_IC95']}")
+        print(f"      A2 > A3, signe cohérent sur 3 graines  {entry['A2_bat_A3_signe_coherent_sur_les_graines']}")
+        print(f"      A2 > A3, IC95 excluant 0 ............. {entry['A2_bat_A3_IC95_excluant_zero']}")
+        print(f"      => « la Frangi thermique aide », lecture stricte    : "
+              f"{entry['la_frangi_thermique_aide_lecture_stricte']}")
+        print(f"      => « la Frangi thermique aide », lecture littérale  : "
+              f"{entry['la_frangi_thermique_aide_lecture_litterale']}")
+        print(f"      => « au-delà de la modalité » (A2 > A4)            : {entry['au_dela_de_la_modalite']}")
+        ratio = entry.get("amplitude_relative_au_gain_de_recalibration")
+        if ratio is not None:
+            print(f"      amplitude de A2−A1 rapportée au gain A1−A0 : {ratio:+.1%}")
     return 0
 
 
