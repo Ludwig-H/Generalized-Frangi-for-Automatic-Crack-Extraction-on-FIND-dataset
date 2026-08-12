@@ -134,5 +134,17 @@ step "07_report"       report
 
 echo
 echo "Terminé. Résultats : ${RESULTS}/ablation_matrix"
-echo "Ne pas oublier : ./gcp-migration/stop_and_verify.sh puis vérifier TERMINATED."
-echo "(dépôt : ${REPO_ROOT})"
+echo
+echo "AVANT D'ARRÊTER : les checkpoints ne survivent PAS à la destruction du disque"
+echo "Spot. Ceux de la campagne GeoLoRA d'août ont été perdus ainsi — il ne reste"
+echo "d'eux qu'un chemin absolu figé dans un JSON. Copier d'abord :"
+echo "  cp -r ${RESULTS} ${IRT_RUN_ROOT}/vm_backup_\$(date -u +%Y%m%dT%H%MZ)/"
+echo "  sha256sum ${RESULTS}/ablation_matrix/*/*/best.pt"
+echo
+echo "PUIS arrêter — en NOMMANT la cible. Les défauts de stop_and_verify.sh sont"
+echo "europe-west4-a / frangi-blackwell-spot, c'est-à-dire la VM historique et non"
+echo "celle-ci : sans ces deux variables, le script vise la mauvaise machine."
+echo "  GCP_ZONE=europe-west8-c \\"
+echo "  GCP_INSTANCE_NAME=cracksam-frangigraph-g4-spot-ew8c \\"
+echo "  ${REPO_ROOT}/gcp-migration/stop_and_verify.sh"
+echo "puis vérifier TERMINATED."

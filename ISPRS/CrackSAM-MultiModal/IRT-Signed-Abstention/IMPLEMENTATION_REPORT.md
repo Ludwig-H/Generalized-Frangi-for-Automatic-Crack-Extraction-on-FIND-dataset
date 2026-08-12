@@ -195,9 +195,32 @@ coûte au pire qu'une étape. Le script ne démarre ni n'arrête aucune VM.
 |:--|:--|:--|
 | **Jeu IRT-Crack** | absent de la machine | ZIP de 618 Mo, [Zenodo 11624965](https://zenodo.org/records/11624965), CC BY 4.0. Le disque local n'a que 571 Mo libres : téléchargement **sur la VM** |
 | **Split officiel 358/90** | non distribué | dossier `00_List` du Google Drive IRFusionFormer ; à défaut, split dérivé signalé comme tel |
-| **Checkpoint `tol3`** | non localisé | produit par la campagne GeoLoRA des 8–9 août ; à chercher dans `~/cracksam2-artifacts` sur le disque de `cracksam-frangigraph-g4-spot-ew8c` |
-| **Poids SAM 2 Hiera-L** | non localisé | même disque, variable `SAM2_CHECKPOINT` |
+| **Poids SAM 2 Hiera-L** | **présents localement** | `ISPRS/CrackSAM/artifacts/vm_backup_20260714T1435Z_final_checkpoints/foundation/sam2_hiera_large.pt`, 898 Mo, `sha256 7442e4e9…` |
+| **LoRA baseline Khánh Hà r=4** | **présente localement** | même dossier, `baseline_r4/best.pt`, 5,7 Mo, `sha256 d154d60a…`, `epoch=20` |
+| **Checkpoint `tol3`** | **perdu** | il n'existe nulle part : ni dépôt, ni machine, ni bucket — aucun bucket GCS n'existe dans ce projet. Seule trace, un chemin absolu figé dans `eval_tol3.json:3` : `/home/louis_hauseux_gmail_com/geolora-run/ckpt/tol3_best.pt`, sur un disque Spot détruit depuis |
 | **VM G4** | `TERMINATED` | `cracksam-frangigraph-g4-spot-ew8c`, `europe-west8-c`, disque 200 Go. Démarrage = action explicite, à confirmer |
+
+> [!WARNING]
+> **Le checkpoint `tol3` a été perdu avec son disque Spot.** Deux issues, à
+> trancher explicitement :
+>
+> * **le ré-entraîner** — les hyperparamètres exacts ont été reconstruits *bit à
+>   bit* en inversant `warmup_poly_lr` sur les cinq valeurs de `lr` de
+>   `tol3_training.json` : `--warmup-steps 100` (et non 300 par défaut),
+>   `base_lr=1e-4`, `power=6`, 5 époques, batch 8, `seed 3407`, ≈ 40 min sur
+>   RTX PRO 6000. **Mais le corpus Khánh Hà est lui aussi absent** — il faut
+>   d'abord le rapatrier (9 121 / 481 / 1 695, listes dans
+>   `ISPRS/CrackSAM/protocol/cracksam_paper/lists/lists_khanhha/`) ;
+> * **se rabattre sur `baseline_r4/best.pt`**, présente localement. L'écart
+>   `tol3 − baseline` vaut `+0,0035` d'IoU stricte, soit **sous le plancher de
+>   détection** de la campagne GeoLoRA (`±0,0024` à une graine) : sans
+>   conséquence pour la question multimodale, qui se joue sur des deltas
+>   appariés entre bras partageant la **même** baseline.
+>
+> **Leçon opérationnelle, à appliquer cette fois** : tout checkpoint produit sur
+> Spot doit être copié dans un `vm_backup_<horodatage>/` et son SHA-256 publié
+> **avant** l'arrêt. C'est ainsi que les poids de juillet ont survécu, et que
+> ceux d'août ont disparu.
 
 **Coût estimé de la campagne.** L'entraînement ne charge pas SAM : une époque est
 un petit réseau convolutif sur 286 images `480×640`, soit quelques secondes.
