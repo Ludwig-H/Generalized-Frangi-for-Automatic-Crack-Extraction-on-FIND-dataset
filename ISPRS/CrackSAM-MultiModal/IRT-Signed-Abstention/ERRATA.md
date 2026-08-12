@@ -100,7 +100,7 @@ marchent :
 
 ```bash
 python -m pytest "ISPRS/CrackSAM-MultiModal/IRT-Signed-Abstention/tests"   # depuis la racine
-cd ISPRS/CrackSAM-MultiModal/IRT-Signed-Abstention && python -m pytest -q  # 116 passed
+cd ISPRS/CrackSAM-MultiModal/IRT-Signed-Abstention && python -m pytest -q  # 121 passed
 ```
 
 *Correction de correction : une première version de cet errata affirmait que
@@ -124,6 +124,25 @@ qualité de l'évidence thermique. Vérifié sur des cas synthétiques à évide
 thermique parfaite : une fissure dont le logit baseline vaut `−6` reste manquée à
 `δ_max = 4` (IoU oracle `0,000`) et est parfaitement retrouvée à `δ_max = 8`
 (IoU oracle `1,000`).
+
+**Mesuré sur des logits réels.** CrackSAM 2 + LoRA `baseline_r4` a été chargé et
+exécuté sur quatre images, et la distribution de ses logits est sans ambiguïté :
+
+| `\|z₀\|` | p50 | p90 | p95 | p99 | max |
+|:--|--:|--:|--:|--:|--:|
+| CrackSAM réel | **9,44** | 10,61 | 10,91 | 11,61 | 12,71 |
+
+**99,5 % des pixels ont `|z₀| ≥ 4`.** À `δ_max = 4`, la correction serait donc
+inopérante presque partout — non parce que la thermique n'apporte rien, mais
+parce que la borne interdit d'agir. Le `clip(z₀, −10, 10)` du §5.1 disait déjà
+que ces logits vivent autour de ±10 ; le `δ_max = 4` du §5.3 l'ignore.
+
+> *Réserve honnête sur cette mesure* : les quatre images sont **synthétiques** et
+> hors distribution — le modèle y est confiant *négatif* partout
+> (`z₀ ∈ [−12,71 ; −2,51]`). Elle n'établit donc pas la distribution sur
+> IRT-Crack, mais elle établit l'**ordre de grandeur** des logits de ce modèle,
+> et il est incompatible avec une borne à 4. La mesure sur la vraie validation
+> reste à faire, et c'est exactement ce que fait la porte ci-dessous.
 
 Le danger n'est pas seulement de perdre du gain : c'est que la campagne
 **devienne inconcluante**. Un résultat plat ne saurait pas distinguer « la

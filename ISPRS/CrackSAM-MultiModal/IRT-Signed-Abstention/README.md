@@ -10,7 +10,8 @@
 
 > [!IMPORTANT]
 > **État au 12 août 2026.** Le code de cette spécification est écrit, et
-> `121 tests` passent sur CPU sans SAM 2 ni GPU ni jeu de données réel. **Aucun
+> `121 tests` passent sur CPU sans GPU ni jeu de données réel, et la chaîne a été
+> validée de bout en bout, **SAM 2 réel compris**. **Aucun
 > chiffre expérimental n'existe encore** : la campagne A0–A6 demande une VM G4,
 > le jeu IRT-Crack et le checkpoint `tol3`.
 >

@@ -8,7 +8,7 @@ qu'aucun n'existe.*
 
 | Code | Tests | Chaîne validée à blanc | Campagne sur IRT-Crack |
 |:--:|:--:|:--:|:--:|
-| 51 fichiers · ≈ 7 700 lignes | **121, tous verts, CPU** | **oui**, bout en bout | **non exécutée** |
+| 51 fichiers · ≈ 7 700 lignes | **121, tous verts, CPU** | **oui**, SAM 2 réel compris | **non exécutée** |
 
 </div>
 
@@ -134,11 +134,31 @@ n'a rien de la difficulté d'une chaussée réelle. Les chiffres de cette
 répétition ne sont pas reportés ici pour qu'ils ne puissent pas être confondus
 avec un résultat.
 
-`scripts/02_cache_cracksam_logits.py` est le **seul** script qui n'a jamais été
-exécuté : il demande SAM 2, absent de cette machine. Il est écrit contre l'API
-lue dans `cracksam2/model.py` (`build_cracksam2`, `load_adapter_state_dict`, clé
-`adapter` du checkpoint, sortie `output["logits"]`), mais cette API n'a pas été
-appelée pour de vrai.
+### 2.3 Les vrais poids, et la mesure qui en sort
+
+`scripts/02_cache_cracksam_logits.py` **a été exécuté pour de bon** : SAM 2
+Hiera-L et la LoRA `baseline_r4` sont présents localement, et le script les a
+chargés, appliqués et cachés sur quatre images, en CPU, sans erreur.
+
+```console
+$ python scripts/02_cache_cracksam_logits.py --device cpu --batch-size 1 …
+checkpoint LoRA : …/baseline_r4/best.pt (sha256 d154d60a82ec2a0a…)
+4 entrées, 0 erreur(s)
+```
+
+Il en sort une mesure qui **change la conception**, et pas qu'un peu :
+
+| `\|z₀\|` de CrackSAM | p50 | p90 | p95 | p99 | max |
+|:--|--:|--:|--:|--:|--:|
+| mesuré | **9,44** | 10,61 | 10,91 | 11,61 | 12,71 |
+
+**99,5 % des pixels ont `|z₀| ≥ 4`.** La valeur `delta_max = 4,0` recommandée par
+la spécification rendrait donc la correction inopérante presque partout — voir
+[errata §3](ERRATA.md). Les quatre images sont synthétiques et hors
+distribution, donc ce n'est pas la distribution d'IRT-Crack ; mais c'est l'ordre
+de grandeur des logits de ce modèle, et il est incompatible avec une borne à 4.
+La porte `08_correction_ceiling.py` doit trancher sur la vraie validation avant
+la campagne.
 
 ## 3. Écarts à la spécification
 
