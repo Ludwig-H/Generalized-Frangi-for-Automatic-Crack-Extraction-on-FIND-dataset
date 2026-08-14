@@ -545,6 +545,56 @@ def fig5_elagage() -> None:
 
 
 # --------------------------------------------------------------------------------------
+def fig6_hierarchie_oracle() -> None:
+    """La hiérarchie oracle est sémantique, pas géométrique."""
+    f = RESULTS / "oracle_hierarchy.json"
+    if not f.exists():
+        return
+    r = json.loads(f.read_text())["results"]
+    order = ["semantic", "semantic_permuted", "spatial_mincut", "crack_ordered",
+             "frangi_centroid", "quadtree", "random"]
+    labels = ["sémantique", "sémantique\nPERMUTÉE", "min-cut", "ordonnée",
+              "Frangi+centr.", "quadtree", "aléatoire"]
+    order = [o for o in order if o in r]
+    labels = labels[: len(order)]
+    loc = [r[o]["tie_dilution"]["crack_adj_median"] for o in order]
+    far = [r[o]["tie_dilution"]["crack_far_median"] for o in order]
+    cols = [ACCENT if o == "semantic" else (COOL if o == "semantic_permuted" else MUTED)
+            for o in order]
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.5, 3.9))
+    x = range(len(order))
+
+    for ax, vals, title, note in (
+        (ax1, loc, "Continuité LOCALE\npaires de fissure adjacentes",
+         "la compacité géométrique suffit :\nle quadtree fait aussi bien que l'oracle"),
+        (ax2, far, "Continuité à LONGUE PORTÉE\nau-delà de 16 tokens",
+         "seule la coupe sémantique y échappe,\net son contrôle permuté retombe à 808"),
+    ):
+        ax.bar(x, vals, color=cols, width=0.68)
+        ax.set_yscale("log")
+        ax.set_ylim(1, 1.2e4)
+        ax.set_xticks(list(x))
+        ax.set_xticklabels(labels, fontsize=7.5, rotation=22, ha="right")
+        ax.set_ylabel("dilution (échelle log)")
+        ax.set_title(title, loc="left", weight="bold")
+        for i, v in enumerate(vals):
+            ax.text(i, v * 1.22, f"{v:.0f}", ha="center", fontsize=9, weight="bold",
+                    color=cols[i] if cols[i] != MUTED else FG)
+        ax.text(0.5, 0.97, note, transform=ax.transAxes, ha="center", va="top",
+                fontsize=8, color=FG)
+
+    fig.suptitle(
+        "Fig. 6 — La hiérarchie oracle est sémantique, pas géométrique : "
+        "« dilution » = tokens moyennés avec j quand i l'attend",
+        x=0.01, ha="left", weight="bold", fontsize=10.5,
+    )
+    fig.tight_layout(rect=(0, 0, 1, 0.90))
+    fig.savefig(OUT / "fig6_hierarchie_oracle.png", dpi=160)
+    plt.close(fig)
+
+
+# --------------------------------------------------------------------------------------
 def main() -> int:
     OUT.mkdir(parents=True, exist_ok=True)
     if not (RESULTS / "sam2_attention_budget.json").exists():
@@ -563,6 +613,8 @@ def main() -> int:
     print(f"fig3_couverture_attention.png  ({stats['pct_cells']:.2f} % des cellules)")
     fig5_elagage()
     print("fig5_elagage.png")
+    fig6_hierarchie_oracle()
+    print("fig6_hierarchie_oracle.png")
 
     print(f"\nFigures dans {OUT}")
     return 0

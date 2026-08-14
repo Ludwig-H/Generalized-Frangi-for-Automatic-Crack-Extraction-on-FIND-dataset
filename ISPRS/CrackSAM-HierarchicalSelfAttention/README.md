@@ -11,6 +11,7 @@
 | 🎓 **Pour comprendre** | [`docs/00_COMPRENDRE.md`](docs/00_COMPRENDRE.md) — le problème en dix minutes, sans prérequis |
 | 📐 **Pour décider** | [`AUDIT.md`](AUDIT.md) — l'argumentaire chiffré, les contre-propositions, et ce qui rendrait le verdict faux |
 | 📄 **Pour vérifier HSA** | [`docs/01_RESUME_HSA.md`](docs/01_RESUME_HSA.md) — le papier NeurIPS en huit points |
+| 🎯 **La hiérarchie oracle** | [`docs/02_HIERARCHIE_ORACLE.md`](docs/02_HIERARCHIE_ORACLE.md) — ce qu'elle est, comment la calculer, et ce qu'elle demande vraiment |
 | ⚙️ **Pour agir** | [`experiments/02_attention_oracle.py`](experiments/02_attention_oracle.py) — l'oracle à lancer avant toute décision, 2 h de GPU |
 
 ---
@@ -61,7 +62,36 @@ et la profondeur passe de 358 à 2 414. Détail au [§3.5 de l'audit](AUDIT.md#3
 
 La meilleure version de l'idée est donc : **non élaguée, construite directement sur la grille
 64 × 64** — 100 % de couverture pour 4 096 nœuds et une profondeur de 157 au lieu de 2 414.
-Elle reste à `b = 1,15` et 86 % de nœuds internes à un seul enfant.
+Elle reste à `b = 1,15` et 86 % de nœuds internes à un seul enfant. Une **décomposition en
+centroïdes** la rééquilibre entièrement (profondeur 12, arité 2,82) : ce défaut-là est
+réparable, et le correctif est dans [`04`](experiments/04_oracle_hierarchy.py).
+
+### Et à quoi ressemblerait la hiérarchie *oracle* ?
+
+> *« Réfléchis aussi à ce que pourrait être la hiérarchie oracle, et comment la calculer à
+> partir de la vérité terrain. »* — Louis Hauseux, 14 août 2026
+
+Sept hiérarchies construites et notées ([`docs/02`](docs/02_HIERARCHIE_ORACLE.md)). La mesure
+est la **dilution** : combien de tokens sont moyennés avec `j` quand `i` l'attend — `1` =
+attention intacte.
+
+![La hiérarchie oracle](figures/fig6_hierarchie_oracle.png)
+
+**Aucune hiérarchie équilibrée ne préserve la continuité à longue portée** — toutes plafonnent
+entre 768 et 1 024, y compris celle qui cherche explicitement à éviter la fissure. Une coupe
+équilibrée au niveau 1 partage l'image en deux, donc coupe toute fissure qui la traverse. Or
+l'équilibre est exactement ce que HSA exige. **L'efficacité et la continuité s'opposent
+frontalement.**
+
+La seule échappatoire abandonne l'équilibre au sommet : `{fissure, fond}`, puis découpage
+compact. Dilution à longue portée **181**, contre **808** pour son contrôle permuté — la
+séparation aligné/permuté la plus nette de tout le dossier CrackSAM.
+
+> **Mais l'oracle ne demande qu'une carte binaire fissure/fond.** Ni MST, ni composantes, ni
+> centralité : pas la partie du Frangi-Graphe qui n'avait jamais été testée et qui motivait ce
+> dossier. C'est `node_sim_max` seuillé — la carte même qui a échoué comme prompt dense. La
+> question devient donc : **la même carte, comme structure de blocs de l'attention plutôt que
+> comme hypothèse de masque, aide-t-elle ?** C'est le bras `block` de l'oracle P0.
 
 ## Ce que l'audit recommande à la place
 
@@ -74,8 +104,9 @@ Elle reste à `b = 1,15` et 86 % de nœuds internes à un seul enfant.
 | **P3** | **Multimodal sur FIND** — la direction que le dépôt recommande déjà | — | `A7 − A8 = +0,0041` est le seul écart aligné/permuté significatif de 5 itérations |
 
 L'oracle P0 comporte deux bras, et le second est le test direct de l'idée : il applique la
-**vraie block constraint de HSA avec la partition parfaite**. Si lier les coefficients coûte
-de l'IoU même avec une hiérarchie parfaite, une hiérarchie bruitée ne peut que faire pire.
+**vraie block constraint de HSA avec la partition parfaite**. Le tableau ci-dessus établit que
+cette partition **est** l'oracle : il n'y a pas de hiérarchie plus riche à chercher avant de
+l'avoir lancée.
 
 Pour situer le coût : une évaluation complète des 6 conditions (8 895 images) prend **3,9 min**
 de forward sur le G4 du projet, quand une nouvelle variante × 3 graines en demande
@@ -87,11 +118,13 @@ P2 sont des campagnes.
 ```
 docs/00_COMPRENDRE.md                 le problème en dix minutes, avec les figures
 docs/01_RESUME_HSA.md                 le papier NeurIPS 2025 en 8 points, limitations comprises
+docs/02_HIERARCHIE_ORACLE.md          la hiérarchie oracle : construction, mesure, conséquences
 AUDIT.md                              l'audit : raisonnement, mesures, contre-propositions, conditions de réfutation
 experiments/00_sam2_attention_budget.py   où sont les matrices d'attention de SAM 2, et ce qu'elles coûtent
 experiments/01_frangi_tree_shape.py       forme de l'arbre de Frangi vs. exigences de HSA
 experiments/02_attention_oracle.py        l'oracle P0, prêt à lancer (+ auto-test sans GPU)
-experiments/03_figures.py                 les cinq figures, engendrées depuis les mesures
+experiments/03_figures.py                 les six figures, engendrées depuis les mesures
+experiments/04_oracle_hierarchy.py        sept hiérarchies candidates, construites et notées
 figures/                              fig1 à fig5, engendrées, jamais dessinées à la main
 results/                              sorties JSON des mesures :
                                         sam2_attention_budget         — §3.1
@@ -99,6 +132,7 @@ results/                              sorties JSON des mesures :
                                         ..._thin / ..._default        — robustesse à 256 px
                                         ..._khanhha_noprune           — §3.5, sans élagage
                                         ..._tokengrid_noprune         — §3.5, grille 64x64
+                                        oracle_hierarchy              — §3.6, sept hiérarchies
 NeurIPS-2025-...-Paper-Conference.pdf le papier source
 ```
 
@@ -119,6 +153,8 @@ python ISPRS/CrackSAM-HierarchicalSelfAttention/experiments/01_frangi_tree_shape
 python ISPRS/CrackSAM-HierarchicalSelfAttention/experiments/01_frangi_tree_shape.py \
     --size 448 --width 9 --branches 1 --trunk-scale 0.8 --n-images 3 \
     --no-prune --downsample-to 64 --sigma 1 2 3 --tag tokengrid_noprune
+
+python ISPRS/CrackSAM-HierarchicalSelfAttention/experiments/04_oracle_hierarchy.py --n-images 3
 
 python ISPRS/CrackSAM-HierarchicalSelfAttention/experiments/03_figures.py
 

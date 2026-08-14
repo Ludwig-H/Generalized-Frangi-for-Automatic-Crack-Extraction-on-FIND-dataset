@@ -28,7 +28,7 @@ fondée, elle règle bien un des obstacles, et elle en aggrave un autre.
 
 - [1. L'intuition est bonne, et il faut le dire d'abord](#1-lintuition-est-bonne-et-il-faut-le-dire-dabord)
 - [2. Ce que HSA fait réellement](#2-ce-que-hsa-fait-réellement)
-- [3. Les obstacles mesurés](#3-les-obstacles-mesurés)
+- [3. Les obstacles mesurés](#3-les-obstacles-mesurés) — dont [§3.5](#35-retirer-lélagage-avant-le-mst--ce-que-cela-règle-et-ce-que-cela-aggrave) et [§3.6](#36-à-quoi-ressemblerait-la-hiérarchie-oracle--et-ce-quelle-demande-vraiment), les deux objections
 - [4. Ce que cinq itérations ont déjà établi](#4-ce-que-cinq-itérations-ont-déjà-établi)
 - [5. Verdict](#5-verdict)
 - [6. Ce que je propose à la place, par ordre de valeur attendue](#6-ce-que-je-propose-à-la-place-par-ordre-de-valeur-attendue)
@@ -361,6 +361,62 @@ centroïdes, qui donne `O(log N)` de profondeur, ou un quadtree raffiné là où
 C'est un objet de conception à part entière, dont le Frangi-Graphe ne fournirait que
 l'ossature, et c'est la quatrième condition de réfutation du §8.
 
+### 3.6 À quoi ressemblerait la hiérarchie oracle — et ce qu'elle demande vraiment
+
+> Deuxième objection de Louis Hauseux, le 14 août 2026 : *« réfléchis aussi à ce que pourrait
+> être la hiérarchie oracle, et comment la calculer à partir de la vérité terrain. »* Elle
+> sépare « la hiérarchie de Frangi est-elle assez bonne ? » de « **une** hiérarchie
+> aiderait-elle ? ». Le détail est dans [`docs/02_HIERARCHIE_ORACLE.md`](docs/02_HIERARCHIE_ORACLE.md) ;
+> voici le résultat.
+
+![La hiérarchie oracle](figures/fig6_hierarchie_oracle.png)
+
+La mesure comparable entre hiérarchies de profondeurs et d'arités différentes est la
+**dilution** : quand `i` attend `j`, la clé et la valeur de `j` sont moyennées avec les
+`|B′| − 1` autres feuilles de son plus haut ancêtre distinct. `1` = attention intacte.
+Sept hiérarchies, toutes laminaires, toutes complètes sur la grille 64 × 64 :
+
+| hiérarchie | prof. | arité | dilution **locale** | dilution **longue portée** |
+|---|---:|---:|---:|---:|
+| **`semantic` — {fissure, fond} au sommet** | 10,3 | 3,17 | **2** | **181** |
+| `semantic_permuted` — contrôle causal | 10,0 | 3,23 | 2 | **808** |
+| `spatial_mincut` — équilibré, évitant la fissure | 9,3 | 2,75 | 3 | 768 |
+| `crack_ordered` — ordonné le long du squelette | 10,0 | 2,66 | 12 | 1 024 |
+| `frangi_centroid` — MST de Frangi rééquilibré | 12,0 | 2,82 | 4 | 1 013 |
+| `quadtree` — aucune connaissance de la fissure | 7,0 | 4,00 | **2** | 1 024 |
+| `random` | 7,0 | 4,00 | 1 024 | 1 024 |
+
+**Aucune hiérarchie équilibrée ne peut préserver la continuité à longue portée.** Toutes
+plafonnent entre 768 et 1 024, y compris celle qui *cherche* explicitement à éviter la
+fissure. C'est forcé : une coupe équilibrée au niveau 1 partage l'image en deux moitiés, donc
+coupe toute fissure qui la traverse. Or l'équilibre est exactement ce que HSA exige pour son
+`O(M·b²)`. **L'efficacité et la continuité s'opposent frontalement.**
+
+**La seule échappatoire abandonne l'équilibre au sommet** : mettre la fissure entière dans un
+sous-arbre. La dilution à longue portée tombe à `|fissure|/arité ≈ 181`, sans rien coûter en
+local. Et le contrôle permuté donne `808` : le gain est causalement dû au **bon masque** —
+c'est la séparation aligné-contre-permuté la plus nette de tout le dossier CrackSAM.
+
+**Pour le local, la compacité géométrique suffit.** Le quadtree, qui ne sait rien de la
+fissure, égale l'oracle (dilution 2) ; `spatial_mincut`, qui essaie explicitement, fait moins
+bien, parce qu'il échange de la compacité contre du contournement. C'est la re-dérivation,
+depuis les premiers principes et dans notre cadre, de l'annexe L du papier HSA.
+
+> [!IMPORTANT]
+> **Ce que l'oracle demande réellement : une carte binaire fissure/fond.** Ni MST, ni
+> composantes, ni centralité — donc *pas* la partie du Frangi-Graphe qui n'avait jamais été
+> testée et qui motivait ce dossier. Ce qu'il faut, c'est `node_sim_max` seuillé : la carte
+> même qui a échoué comme prompt dense en juillet. La question devient donc précise et
+> ouverte : **la même carte, injectée comme structure de blocs de l'attention au lieu
+> d'hypothèse de masque, aide-t-elle ?** C'est exactement le bras `block` du §P0.
+
+Note constructive au passage : la **décomposition en centroïdes** répare le défaut du §3.3.
+Elle transforme la chenille de Frangi (`b ≈ 1,15`, profondeur 157) en un arbre de profondeur
+12 et d'arité 2,82, pleinement compatible avec HSA. Le correctif que le §8 mentionnait sans
+le construire tient en trente lignes et il est dans
+[`04_oracle_hierarchy.py`](experiments/04_oracle_hierarchy.py). Il ne sauve pas la méthode —
+dilution 4 en local, 1 013 en longue portée — mais il retire un argument de l'audit.
+
 ---
 
 ## 4. Ce que cinq itérations ont déjà établi
@@ -434,7 +490,10 @@ l'objection du §3.5 en a fait tomber un huitième, et qu'elle avait raison :
    ni la suppression complète de l'élagage n'y changent quoi que ce soit (§3.5).
 
 > [!NOTE]
-> **Ce qui est tombé.** La couverture — quatrième obstacle de la première version de cet
+> **Ce qui est tombé — deux fois.** Le §3.6 retire un second argument : la
+> **décomposition en centroïdes** rend le MST de Frangi pleinement compatible avec HSA
+> (profondeur 12, arité 2,82). Le fait 6 ne vaut donc que pour le MST *brut*, pas pour ce
+> qu'on peut en faire. Et la couverture — quatrième obstacle de la première version de cet
 > audit — **n'en est plus un** : retirer l'élagage avant le MST porte la couverture de
 > 0,58 % à 100 % des cellules de la matrice. L'objection est de Louis Hauseux et elle était
 > juste. Elle a un prix, mesuré au §3.5 : la profondeur passe de 358 à 2 414 à pleine
@@ -482,6 +541,11 @@ contrainte issue de Frangi ne peut pas faire mieux, seulement pire.
 - Si `max_β ΔIoU < +0,01` → **toute la famille est morte**, HSA compris, et vous l'aurez
   su en une matinée.
 - Si `ΔIoU > +0,03` → il y a du gras, et le §P2 devient légitime.
+
+> [!TIP]
+> Le §3.6 établit que ce second bras **est** l'oracle : la meilleure hiérarchie possible pour
+> une fissure est `{fissure, fond}` au sommet, et il n'y a pas de structure plus riche à
+> chercher avant de l'avoir lancée.
 
 **Le second bras, qui teste votre mécanisme directement.** Le même script applique la
 **vraie block constraint de HSA** — terme `log |ℓ(B)|` de l'algorithme 3 compris — avec la
@@ -633,7 +697,10 @@ python ISPRS/CrackSAM-HierarchicalSelfAttention/experiments/00_sam2_attention_bu
 python ISPRS/CrackSAM-HierarchicalSelfAttention/experiments/01_frangi_tree_shape.py \
     --size 448 --width 9 --branches 1 --trunk-scale 0.8 --n-images 3 --tag khanhha
 
-# les quatre figures de ce document
+# §3.6 — les sept hiérarchies candidates et leurs dilutions
+python ISPRS/CrackSAM-HierarchicalSelfAttention/experiments/04_oracle_hierarchy.py --n-images 3
+
+# les six figures de ce document
 python ISPRS/CrackSAM-HierarchicalSelfAttention/experiments/03_figures.py
 
 # la mécanique de l'oracle recommandé au §P0, sans GPU ni poids
@@ -698,6 +765,7 @@ Par honnêteté, les conditions sous lesquelles je me trompe :
 ## Références internes
 
 - [Résumé technique de HSA](docs/01_RESUME_HSA.md) — le papier NeurIPS en 8 points.
+- [La hiérarchie oracle](docs/02_HIERARCHIE_ORACLE.md) — construction, mesure et conséquences des sept hiérarchies candidates.
 - [Question expérimentale de la ligne CrackSAM](../CrackSAM/docs/01_EXPERIMENTAL_QUESTION.md)
 - [Guidage géométrique anti-ombre](../CrackSAM/docs/10_GUIDAGE_GEOMETRIQUE_ANTI_OMBRE_CRACKSAM2.md) — §6.1 « étape zéro : plafond oracle ».
 - [Rapport CrackSAM-GFA](../CrackSAM-GFA/RAPPORT.md) — §6.1, l'erreur d'échelle à 19,1 px.

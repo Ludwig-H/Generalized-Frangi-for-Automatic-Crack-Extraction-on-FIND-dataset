@@ -248,6 +248,49 @@ dit non quatre fois.
 > profondeur 39 fois celle d'un arbre équilibré. Si l'on va au bout de l'idée, c'est de
 > celle-là qu'il faut partir.
 
+### 4.5 Et si la hiérarchie était parfaite ? — la hiérarchie oracle
+
+Les deux sections précédentes disent que *notre* hiérarchie est mauvaise. Elles ne disent pas
+qu'une bonne hiérarchie aiderait. C'est une question distincte, et on peut y répondre en
+construisant la meilleure hiérarchie possible **à partir de la vérité terrain**.
+
+La mesure qui compte est la **dilution** : quand `i` attend `j`, la clé et la valeur de `j`
+sont moyennées avec tous les autres tokens de son bloc. `1` = attention intacte, `1 024` =
+`j` est noyé dans un quart de l'image.
+
+![La hiérarchie oracle](../figures/fig6_hierarchie_oracle.png)
+
+Sept hiérarchies ont été construites et notées ([`02_HIERARCHIE_ORACLE.md`](02_HIERARCHIE_ORACLE.md)).
+Deux enseignements.
+
+**Aucune hiérarchie *équilibrée* ne préserve la continuité à longue portée.** Quadtree,
+bipartition à coupe minimale qui cherche pourtant à éviter la fissure, ordonnancement le long
+du squelette, MST de Frangi rééquilibré : toutes plafonnent entre 768 et 1 024. C'est forcé.
+Une coupe équilibrée au niveau 1 partage l'image en deux moitiés, donc **coupe toute fissure
+qui la traverse** — et deux tokens de fissure éloignés se retrouvent reliés par une unique
+valeur partagée avec un quart de l'image. Or l'équilibre est exactement ce que HSA exige pour
+sa complexité et sa profondeur logarithmique : **l'efficacité et la continuité s'opposent
+frontalement.**
+
+**La seule échappatoire abandonne l'équilibre au sommet** : mettre la fissure entière dans un
+sous-arbre, le fond dans l'autre. La dilution à longue portée tombe à **181**, sans rien
+coûter en local. Et le contrôle permuté — la même construction avec la fissure d'une *autre*
+image — remonte à **808**. Le gain vient donc bien du bon masque.
+
+> Mais regardez ce que cette hiérarchie oracle demande : **une carte binaire fissure/fond.**
+> Ni MST, ni composantes, ni centralité de betweenness. C'est-à-dire : *pas* la partie du
+> Frangi-Graphe qui n'avait jamais été testée, et qui motivait ce dossier. C'est
+> `node_sim_max` seuillé — la carte même qui a échoué comme prompt dense en juillet.
+>
+> La question devient donc précise, et elle reste ouverte : **la même carte, injectée comme
+> structure de blocs de l'attention au lieu d'hypothèse de masque, aide-t-elle ?** C'est
+> exactement le bras `block` de l'oracle du §6.
+
+Une bonne nouvelle au passage : la **décomposition en centroïdes** répare le défaut du §4.2.
+Elle transforme la chenille de Frangi en un arbre de profondeur 12 et d'arité 2,82, pleinement
+compatible avec HSA. Ce défaut-là était réparable ; il ne l'était pas dans le pipeline actuel,
+il l'est en trente lignes.
+
 ---
 
 ## 5. Ce que cinq itérations ont déjà appris, et qu'il faut respecter
@@ -342,6 +385,9 @@ python ISPRS/CrackSAM-HierarchicalSelfAttention/experiments/01_frangi_tree_shape
 # les figures de ce document
 python ISPRS/CrackSAM-HierarchicalSelfAttention/experiments/03_figures.py
 
+# les sept hiérarchies candidates, construites et notées
+python ISPRS/CrackSAM-HierarchicalSelfAttention/experiments/04_oracle_hierarchy.py --n-images 3
+
 # la mécanique de l'oracle, sans GPU
 python ISPRS/CrackSAM-HierarchicalSelfAttention/experiments/02_attention_oracle.py --self-test
 ```
@@ -364,10 +410,13 @@ python ISPRS/CrackSAM-HierarchicalSelfAttention/experiments/02_attention_oracle.
 > dont le branchement ne se règle pas. Retirer l'élagage lui fait bien couvrir toute la
 > matrice — c'est acquis — mais triple sa profondeur sans toucher à son branchement. Avant
 > d'écrire quoi que ce soit, poser l'oracle d'attention : deux heures, et l'on saura s'il
-> existe un plafond à atteindre.
+> existe un plafond à atteindre. Et l'on sait désormais que ce test **est** l'oracle : la
+> meilleure hiérarchie possible pour une fissure est `{fissure, fond}` au sommet, et elle ne
+> demande qu'une carte binaire — ni MST, ni centralité.
 
 ---
 
 **Suite de lecture :** [`../AUDIT.md`](../AUDIT.md) pour l'argumentaire complet et les
 conditions sous lesquelles ce verdict serait faux ; [`01_RESUME_HSA.md`](01_RESUME_HSA.md)
-pour le papier NeurIPS en huit points.
+pour le papier NeurIPS en huit points ; [`02_HIERARCHIE_ORACLE.md`](02_HIERARCHIE_ORACLE.md)
+pour la construction et la notation des sept hiérarchies candidates.
