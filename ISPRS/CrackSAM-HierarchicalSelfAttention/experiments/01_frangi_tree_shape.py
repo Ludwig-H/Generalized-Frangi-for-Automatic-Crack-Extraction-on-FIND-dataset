@@ -108,9 +108,15 @@ def synth_crack(
 # --------------------------------------------------------------------------------------
 # Graphe de Frangi -> MST, instrumenté
 # --------------------------------------------------------------------------------------
-def frangi_mst(img: np.ndarray, device: str = "cpu"):
+def frangi_mst(img: np.ndarray, device: str = "cpu", prune: bool = True):
     """Reproduit `extract_frangi_graph_gpu` (K=1) mais **renvoie l'arbre** au lieu de le
-    rastériser. C'est exactement le MST que consomme `extract_backbone_centrality`."""
+    rastériser. C'est exactement le MST que consomme `extract_backbone_centrality`.
+
+    `prune=False` retire les trois étapes d'élagage qui précèdent le MST — le seuil de
+    candidature `tau_1`, les seuils `tau` sur arêtes puis sur nœuds — de sorte que l'arbre
+    couvre **tous** les pixels. C'est la condition demandée pour obtenir une hiérarchie
+    complète au sens de HSA (une partition de la totalité des tokens).
+    """
     fh = FrangiHessianGPU(SIGMA, device=device)
     t = torch.from_numpy(img).to(device)
 
@@ -130,7 +136,11 @@ def frangi_mst(img: np.ndarray, device: str = "cpu"):
         scale_data.append((rb, sn, th))
 
     H, W = max_S.shape
-    cand = max_S > max_S.max() * 0.01
+    cand = (
+        max_S > max_S.max() * 0.01
+        if prune
+        else torch.ones_like(max_S, dtype=torch.bool)  # tous les pixels sont candidats
+    )
     coords = torch.nonzero(cand)
     N = int(coords.shape[0])
     if N == 0:
@@ -171,11 +181,14 @@ def frangi_mst(img: np.ndarray, device: str = "cpu"):
 
     d_ij = (1 - S) * dist.unsqueeze(0).expand(N, -1)[ok] + 1e-8
 
-    # Seuillage arêtes puis nœuds, à tau
+    # Seuillage arêtes puis nœuds, à tau (sauté si prune=False)
     n_e = len(S)
-    k_e = max(1, int(n_e * TAU))
-    thr = torch.kthvalue(S, n_e - k_e + 1).values.item() if n_e > k_e else -1.0
-    m = (S >= thr).cpu().numpy()
+    if prune:
+        k_e = max(1, int(n_e * TAU))
+        thr = torch.kthvalue(S, n_e - k_e + 1).values.item() if n_e > k_e else -1.0
+        m = (S >= thr).cpu().numpy()
+    else:
+        m = np.ones(n_e, dtype=bool)
     i_v, j_v = i_idx.cpu().numpy()[m], j_idx.cpu().numpy()[m]
     S_v, d_v = S.cpu().numpy()[m], d_ij.cpu().numpy()[m]
 
@@ -183,7 +196,7 @@ def frangi_mst(img: np.ndarray, device: str = "cpu"):
     np.maximum.at(node_sim, i_v, S_v)
     np.maximum.at(node_sim, j_v, S_v)
 
-    k_n = max(1, int(N * TAU))
+    k_n = max(1, int(N * TAU)) if prune else N
     cands = np.unique(np.concatenate([i_v, j_v]))
     if len(cands) > k_n:
         sims = node_sim[cands]
@@ -322,6 +335,17 @@ def main() -> int:
     ap.add_argument("--width", type=float, default=1.6, help="demi-largeur de la fissure en px")
     ap.add_argument("--branches", type=int, default=3)
     ap.add_argument("--trunk-scale", type=float, default=2.0)
+    ap.add_argument(
+        "--no-prune",
+        action="store_true",
+        help="retire tau_1 et les deux seuils tau : l'arbre couvre alors TOUS les pixels",
+    )
+    ap.add_argument(
+        "--downsample-to",
+        type=int,
+        default=None,
+        help="construit le graphe directement à cette résolution (64 = grille de tokens SAM 2)",
+    )
     ap.add_argument("--tag", type=str, default="default", help="suffixe du fichier de résultats")
     ap.add_argument(
         "--sigma",
@@ -344,7 +368,11 @@ def main() -> int:
             width=args.width,
             trunk_scale=args.trunk_scale,
         )
-        g = frangi_mst(img)
+        if args.downsample_to:
+            k = img.shape[0] // args.downsample_to
+            img = img.reshape(args.downsample_to, k, args.downsample_to, k).mean(axis=(1, 3))
+            gt = gt.reshape(args.downsample_to, k, args.downsample_to, k).any(axis=(1, 3))
+        g = frangi_mst(img, prune=not args.no_prune)
         if g is None:
             print(f"seed {seed}: graphe vide, ignoré")
             continue
@@ -354,6 +382,9 @@ def main() -> int:
             n_candidates=g["n_candidates"],
             n_graph_nodes=g["n_graph_nodes"],
             gt_pixel_pct=100.0 * gt.mean(),
+            pruned=not args.no_prune,
+            n_pixels=int(img.shape[0] * img.shape[1]),
+            tree_pixel_coverage_pct=100.0 * g["n_tree_nodes"] / (img.shape[0] * img.shape[1]),
         )
         rows.append(st)
         print(
@@ -373,7 +404,11 @@ def main() -> int:
     print("\n" + "=" * 78)
     print("MOYENNES")
     print("=" * 78)
-    print(f"nœuds de l'arbre                        : {avg('n_tree_nodes'):.0f}")
+    print(f"nœuds de l'arbre                        : {avg('n_tree_nodes'):.0f}"
+          f"  ({avg('tree_pixel_coverage_pct'):.1f} % des pixels)")
+    print(f"feuilles de l'arbre                     : {avg('n_leaves'):.0f}"
+          f"  ({100*avg('n_leaves')/avg('n_tree_nodes'):.1f} % des nœuds ;"
+          f" il en faudrait 87,5 % pour b=8)")
     print(f"profondeur de l'arbre enraciné          : {avg('depth_max'):.0f}")
     print(f"profondeur d'un arbre équilibré (b=8)   : {avg('depth_if_balanced_b8'):.1f}")
     print(f"facteur de branchement moyen (internes) : {avg('branching_mean_internal'):.2f}")

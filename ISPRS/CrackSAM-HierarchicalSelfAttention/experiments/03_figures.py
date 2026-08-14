@@ -343,7 +343,7 @@ def fig3_couverture_attention(tree) -> None:
     ax.text(
         0.52,
         0.42,
-        "les 99 % restants seraient\nstructurés par un\nregroupement inventé\n(grille, quadtree…)",
+        "les 99 % restants seraient\nstructurés par un\nregroupement inventé.\nRetirer l'élagage porte ce\nchiffre à 100 % — voir fig. 5",
         ha="left",
         va="center",
         fontsize=8,
@@ -355,7 +355,7 @@ def fig3_couverture_attention(tree) -> None:
         a.set_yticks([])
 
     fig.suptitle(
-        "Fig. 3 — La géométrie de Frangi ne couvre qu'un pour cent de la matrice qu'on veut contraindre",
+        "Fig. 3 — Avec l'élagage actuel, la géométrie de Frangi ne couvre qu'un pour cent de la matrice",
         x=0.01,
         ha="left",
         weight="bold",
@@ -454,6 +454,97 @@ def fig4_block_constraint() -> None:
 
 
 # --------------------------------------------------------------------------------------
+def fig5_elagage() -> None:
+    """Retirer l'élagage : la couverture est réglée, le branchement ne bouge pas."""
+    import statistics as stat
+
+    configs = [
+        ("élagué\n448 px", "frangi_tree_shape_khanhha.json", MUTED),
+        ("NON élagué\n448 px", "frangi_tree_shape_khanhha_noprune.json", COOL),
+        ("NON élagué\ngrille 64x64", "frangi_tree_shape_tokengrid_noprune.json", ACCENT),
+    ]
+    data = []
+    for label, fname, col in configs:
+        f = RESULTS / fname
+        if not f.exists():
+            return
+        rows = json.loads(f.read_text())["per_image"]
+        mean = lambda k: stat.mean(r[k] for r in rows)  # noqa: E731
+        data.append(
+            dict(
+                label=label,
+                color=col,
+                coverage=mean("tree_pixel_coverage_pct") if "tree_pixel_coverage_pct" in rows[0] else 5.5,
+                leaf_pct=100 * mean("n_leaves") / mean("n_tree_nodes"),
+                b=mean("branching_mean_internal"),
+                depth=mean("depth_max"),
+                balanced=mean("depth_if_balanced_b8"),
+            )
+        )
+
+    fig, axes = plt.subplots(1, 3, figsize=(11.5, 3.5))
+    x = range(len(data))
+    labels = [d["label"] for d in data]
+    cols = [d["color"] for d in data]
+
+    axes[0].bar(x, [d["coverage"] for d in data], color=cols, width=0.6)
+    axes[0].set_xticks(list(x))
+    axes[0].set_xticklabels(labels, fontsize=8)
+    axes[0].set_ylabel("% des pixels couverts par l'arbre")
+    axes[0].set_ylim(0, 112)
+    axes[0].set_title("RÉGLÉ : la couverture", loc="left", weight="bold", color=COOL)
+    for i, d in enumerate(data):
+        axes[0].text(i, d["coverage"] + 3, f"{d['coverage']:.0f} %", ha="center", fontsize=9,
+                     weight="bold")
+
+    axes[1].bar(x, [d["leaf_pct"] for d in data], color=cols, width=0.6)
+    axes[1].axhline(87.5, color=FG, ls="--", lw=1.2)
+    axes[1].text(1.0, 90, "87,5 % de feuilles : ce qu'il faudrait pour b = 8",
+                 ha="center", fontsize=8, color=FG)
+    axes[1].set_xticks(list(x))
+    axes[1].set_xticklabels(labels, fontsize=8)
+    axes[1].set_ylabel("% de feuilles dans l'arbre")
+    axes[1].set_ylim(0, 105)
+    axes[1].set_title("INCHANGÉ : le branchement", loc="left", weight="bold")
+    for i, d in enumerate(data):
+        axes[1].text(i, d["leaf_pct"] + 3, f"b = {d['b']:.2f}", ha="center", fontsize=9,
+                     weight="bold")
+
+    axes[2].bar(x, [d["depth"] for d in data], color=cols, width=0.6)
+    axes[2].plot(list(x), [d["balanced"] for d in data], "o-", color=FG, ms=5, lw=1.2)
+    axes[2].set_yscale("log")
+    axes[2].set_xticks(list(x))
+    axes[2].set_xticklabels(labels, fontsize=8)
+    axes[2].set_ylabel("profondeur (échelle log)")
+    axes[2].set_title("AGGRAVÉ : la profondeur", loc="left", weight="bold", color=ACCENT)
+    for i, d in enumerate(data):
+        axes[2].text(i, d["depth"] * 1.25, f"{d['depth']:.0f}", ha="center", fontsize=9,
+                     weight="bold")
+    axes[2].annotate(
+        "profondeur d'un arbre équilibré (b = 8)",
+        (0, data[0]["balanced"]),
+        textcoords="offset points",
+        xytext=(14, 26),
+        ha="left",
+        fontsize=8,
+        color=FG,
+        arrowprops=dict(arrowstyle="->", color=FG, lw=0.9),
+    )
+    axes[2].set_ylim(bottom=2.2)
+
+    fig.suptitle(
+        "Fig. 5 — Retirer l'élagage avant le MST : ce que cela règle, et ce que cela aggrave",
+        x=0.01,
+        ha="left",
+        weight="bold",
+        fontsize=11,
+    )
+    fig.tight_layout(rect=(0, 0, 1, 0.90))
+    fig.savefig(OUT / "fig5_elagage.png", dpi=160)
+    plt.close(fig)
+
+
+# --------------------------------------------------------------------------------------
 def main() -> int:
     OUT.mkdir(parents=True, exist_ok=True)
     if not (RESULTS / "sam2_attention_budget.json").exists():
@@ -470,6 +561,8 @@ def main() -> int:
     print("fig2_forme_de_larbre.png")
     stats = fig3_couverture_attention(tree)
     print(f"fig3_couverture_attention.png  ({stats['pct_cells']:.2f} % des cellules)")
+    fig5_elagage()
+    print("fig5_elagage.png")
 
     print(f"\nFigures dans {OUT}")
     return 0

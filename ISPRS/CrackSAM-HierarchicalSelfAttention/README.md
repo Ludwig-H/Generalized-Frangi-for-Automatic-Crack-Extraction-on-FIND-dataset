@@ -21,10 +21,10 @@ Une fissure n'est pas définie par sa couleur mais par sa **connexité**. Or l'a
 Softmax de SAM 2 compare des vecteurs deux à deux : **elle n'a aucun prior de chemin**. Nous
 avons précisément cela — un graphe, un MST, une centralité de betweenness. Mettre cette
 structure dans l'attention est l'idée la plus directe de toute la lignée CrackSAM, et
-meilleure que les quatre précédentes, qui injectaient la géométrie *à côté* du raisonnement
+meilleure que les cinq précédentes, qui injectaient la géométrie *à côté* du raisonnement
 du modèle plutôt que dedans.
 
-Et le graphe complet **n'a jamais été testé** : les quatre échecs portent tous sur des cartes
+Et le graphe complet **n'a jamais été testé** : tous les échecs portent sur des cartes
 raster, `compute_centrality=False` partout (`ISPRS/src/graph_extraction.py:263`).
 
 **Le no-go ne porte donc pas sur l'endroit, mais sur l'outil : HSA est un compresseur
@@ -37,7 +37,7 @@ d'attention, et on cherche un injecteur de prior.**
 | Beaucoup de matrices d'attention à contraindre | **3 blocs sur 48** dans Hiera-L, `64×64`, **6,56 %** des FLOPs du tronc | [`00`](experiments/00_sam2_attention_budget.py) |
 | Un arbre **laminaire**, tokens aux **feuilles** | un **MST**, dont les nœuds *sont* les pixels ; la centralité rend un **scalaire**, pas une partition | `src/frangi_fusion/mst_kcenters.py:79` |
 | Un arbre **équilibré**, profondeur `log_b N` | une **chenille** : `b ≈ 1,3`, **72 %** de nœuds à un seul enfant, profondeur **358** contre **4,5** | [`01`](experiments/01_frangi_tree_shape.py) |
-| Une hiérarchie qui couvre la matrice | **0,58 %** des cellules de la matrice `4096²` portent de la géométrie de Frangi | [`01`](experiments/01_frangi_tree_shape.py) |
+| Un branchement réglable | `b = (N−1)/(N−L)` est **fixé par la fraction de feuilles** : 13 à 25 %, là où `b = 8` en exigerait 87,5 % | [`01`](experiments/01_frangi_tree_shape.py) |
 | Un mécanisme qui **injecte** un prior | HSA **comprime** : KL-optimal *sous* contrainte, **zéro paramètre apprenable**, **7 dégradations sur 7** en zero-shot | [`docs/01`](docs/01_RESUME_HSA.md) |
 
 ![Où est l'attention dans SAM 2](figures/fig1_ou_est_lattention.png)
@@ -47,6 +47,21 @@ d'attention, et on cherche un injecteur de prior.**
 ![Couverture de la matrice d'attention](figures/fig3_couverture_attention.png)
 
 ![La block constraint](figures/fig4_block_constraint.png)
+
+### L'objection à laquelle le dossier répond par la mesure
+
+> *« Pour obtenir une hiérarchie complète, il faudra bien sûr enlever l'élagage avant calcul
+> du MST. »* — Louis Hauseux, 14 août 2026
+
+Elle est juste, et elle **lève un des obstacles mesurés** : la couverture passe de 0,58 % à
+100 % des cellules. Mais le branchement ne bouge pas — c'est une identité, pas un réglage —
+et la profondeur passe de 358 à 2 414. Détail au [§3.5 de l'audit](AUDIT.md#35-retirer-lélagage-avant-le-mst--ce-que-cela-règle-et-ce-que-cela-aggrave).
+
+![Retirer l'élagage](figures/fig5_elagage.png)
+
+La meilleure version de l'idée est donc : **non élaguée, construite directement sur la grille
+64 × 64** — 100 % de couverture pour 4 096 nœuds et une profondeur de 157 au lieu de 2 414.
+Elle reste à `b = 1,15` et 86 % de nœuds internes à un seul enfant.
 
 ## Ce que l'audit recommande à la place
 
@@ -76,9 +91,14 @@ AUDIT.md                              l'audit : raisonnement, mesures, contre-pr
 experiments/00_sam2_attention_budget.py   où sont les matrices d'attention de SAM 2, et ce qu'elles coûtent
 experiments/01_frangi_tree_shape.py       forme de l'arbre de Frangi vs. exigences de HSA
 experiments/02_attention_oracle.py        l'oracle P0, prêt à lancer (+ auto-test sans GPU)
-experiments/03_figures.py                 les quatre figures, engendrées depuis les mesures
-figures/                              les figures
-results/                              sorties JSON des mesures
+experiments/03_figures.py                 les cinq figures, engendrées depuis les mesures
+figures/                              fig1 à fig5, engendrées, jamais dessinées à la main
+results/                              sorties JSON des mesures :
+                                        sam2_attention_budget         — §3.1
+                                        frangi_tree_shape_khanhha     — §3.3 et §3.4, référence
+                                        ..._thin / ..._default        — robustesse à 256 px
+                                        ..._khanhha_noprune           — §3.5, sans élagage
+                                        ..._tokengrid_noprune         — §3.5, grille 64x64
 NeurIPS-2025-...-Paper-Conference.pdf le papier source
 ```
 
@@ -91,6 +111,14 @@ python ISPRS/CrackSAM-HierarchicalSelfAttention/experiments/00_sam2_attention_bu
 
 python ISPRS/CrackSAM-HierarchicalSelfAttention/experiments/01_frangi_tree_shape.py \
     --size 448 --width 9 --branches 1 --trunk-scale 0.8 --n-images 3 --tag khanhha
+
+# la même chose sans élagage, à pleine résolution puis sur la grille de tokens
+python ISPRS/CrackSAM-HierarchicalSelfAttention/experiments/01_frangi_tree_shape.py \
+    --size 448 --width 9 --branches 1 --trunk-scale 0.8 --n-images 2 \
+    --no-prune --tag khanhha_noprune
+python ISPRS/CrackSAM-HierarchicalSelfAttention/experiments/01_frangi_tree_shape.py \
+    --size 448 --width 9 --branches 1 --trunk-scale 0.8 --n-images 3 \
+    --no-prune --downsample-to 64 --sigma 1 2 3 --tag tokengrid_noprune
 
 python ISPRS/CrackSAM-HierarchicalSelfAttention/experiments/03_figures.py
 

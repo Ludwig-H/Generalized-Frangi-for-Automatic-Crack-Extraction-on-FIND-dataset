@@ -26,7 +26,7 @@ de similarité, en extrait un arbre couvrant minimal (MST) et le hiérarchise pa
 de betweenness pondérée. **Mettre cette structure dans l'attention** est donc, sur le papier,
 la plus directe des idées de la lignée CrackSAM.
 
-C'est même une meilleure idée que les quatre précédentes, qui injectaient toutes de la
+C'est même une meilleure idée que les cinq précédentes, qui injectaient toutes de la
 géométrie *à côté* du raisonnement du modèle (un prompt, une carte additive, une correction
 a posteriori) plutôt que *dans* ce raisonnement.
 
@@ -131,7 +131,7 @@ notre situation.
 
 ---
 
-## 4. Trois mesures qui ferment le dossier
+## 4. Les mesures qui ferment le dossier
 
 Toutes reproductibles en une demi-heure de CPU, sans données ni GPU (§6).
 
@@ -168,17 +168,19 @@ Un nœud à un seul enfant ne regroupe rien. Un arbre dont 73 % des nœuds inter
 cas, et dont la profondeur est 80 fois celle d'un arbre équilibré de même taille, n'est pas
 une hiérarchie : c'est une **chenille**, un chemin avec de courtes pattes.
 
-Ce n'est pas un défaut de code. C'est ce qu'on doit attendre du MST d'un objet curviligne :
-une fissure *est* un chemin.
+Ce n'est pas un défaut de code, et ce n'est pas non plus un réglage malheureux. C'est ce
+qu'on doit attendre du MST d'un objet curviligne : une fissure *est* un chemin. Le §4.4 le
+démontre : le branchement `b` d'un arbre est **entièrement déterminé** par sa fraction de
+feuilles, et aucun seuil du pipeline ne la déplace.
 
 Et cela ruine l'algorithme. La programmation dynamique de HSA se parallélise sur GPU **par
 niveau de profondeur** (annexe E.3) : il faut `D` produits creux **séquentiels**. Avec
 `D = 358`, c'est 358 lancements de noyau enchaînés par bloc d'attention et par image, là où
 il y a aujourd'hui un seul produit matriciel. Chaque token ne verrait plus que ~350 valeurs
-d'attention distinctes au lieu de 11 102, dont 358 le long d'une chaîne : **ce n'est plus de
-l'attention, c'est un balayage séquentiel.**
+d'attention distinctes au lieu de 11 102, réparties le long d'une chaîne de 171 ancêtres en
+moyenne : **ce n'est plus de l'attention, c'est un balayage séquentiel.**
 
-### 4.3 La géométrie de Frangi ne couvre qu'un pour cent de la matrice
+### 4.3 Sous l'élagage actuel, la géométrie ne couvre qu'un pour cent de la matrice
 
 ![Couverture de l'attention](../figures/fig3_couverture_attention.png)
 
@@ -201,9 +203,54 @@ regroupement arbitraire qui dominerait numériquement le comportement de la couc
 > penser qu'il ferait jeu égal : son annexe L conclut que le choix de la hiérarchie est
 > *« relatively inconsequential »*.
 
+### 4.4 « Il suffit d'enlever l'élagage » — l'objection, et sa mesure
+
+C'est la première objection que soulève quiconque connaît le pipeline, et elle est fondée :
+si l'arbre ne couvre que 5 % de l'image, c'est parce qu'on a élagué **avant** de calculer le
+MST — un seuil de candidature, puis `τ = 0,25` sur les arêtes et sur les nœuds. Retirons-les,
+et l'arbre couvrira tout.
+
+![Retirer l'élagage](../figures/fig5_elagage.png)
+
+C'est exactement ce qui arrive, et il faut le dire franchement : **la couverture passe de
+5,5 % à 100 %.** L'obstacle du §4.3 disparaît.
+
+Mais deux choses ne suivent pas.
+
+**Le branchement ne bouge pas — et c'est une identité, pas un hasard.** Dans *tout* arbre à
+`N` nœuds, la somme des nombres d'enfants vaut exactement `N − 1`. Si `L` est le nombre de
+feuilles, le branchement moyen sur les nœuds internes vaut
+
+$$b = \frac{N-1}{N-L}$$
+
+Donc `b = 8` **exige** `L/N = 87,5 %` de feuilles. Nos arbres en ont 13 à 25 %, élagués ou
+non. Autrement dit : **`b` n'est pas un réglage du pipeline, c'est la fraction de feuilles**,
+et un arbre couvrant d'un graphe de voisinage — dont le degré moyen vaut mécaniquement 2 —
+n'en produit pas davantage. Aucune valeur de `τ`, `R` ou `Σ` ne franchit cette borne.
+
+**La profondeur empire.** De 358 à **2 414** à pleine résolution. La raison est simple : dans
+le fond de l'image la similarité `S ≈ 0`, donc la dissimilarité `d = (1 − S)·ρ ≈ ρ` — les
+poids deviennent quasi uniformes et le MST erre. L'élagage retenait justement les arêtes de
+forte similarité, c'est-à-dire les segments courts et cohérents. Or la passe descendante de
+HSA coûte une opération séquentielle **par niveau de profondeur**.
+
+**Et la couverture gagnée n'est pas une couverture par Frangi.** Sur ~95 % de l'image
+`S ≈ 0` : la structure de l'arbre y est dictée par la distance en pixels et le bruit de
+texture. L'obstacle change de forme plutôt qu'il ne disparaît — de « la hiérarchie ne couvre
+pas la matrice » à « la hiérarchie couvre la matrice, mais 99 % de sa structure ne porte
+aucun signal de Frangi ». C'est précisément ce que mesure le contrôle permuté, celui qui a
+dit non quatre fois.
+
+> **La meilleure version de l'idée** est la troisième barre de chaque panneau : non élaguée,
+> et construite **directement sur la grille 64 × 64**, puisque c'est la seule résolution où
+> une attention globale existe. 100 % de couverture pour 4 096 nœuds, profondeur 157 au lieu
+> de 2 414. Elle reste à `b = 1,15`, avec 86 % de nœuds internes à un seul enfant et une
+> profondeur 39 fois celle d'un arbre équilibré. Si l'on va au bout de l'idée, c'est de
+> celle-là qu'il faut partir.
+
 ---
 
-## 5. Ce que quatre itérations ont déjà appris, et qu'il faut respecter
+## 5. Ce que cinq itérations ont déjà appris, et qu'il faut respecter
 
 ```mermaid
 timeline
@@ -314,8 +361,10 @@ python ISPRS/CrackSAM-HierarchicalSelfAttention/experiments/02_attention_oracle.
 > L'attention est le bon endroit où mettre un prior de connexité ; HSA est le mauvais outil,
 > parce qu'il **comprime** l'attention au lieu de l'informer, que SAM 2 n'offre que trois
 > matrices à contraindre pesant 6,6 % du calcul, et que le MST de Frangi est un **chemin**
-> qui ne couvre qu'**un pour cent** de ces matrices. Avant d'écrire quoi que ce soit, poser
-> l'oracle d'attention : deux heures, et l'on saura s'il existe un plafond à atteindre.
+> dont le branchement ne se règle pas. Retirer l'élagage lui fait bien couvrir toute la
+> matrice — c'est acquis — mais triple sa profondeur sans toucher à son branchement. Avant
+> d'écrire quoi que ce soit, poser l'oracle d'attention : deux heures, et l'on saura s'il
+> existe un plafond à atteindre.
 
 ---
 

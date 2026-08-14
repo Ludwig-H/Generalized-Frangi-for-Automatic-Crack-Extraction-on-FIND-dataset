@@ -8,10 +8,14 @@
 > matrice d'attention selon la hiérarchie produite par le MST et la centralité de
 > betweenness pondérée du Frangi-Graphe, selon la mécanique HSA de NeurIPS 2025 ?
 
-**Réponse courte : non, pas sous cette forme.** Quatre obstacles sont *mesurés* et non
+**Réponse courte : non, pas sous cette forme.** Les obstacles sont *mesurés* et non
 spéculatifs ; deux d'entre eux sont arithmétiques et ne dépendent d'aucun modèle. Mais
 l'intuition qui sous-tend la question est juste, et une version de cette idée mérite d'être
 testée — pour un coût de deux jours, pas de deux mois. Le §6 la détaille.
+
+Le §3.5 traite séparément l'objection la plus sérieuse qu'on puisse opposer à cet audit :
+retirer l'élagage qui précède le MST, pour obtenir une hiérarchie *complète*. Elle est
+fondée, elle règle bien un des obstacles, et elle en aggrave un autre.
 
 > [!TIP]
 > **Première lecture : [`docs/00_COMPRENDRE.md`](docs/00_COMPRENDRE.md)**, qui présente le
@@ -24,8 +28,8 @@ testée — pour un coût de deux jours, pas de deux mois. Le §6 la détaille.
 
 - [1. L'intuition est bonne, et il faut le dire d'abord](#1-lintuition-est-bonne-et-il-faut-le-dire-dabord)
 - [2. Ce que HSA fait réellement](#2-ce-que-hsa-fait-réellement)
-- [3. Les quatre obstacles mesurés](#3-les-quatre-obstacles-mesurés)
-- [4. Ce que quatre itérations ont déjà établi](#4-ce-que-quatre-itérations-ont-déjà-établi)
+- [3. Les obstacles mesurés](#3-les-obstacles-mesurés)
+- [4. Ce que cinq itérations ont déjà établi](#4-ce-que-cinq-itérations-ont-déjà-établi)
 - [5. Verdict](#5-verdict)
 - [6. Ce que je propose à la place, par ordre de valeur attendue](#6-ce-que-je-propose-à-la-place-par-ordre-de-valeur-attendue)
 - [7. Reproduire les mesures de cet audit](#7-reproduire-les-mesures-de-cet-audit)
@@ -36,20 +40,20 @@ testée — pour un coût de deux jours, pas de deux mois. Le §6 la détaille.
 ## 1. L'intuition est bonne, et il faut le dire d'abord
 
 Avant les objections, l'argument favorable, dans sa version la plus forte — parce qu'il est
-réel et qu'aucune des quatre itérations précédentes ne l'a réfuté :
+réel et qu'aucune des cinq itérations précédentes ne l'a réfuté :
 
 1. **L'attention est le bon endroit.** Ce qui définit une fissure n'est pas sa couleur mais
    sa **connexité** : un chapelet de pixels sombres n'est une fissure que s'il est *relié*.
    La Softmax n'a aucun prior de connexité — c'est une affinité par produit scalaire, sans
    notion de chemin. Mettre un prior topologique dans l'attention est conceptuellement plus
    direct que le mettre dans un prompt ou dans une carte additive. C'est le meilleur argument
-   de tout le dossier, et il est meilleur que ceux des itérations 1 à 4.
+   de tout le dossier, et il est meilleur que ceux des itérations 1 à 5.
 
 2. **Le graphe complet n'a jamais été utilisé.** Fait vérifié dans le code :
    `ISPRS/src/graph_extraction.py:263-265` porte le commentaire *« CrackSAM consumes only
    `node_sim_max`. Avoid the MST/betweenness branch when callers do not request centrality »*
    et la branche `compute_centrality=False` retourne avant le MST. **Aucune expérience
-   CrackSAM n'a jamais vu ni MST, ni composantes, ni centralité.** Les quatre échecs portent
+   CrackSAM n'a jamais vu ni MST, ni composantes, ni centralité.** Tous les échecs portent
    sur des cartes raster. Le rapport IRT du 12 août le redit explicitement : *« Que le graphe
    a été testé. MST, composantes et centralité restent hors périmètre. »*
 
@@ -126,7 +130,7 @@ lui-même, une hiérarchie arbitraire fait aussi bien qu'une hiérarchie porteus
 
 ---
 
-## 3. Les quatre obstacles mesurés
+## 3. Les obstacles mesurés
 
 ### 3.1 SAM 2 n'a que trois matrices d'attention à contraindre, et elles pèsent 6,6 % du calcul
 
@@ -223,21 +227,25 @@ Mesuré sur des fissures synthétiques calibrées sur la géométrie réelle du 
 (448 px, largeur 19 px, couverture GT 5,4 % contre 5,70 % mesurés), avec les paramètres FIND
 du papier EUVIP — [`experiments/01_frangi_tree_shape.py`](experiments/01_frangi_tree_shape.py) :
 
-| Grandeur | 448 px, type Khánh Hà | 256 px, fissure fine | 256 px, fissure épaisse |
-|---|---:|---:|---:|
-| Couverture de la vérité terrain | 5,4 % | 3,0 % | 6,1 % |
-| Nœuds de l'arbre | 11 102 | 7 101 | 8 321 |
-| **Profondeur** | **358** | 282 | 331 |
-| Profondeur d'un arbre équilibré `b = 8` de même taille | 4,5 | 4,3 | 4,3 |
-| **Facteur de branchement moyen** | **1,34** | 1,21 | 1,22 |
-| **Nœuds internes à un seul enfant** | **72 %** | 85 % | 83 % |
-| Valeurs d'attention distinctes par token sous HSA | 350 | 322 | 335 |
+| Grandeur | Mesuré | Ce qu'il faudrait |
+|---|---:|---:|
+| Nœuds de l'arbre | 11 102 | — |
+| **Profondeur** | **358** | **4,5** (arbre équilibré `b = 8` de même taille) |
+| **Facteur de branchement moyen** | **1,34** | 4 à 16 |
+| **Nœuds internes à un seul enfant** | **72 %** | ≈ 0 % |
+| Valeurs d'attention distinctes par token sous HSA | 350 | 11 102 (Softmax plate) |
+
+Les mêmes mesures sur deux autres configurations — fissure fine et fissure épaisse à 256 px,
+couverture 3,0 % et 6,1 % — donnent `b = 1,21` et `1,22`, 85 % et 83 % de nœuds à un seul
+enfant, profondeurs 282 et 331 contre 4,3 : les statistiques de forme ne dépendent ni de la
+résolution ni de l'épaisseur de la fissure (`results/frangi_tree_shape_{thin,default}.json`).
 
 Un arbre dont 72 à 85 % des nœuds internes n'ont **qu'un enfant** et dont la profondeur est
 **80 fois** celle d'un arbre équilibré de même taille n'est pas une hiérarchie : c'est une
 chenille — un chemin avec de courtes pattes. C'est exactement ce qu'on doit attendre du MST
 d'une structure curviligne, et ce n'est pas un défaut d'implémentation : c'est la géométrie
-de l'objet.
+de l'objet. Le §3.5 montre que **retirer l'élagage n'y change rien** : le branchement est
+fixé par la fraction de feuilles, pas par les seuils.
 
 Trois conséquences, toutes fatales :
 
@@ -259,9 +267,11 @@ Trois conséquences, toutes fatales :
    ressortir explicitement comme moins bonne sur SST-2. Notre arbre a `b ≈ 1,3`, soit encore
    au-dessous.
 
-### 3.4 La géométrie de Frangi ne couvre qu'une fraction infime de la matrice à contraindre
+### 3.4 Sous l'élagage actuel, la géométrie ne couvre qu'une fraction infime de la matrice
 
-C'est le chiffre qui tranche, et il est arithmétique.
+Cet obstacle est **le seul des quatre que l'on sache lever** : le §3.5 mesure ce qui se passe
+quand on retire l'élagage. Il vaut d'être chiffré d'abord, parce qu'il décrit le pipeline tel
+qu'il existe aujourd'hui.
 
 ![Couverture de la matrice d'attention](figures/fig3_couverture_attention.png)
 
@@ -291,11 +301,71 @@ numériquement le comportement de la couche.
 > jeu égal, comme les fenêtres glissantes du papier font jeu égal avec les hiérarchies
 > sémantiques.
 
+### 3.5 Retirer l'élagage avant le MST : ce que cela règle, et ce que cela aggrave
+
+> Objection soulevée par Louis Hauseux le 14 août 2026, après la première version de cet
+> audit : *« pour obtenir une hiérarchie complète, il faudra bien sûr enlever l'élagage avant
+> calcul du MST. »* Elle est fondée, et cette section la mesure au lieu de l'argumenter.
+
+En retirant les trois étapes d'élagage qui précèdent le MST — le seuil de candidature `τ₁`,
+puis `τ = 0,25` sur les arêtes et sur les nœuds — l'arbre couvre bien la totalité de l'image
+(option `--no-prune` de [`experiments/01_frangi_tree_shape.py`](experiments/01_frangi_tree_shape.py)) :
+
+| Configuration | Nœuds | Couverture | Feuilles | `b` | 1 enfant | Profondeur | Équilibré `b=8` |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| élagué, 448 px (pipeline actuel) | 11 102 | 5,5 % | 25 % | 1,34 | 72 % | 358 | 4,5 |
+| **non élagué, 448 px** | 200 704 | **100 %** | 25 % | **1,33** | 72 % | **2 414** | 5,9 |
+| **non élagué, grille de tokens 64×64** | 4 096 | **100 %** | 13 % | **1,15** | 86 % | **157** | 4,0 |
+
+**Ce que cela règle.** Le §3.4 disparaît complètement : la couverture passe de 0,58 % à
+100 % des cellules de la matrice. C'est un vrai gain, et l'objection était nécessaire.
+
+**Ce que cela ne règle pas — et pourquoi c'est structurel.** Le facteur de branchement ne
+bouge pas : `1,33` contre `1,34`. Ce n'est pas une coïncidence, c'est une identité. Dans
+**tout** arbre à `N` nœuds, la somme des nombres d'enfants vaut `N − 1` ; si `L` est le
+nombre de feuilles, le branchement moyen sur les nœuds internes vaut
+
+$$b = \frac{N-1}{N-L}$$
+
+Obtenir `b = 8` exige donc `L/N = 87,5 %` de feuilles. Nos arbres en ont **13 à 25 %**, et
+l'élagage n'y change rien. **`b` n'est pas un paramètre du pipeline : c'est la fraction de
+feuilles**, et un arbre couvrant d'un graphe de voisinage géométrique — dont le degré moyen
+vaut mécaniquement ≈ 2 — n'en produit pas davantage. Aucun réglage de `τ`, `R` ou `Σ` ne
+franchit cette borne.
+
+**Ce que cela aggrave.** La profondeur passe de `358` à **`2 414`** à pleine résolution. Le
+mécanisme est clair : dans le fond de l'image la similarité `S ≈ 0`, donc
+`d_ij = (1 − S)·ρ_ij ≈ ρ_ij`. Les poids deviennent quasi uniformes, et le MST erre. L'élagage
+retenait précisément les arêtes de forte similarité, c'est-à-dire les segments courts et
+cohérents ; le retirer rend l'arbre *plus* filiforme, pas moins. Or la passe descendante de
+HSA coûte `D` produits creux **séquentiels** (§3.3) : on passe de 358 à 2 414 lancements de
+noyau enchaînés par bloc d'attention et par image.
+
+**Et la couverture gagnée n'est pas une couverture par Frangi.** Sur ~95 % de l'image
+`S ≈ 0` : la structure de l'arbre y est dictée par la distance en pixels et le bruit de
+texture, pas par l'opérateur de Hesse. L'obstacle du §3.4 ne disparaît donc pas, il **change
+de forme** — de « la hiérarchie ne couvre pas la matrice » à « la hiérarchie couvre la
+matrice, mais 99 % de sa structure ne porte aucun signal de Frangi ». C'est exactement ce
+que mesurerait le contrôle permuté, et c'est le contrôle qui a dit non quatre fois.
+
+**La meilleure version de l'idée, si l'on va au bout.** C'est la troisième ligne du tableau :
+non élagué, **construit directement sur la grille 64 × 64**, puisque c'est la seule
+résolution où une attention globale existe. Elle atteint 100 % de couverture pour 4 096
+nœuds seulement, et une profondeur de 157 au lieu de 2 414. Elle laisse néanmoins `b = 1,15`,
+86 % de nœuds internes à un seul enfant, et une profondeur 39 fois celle d'un arbre équilibré
+de même taille — donc les §3.1, §3.2 et §3.3 tiennent, et le §2 (HSA comprime, sans paramètre
+apprenable) n'est pas touché.
+
+Pour obtenir un arbre réellement large il faudrait **décomposer** le MST — décomposition en
+centroïdes, qui donne `O(log N)` de profondeur, ou un quadtree raffiné là où Frangi répond.
+C'est un objet de conception à part entière, dont le Frangi-Graphe ne fournirait que
+l'ossature, et c'est la quatrième condition de réfutation du §8.
+
 ---
 
-## 4. Ce que quatre itérations ont déjà établi
+## 4. Ce que cinq itérations ont déjà établi
 
-Ces résultats sont dans le dépôt ; ils contraignent toute cinquième tentative.
+Ces résultats sont dans le dépôt ; ils contraignent toute sixième tentative.
 
 | Itération | Mécanisme | Résultat mesuré |
 |---|---|---:|
@@ -347,7 +417,8 @@ voit pas, elle dit quelque chose.
 
 ## 5. Verdict
 
-**Ne pas implémenter HSA sur SAM 2.** Sept faits, tous vérifiables :
+**Ne pas implémenter HSA sur SAM 2.** Sept faits, tous vérifiables — étant entendu que
+l'objection du §3.5 en a fait tomber un huitième, et qu'elle avait raison :
 
 1. HSA **comprime** l'attention, il ne l'informe pas (théorème 3.2 : KL-optimal *sous*
    contrainte, donc au mieux égal à la Softmax).
@@ -358,8 +429,18 @@ voit pas, elle dit quelque chose.
 5. SAM 2 n'offre que **3 matrices d'attention globale**, pesant **6,56 %** des FLOPs.
 6. Le MST de Frangi est une **chenille** (`b ≈ 1,3`, profondeur 358 contre 4,5), et non une
    hiérarchie : la DP dégénère en balayage séquentiel de profondeur 358.
-7. La géométrie de Frangi ne couvre que **0,58 %** des cellules de la matrice qu'on prétend
-   contraindre sur le jeu réel.
+7. Le branchement **ne se règle pas** : `b = (N−1)/(N−L)` est fixé par la fraction de
+   feuilles, qui vaut 13 à 25 % là où `b = 8` en exigerait 87,5 %. Ni `τ`, ni `R`, ni `Σ`,
+   ni la suppression complète de l'élagage n'y changent quoi que ce soit (§3.5).
+
+> [!NOTE]
+> **Ce qui est tombé.** La couverture — quatrième obstacle de la première version de cet
+> audit — **n'en est plus un** : retirer l'élagage avant le MST porte la couverture de
+> 0,58 % à 100 % des cellules de la matrice. L'objection est de Louis Hauseux et elle était
+> juste. Elle a un prix, mesuré au §3.5 : la profondeur passe de 358 à 2 414 à pleine
+> résolution (157 sur la grille de tokens, la bonne résolution), et la structure ajoutée est
+> dictée par la distance en pixels, pas par l'opérateur de Frangi. Les six autres faits
+> tiennent, et les quatre premiers — qui portent sur HSA lui-même — ne sont pas touchés.
 
 Coût estimé si l'on passait outre : **6 à 10 semaines** — réimplémentation intégrale des
 algorithmes 1–3 (aucun code public : *« code is not being released at the moment »*),
@@ -406,9 +487,10 @@ contrainte issue de Frangi ne peut pas faire mieux, seulement pire.
 **vraie block constraint de HSA** — terme `log |ℓ(B)|` de l'algorithme 3 compris — avec la
 partition **parfaite** {fissure, fond}. Il isole la question que cet audit juge décisive :
 *lier* les coefficients d'attention en blocs coûte-t-il quelque chose **même quand la
-partition est parfaite** ? Si oui, une hiérarchie bruitée, déséquilibrée et couvrant 0,58 %
-de la matrice ne peut que faire pire — et le §5 est démontré expérimentalement, pas
-seulement argumenté.
+partition est parfaite** ? Si oui, une hiérarchie bruitée et déséquilibrée — `b = 1,15`,
+86 % de nœuds à un seul enfant, même dans sa meilleure variante non élaguée du §3.5 — ne
+peut que faire pire, et le §5 devient démontré expérimentalement au lieu d'être seulement
+argumenté.
 
 Cet oracle manque à la lignée : GFA a mesuré un oracle de *sélection de fragments*, GeoLoRA
 un oracle d'*évidence*, tous deux prescrits par `docs/09` et `docs/10`. **L'oracle
@@ -557,6 +639,14 @@ python ISPRS/CrackSAM-HierarchicalSelfAttention/experiments/03_figures.py
 # la mécanique de l'oracle recommandé au §P0, sans GPU ni poids
 python ISPRS/CrackSAM-HierarchicalSelfAttention/experiments/02_attention_oracle.py --self-test
 
+# §3.5 — sans élagage, à pleine résolution puis sur la grille de tokens
+python ISPRS/CrackSAM-HierarchicalSelfAttention/experiments/01_frangi_tree_shape.py \
+    --size 448 --width 9 --branches 1 --trunk-scale 0.8 --n-images 2 \
+    --no-prune --tag khanhha_noprune
+python ISPRS/CrackSAM-HierarchicalSelfAttention/experiments/01_frangi_tree_shape.py \
+    --size 448 --width 9 --branches 1 --trunk-scale 0.8 --n-images 3 \
+    --no-prune --downsample-to 64 --sigma 1 2 3 --tag tokengrid_noprune
+
 # variantes fines et épaisses à 256 px
 python ISPRS/CrackSAM-HierarchicalSelfAttention/experiments/01_frangi_tree_shape.py \
     --width 0.5 --branches 2 --tag thin
@@ -596,11 +686,12 @@ Par honnêteté, les conditions sous lesquelles je me trompe :
    entraîné de zéro, avec une hiérarchie multi-échelle *équilibrée* (quadtree raffiné là où
    Frangi répond), est un objet où HSA garde tout son sens. Ce n'est plus SAM 2, et ce n'est
    plus le projet CrackSAM.
-4. **Si une hiérarchie équilibrée est construite au lieu du MST.** Une décomposition en
-   centroïdes de l'arbre de Frangi donne une profondeur `O(log N)` avec un branchement
-   raisonnable, et lèverait le §3.3. Elle ne lève ni le §3.1, ni le §3.2, ni le §3.4 — et
-   elle serait un objet de conception à part entière, dont Frangi ne fournirait que
-   l'ossature.
+4. **Si une hiérarchie équilibrée est construite au lieu du MST.** Le §3.5 montre que ni le
+   réglage de `τ`, ni la suppression complète de l'élagage n'y suffisent : `b` est fixé par
+   la fraction de feuilles, invariante autour de 13–25 %. Il faudrait **décomposer** l'arbre
+   — décomposition en centroïdes, profondeur `O(log N)` —, ce qui lèverait le §3.3 et, avec
+   le non-élagage, le §3.4. Resteraient le §3.1, le §3.2 et tout le §2 ; et l'objet obtenu
+   serait une conception à part entière dont Frangi ne fournirait que l'ossature.
 
 ---
 
