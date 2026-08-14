@@ -490,6 +490,40 @@ d'IRT-Crack est décalée de 10,1 px et plafonne le gain. Et le verrou nommé �
 décide *où* corriger, valant `+0,0044` — est un problème d'estimation de fiabilité, pas
 d'attention.
 
+### Coût réel, et garde-fous que ces pistes doivent respecter
+
+Le seul GPU du projet est un `g4-standard-48` Spot (RTX PRO 6000 Blackwell 96 Go), **un seul
+à la fois pour tout le projet**, avec `maxRunDuration` plafonné à **8 h**. Débits mesurés sur
+les journaux réels :
+
+| Opération | Coût mesuré |
+|---|---:|
+| Une passe d'évaluation complète, 6 conditions, 8 895 images | **3,9 min** (0,0250 s/image) |
+| Un entraînement SAM 2 + LoRA, 70 époques | 9,3 GPU-h |
+| Un pilote FrangiGraph résiduel, 30 époques × 5 plis | 7,9 GPU-h / graine |
+| **Une nouvelle variante × 3 graines** | **24 à 28 GPU-h, ≥ 6 sessions Spot** |
+
+Le **P0 tient donc largement dans une session** : le bras `bias` est de l'inférence pure
+(cinq `β` ≈ 20 min de forward), le bras `block` paie une boucle Python par image et reste
+sous les deux heures sur un sous-ensemble d'analyse. C'est le meilleur rapport
+information/coût de tout le dossier.
+
+Quatre garde-fous, hérités des rapports précédents, s'appliquent à P1 et P2 :
+
+1. **Le test Khánh Hà n'est pas indépendant** : 730 groupes physiques sont partagés entre
+   `train` et `test`, 325 entre `train` et `val`, 248 entre `val` et `test`
+   (`protocol/frangigraph_v1/manifest.json`). Tout résultat y est **exploratoire** ; le
+   holdout confirmatoire dédoublonné *n'existe pas encore*.
+2. **Les IC historiques sont trop étroits** : ils rééchantillonnent les crops, pas les images
+   physiques (`docs/08` §5.4). Tout nouveau bootstrap doit être groupé par image physique —
+   `analyze_frangigraph_pilot_bootstrap.py`, pas la version au niveau crop.
+3. **Un gain sur « sans Frangi » ne prouve rien.** `docs/08` §8.1 exige des contrôles
+   réentraînés **à capacité égale** — décalé, permuté, aléatoire à couverture appariée —
+   avant toute affirmation sur la valeur du contenu géométrique.
+4. **Pré-enregistrer les critères** avant de toucher aux données, et **geler le code** avant
+   de lancer une graine : `train_sam2.py` refuse de reprendre si le sha256 du contrat de run
+   change, donc toute retouche invalide les points de reprise en vol.
+
 ### Et si vous voulez tout de même écrire quelque chose autour de HSA
 
 Le rapprochement intellectuellement honnête n'est pas « HSA dans SAM », c'est **HSA dans

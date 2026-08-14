@@ -62,6 +62,11 @@ L'oracle P0 comporte deux bras, et le second est le test direct de l'idée : il 
 **vraie block constraint de HSA avec la partition parfaite**. Si lier les coefficients coûte
 de l'IoU même avec une hiérarchie parfaite, une hiérarchie bruitée ne peut que faire pire.
 
+Pour situer le coût : une évaluation complète des 6 conditions (8 895 images) prend **3,9 min**
+de forward sur le G4 du projet, quand une nouvelle variante × 3 graines en demande
+**24 à 28 GPU-h** réparties sur au moins six sessions Spot. P0 tient dans une session ; P1 et
+P2 sont des campagnes.
+
 ## Contenu
 
 ```
