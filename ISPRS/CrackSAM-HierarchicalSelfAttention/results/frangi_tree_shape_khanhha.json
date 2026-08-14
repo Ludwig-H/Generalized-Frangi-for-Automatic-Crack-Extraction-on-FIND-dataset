@@ -1,0 +1,77 @@
+{
+  "per_image": [
+    {
+      "n_tree_nodes": 14483,
+      "depth_max": 355,
+      "depth_mean": 191.95056272871642,
+      "branching_max": 5,
+      "branching_mean_internal": 1.3202662047588658,
+      "frac_nodes_with_1_child": 0.7340687391740359,
+      "n_leaves": 3514,
+      "depth_if_balanced_b8": 4.607357617305872,
+      "hsa_row_dof_mean": 372.93944624732444,
+      "hsa_row_dof_median": 413.0,
+      "hsa_row_dof_vs_flat": 0.025750151643121208,
+      "sam2_crack_tokens": 391,
+      "sam2_total_tokens": 4096,
+      "sam2_crack_token_pct": 9.5458984375,
+      "sam2_attention_cells_covered_pct": 0.9112417697906494,
+      "seed": 0,
+      "n_candidates": 151185,
+      "n_graph_nodes": 37796,
+      "gt_pixel_pct": 7.113460618622448
+    },
+    {
+      "n_tree_nodes": 7690,
+      "depth_max": 319,
+      "depth_mean": 135.6107932379714,
+      "branching_max": 4,
+      "branching_mean_internal": 1.356323866643147,
+      "frac_nodes_with_1_child": 0.7087669783030517,
+      "n_leaves": 2021,
+      "depth_if_balanced_b8": 4.302922627616397,
+      "hsa_row_dof_mean": 284.83849154746423,
+      "hsa_row_dof_median": 275.0,
+      "hsa_row_dof_vs_flat": 0.037040115935951134,
+      "sam2_crack_tokens": 209,
+      "sam2_total_tokens": 4096,
+      "sam2_crack_token_pct": 5.1025390625,
+      "sam2_attention_cells_covered_pct": 0.2603590488433838,
+      "seed": 1,
+      "n_candidates": 152287,
+      "n_graph_nodes": 38072,
+      "gt_pixel_pct": 3.7348533163265305
+    },
+    {
+      "n_tree_nodes": 11134,
+      "depth_max": 401,
+      "depth_mean": 186.7320819112628,
+      "branching_max": 4,
+      "branching_mean_internal": 1.3583455344070279,
+      "frac_nodes_with_1_child": 0.7088823816495852,
+      "n_leaves": 2938,
+      "depth_if_balanced_b8": 4.4808947892886115,
+      "hsa_row_dof_mean": 392.27267828273756,
+      "hsa_row_dof_median": 399.0,
+      "hsa_row_dof_vs_flat": 0.035231963201251805,
+      "sam2_crack_tokens": 307,
+      "sam2_total_tokens": 4096,
+      "sam2_crack_token_pct": 7.4951171875,
+      "sam2_attention_cells_covered_pct": 0.5617678165435791,
+      "seed": 2,
+      "n_candidates": 151734,
+      "n_graph_nodes": 37933,
+      "gt_pixel_pct": 5.421914859693878
+    }
+  ],
+  "params": {
+    "sigma": [
+      1.0,
+      3.0,
+      5.0,
+      7.0
+    ],
+    "R": 3,
+    "tau": 0.25
+  }
+}
