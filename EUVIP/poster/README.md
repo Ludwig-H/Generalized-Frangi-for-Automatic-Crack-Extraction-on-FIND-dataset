@@ -11,7 +11,8 @@ la palette, les bandeaux et la typographie EB Garamond. Tous les blocs utilisent
 le bleu nuit, y compris la perspective. Les logos Inria, Ayana,
 3IA et DS4H viennent du template ; les auteurs et affiliations sont ceux du
 papier final. Imprimer à **100 %**, sans ajustement à la page.
-Le bloc bibliographique réunit huit références et un QR code de 6 cm.
+Le bloc bibliographique réunit sept références ciblées sur les fissures,
+les données et SAM, dont la revue de Zhang et al. (2025), avec un QR code de 6 cm.
 
 ## Contenu et sources
 
@@ -19,6 +20,7 @@ Le contenu scientifique suit exclusivement [le papier final](../LaTeX/main.tex)
 et sa [camera-ready](../EUVIP_2026_Generalized_Frangi_Multimodality_camera-ready.pdf).
 Les illustrations montrent la fusion hessienne, les trois contraintes de la
 similarité, la réduction du graphe, FIND propre/bruité et les cas géologiques.
+Le Palais des Papes (France) illustre la fusion intensité–profondeur.
 Les images expérimentales sont copiées sans modification depuis `../LaTeX/`.
 La courbe de bruit est celle du papier, avec des axes et une légende lisibles ;
 les bandes représentent l'écart-type. Aucun résultat nouveau n'est ajouté.
@@ -38,8 +40,7 @@ connexions défavorables sont affaiblies, conformément aux pénalités souples.
 Le petit schéma de réduction du graphe dans `poster.tex` est illustratif.
 [foundation-hierarchy.tex](figures/foundation-hierarchy.tex) illustre uniquement
 une perspective : construire des groupes emboîtés depuis le graphe Frangi pour
-guider l'attention d'un modèle de fondation. CrackSAM adapte SAM ; aucun gain
-de cette proposition hiérarchique n'est revendiqué.
+guider l'attention d'un modèle de fondation. Le titre « Perspective » indique ce statut.
 
 ## Consignes EUVIP vérifiées
 

@@ -34,28 +34,26 @@
 \begin{document}
 \begin{frame}[t]
 \vspace{0.15cm}
-\begin{block}{From aligned images to a crack skeleton: without training}
-\textbf{Fuse geometry, connect compatible pixels, extract a centerline.} No training labels required.
-\par\vspace{0.25cm}
-\panel{0.10}{Intensity_1FIND.png}{Intensity $I$}
+\begin{block}{From multimodal images to a crack skeleton}
+\panel{0.10}{GroundTruth_1FIND.png}{Ground truth}
+\hfill\panel{0.10}{Intensity_1FIND.png}{Intensity $I$}
 \hfill\panel{0.10}{Range_1FIND.png}{Range $R$}
 \hfill\panel{0.10}{Int_1FIND.png}{Positive curvature}
 \hfill\panel{0.10}{FrangiSim_1FIND.png}{Graph similarity}
 \hfill\panel{0.10}{Cluster_1FIND.png}{Largest component}
 \hfill\panel{0.10}{Betweenness_1FIND.png}{Tree centrality}
 \hfill\panel{0.10}{Resultat_1FIND.png}{Our skeleton $\widehat\Gamma$}
-\hfill\panel{0.10}{GroundTruth_1FIND.png}{Ground truth}
 \par{\captiontext FIND example. Similarity: maximum over incident edges; skeleton in red.}
 \end{block}
 
 \begin{columns}[T,onlytextwidth]
 \begin{column}{0.488\textwidth}
-\begin{block}{1. Fuse the geometry across modalities}
+\begin{block}{1. Fuse the modalities}
 \begin{minipage}[c]{0.34\linewidth}\centering
   \tikzfigure{\linewidth}{frangi-hessian}
 \end{minipage}\hfill
 \begin{minipage}[c]{0.63\linewidth}\RaggedRight
-  Hessian geometry [1,5] at scale $\sigma$:
+  Hessian geometry [1] at scale $\sigma$:
   $|\lambda_1^\sigma|\leq|\lambda_2^\sigma|$; $\theta^\sigma$ follows the ridge.
 \end{minipage}
 \[
@@ -85,7 +83,7 @@ d_{ij}=\min\{1,\rho_{ij}(1-S_{ij}^{(0)})\},\qquad S_{ij}=1-d_{ij}.
 {\smalltext $\rho_{ij}$ penalizes long links; $\theta$ and $\theta+\pi$ denote the same axis.}
 \end{block}
 
-\begin{block}{3. Reduce the graph to its main centerline}
+\begin{block}{3. Extract the centerline}
 \centering
 \resizebox{0.87\linewidth}{!}{%
 \begin{tikzpicture}[x=1cm,y=.64cm, every node/.style={font=\fontsize{10}{12}\selectfont},
@@ -115,26 +113,26 @@ d_{ij}=\min\{1,\rho_{ij}(1-S_{ij}^{(0)})\},\qquad S_{ij}=1-d_{ij}.
   \draw[flow] (8.75,1.1)--(9.6,1.1);
 \end{tikzpicture}}
 \par\RaggedRight
-Retain strong nodes and links. Per component: minimum spanning tree [6] using $d_{ij}$,
-then similarity-weighted centrality to prune branches.
-{\captiontext Schematic. FIND settings:
+Per component: minimum spanning tree with costs $d_{ij}$,
+then similarity-weighted centrality.
+{\captiontext FIND settings:
 $\Sigma=\{1,3,5,7\}$, $R=3$, retained fractions $\tau_E=\tau_V=0.25$.}
 \end{block}
 
-\begin{block}{A second setting: a fractured limestone wall}
+\begin{block}{Multimodality: Palais des Papes (France)}
 \begin{minipage}[c]{0.70\linewidth}
 \panel{0.315}{PalaisDesPapes.png}{Intensity}
 \hfill\panel{0.315}{PalaisDesPapes_IntDepth.png}{Depth overlay}
 \hfill\panel{0.315}{PalaisDesPapes_Result.png}{Our skeleton}
 \end{minipage}\hfill
 \begin{minipage}[c]{0.27\linewidth}
-{\smalltext \textbf{Palais des Papes.} Main fracture recovered; minor cracks missed.}
+{\smalltext Fuse visible intensity and photogrammetric depth.}
 \end{minipage}
 \end{block}
 \end{column}
 
 \begin{column}{0.488\textwidth}
-\begin{block}{4. FIND: clean accuracy and noise sensitivity}
+\begin{block}{4. FIND: accuracy and noise}
 \textbf{Clean FIND: the supervised model performs best.}
 \par\vspace{0.15cm}
 {\fontsize{28}{33}\selectfont\setlength{\tabcolsep}{0.30cm}
@@ -174,7 +172,7 @@ Equal weights; $F$ is filtered range.}
 \par\RaggedRight{\captiontext $s=0.5$: multiplicative speckle on $I$, additive Gaussian noise on $R$.}
 \end{block}
 
-\begin{block}{5. Geological transfer without training labels}
+\begin{block}{5. Geological domain shift [5]}
 \textbf{Vaches Noires.} Two Cerema UAV patches ($512\!\times\!512$).
 \par\vspace{0.2cm}
 \begin{minipage}[c]{0.78\linewidth}
@@ -183,23 +181,21 @@ Equal weights; $F$ is filtered range.}
 \end{minipage}\hfill
 \begin{minipage}[c]{0.19\linewidth}
 {\captiontext Jaccard:\par ours / U-Net.
-\par\smallskip Transfer strategy [8]; local U-Net trained on a separate image.}
+\par\smallskip Transfer strategy [7]; local U-Net trained on a separate image.}
 \end{minipage}
 \par{\captiontext\colorline{red} Ours\quad\colorline{blue} U-Net + transfer learning\quad\colorline{green} Ground truth}
-\par{\smalltext U-Net: \textbf{about two days of expert annotation}; ours: none.
-Transfer evidence: two patches and one qualitative wall example.}
+\par{\smalltext U-Net: \textbf{about two days of expert annotation}; ours: none.}
 \end{block}
 \end{column}
 \end{columns}
 
-\begin{alertblock}{Outlook: could a Frangi hierarchy guide a foundation model?}
+\begin{alertblock}{Perspective: guiding SAM / CrackSAM with a Frangi hierarchy}
 \begin{minipage}[c]{0.485\linewidth}
   \centering\tikzfigure{0.79\linewidth}{foundation-hierarchy}
 \end{minipage}\hfill
 \begin{minipage}[c]{0.49\linewidth}
-  Could \textbf{nested Frangi groups} guide SAM [7] / CrackSAM [4] attention,
-  from local segments to the whole network?
-  \par\smallskip\textbf{Hypothesis: not evaluated here.}
+  Guide attention with \textbf{nested Frangi groups}, from local crack segments
+  to the whole network (SAM [6], CrackSAM [4]).
 \end{minipage}
 \end{alertblock}
 
@@ -214,11 +210,10 @@ Transfer evidence: two patches and one qualitative wall example.}
 Constr. Build. Mater. 431, 136573, 2024.
 \end{minipage}\hfill
 \begin{minipage}[t]{0.485\linewidth}
-[5] Sato et al., \emph{Three-dimensional multi-scale line filter for segmentation and visualization of
-curvilinear structures in medical images}, Med. Image Anal. 2(2), 1998.\par
-[6] Prim, \emph{Shortest connection networks and some generalizations}, Bell Syst. Tech. J. 36(6), 1957.\par
-[7] Kirillov et al., \emph{Segment Anything}, ICCV, 2023.\par
-[8] Shi et al., \emph{Semi-universal geo-crack detection by machine learning}, Front. Earth Sci. 11, 1073211, 2023.
+[5] Zhang et al., \emph{Deep Learning for Crack Detection: A Review of Learning Paradigms,
+Generalizability, and Datasets}, arXiv:2508.10256, 2025.\par
+[6] Kirillov et al., \emph{Segment Anything}, ICCV, 2023.\par
+[7] Shi et al., \emph{Semi-universal geo-crack detection by machine learning}, Front. Earth Sci. 11, 1073211, 2023.
 \end{minipage}
 \par\smallskip
 \href{mailto:louis.hauseux@inria.fr}{louis.hauseux@inria.fr}\quad\textbullet\quad
