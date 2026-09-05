@@ -1,33 +1,31 @@
-# Guider SAM 2 avec les relations de la hiérarchie Frangi
+# Lire la hiérarchie géométrique avec un modèle de fondation gelé
 
-**Perspective : conserver SAM 2 gelé et tester une organisation explicite de ses échanges.** La [comparaison des pistes](PISTES_SANS_REENTRAINEMENT.md) explique le choix au regard du papier EUVIP, de la soutenance et des articles vérifiés le 5 septembre 2026.
+**Pour prolonger la voie polyèdres de la soutenance LiDAR 3D, la piste principale est un petit lecteur appris sur des représentations gelées.** Il reçoit les éléments géométriques, leurs incidences et leurs événements de fusion. Lire la [proposition approfondie](VOIE_POLYEDRES.md) pour les définitions, les références et les expériences décisives.
 
-## Le choix pour EUVIP
+## Le principe
 
-Conserver chaque token et ses caractéristiques. Utiliser la hiérarchie pour indiquer **à quel niveau deux régions se réunissent**, puis moduler leur attention. Cette expérience ne suppose pas que Frangi segmente mieux que SAM. En monomodal, la hiérarchie organise des observations déjà disponibles ; une modalité supplémentaire peut aussi apporter une observation nouvelle.
+L’encodeur fournit les caractéristiques ; notre construction géométrique fournit les objets et leur organisation. Un petit module apprend à exploiter les deux, sans réentraîner l’encodeur.
 
-![Principe du guidage](figures/guidage_hierarchique.png)
+![Lecteur des éléments et de leurs regroupements](figures/lecteur_polyedres.png)
 
-## Du graphe à une relation entre régions
+- Décrire les éléments et les groupes à chaque niveau.
+- Faire remonter les informations lors des fusions, puis rendre ce contexte aux éléments fins.
+- Conserver les points partagés et leurs appartenances pondérées jusqu’à la prédiction finale.
 
-Reprendre les dissimilarités `d_ij` du papier. Sur un graphe fixé, avant sélection de la plus grande composante et élagage par centralité, faire varier le seuil des arêtes. Les composantes fusionnent : on conserve ces événements et leurs niveaux. Le MST de chaque composante suffit à les retrouver.
+Les poids du lecteur sont partagés entre événements. Ses entrées incluent les vrais niveaux ; une profondeur informatique ne suffit pas. La voie fine conserve les caractéristiques originales.
 
-Dans une même composante, `u_ij` est le plus grand coût sur le chemin du MST entre deux sommets. La relation `κ_ij = 1 − u_ij` mesure la fraction des seuils de `[0,1]` auxquels ils appartiennent au même groupe ; elle vaut zéro entre composantes séparées. Elle exploite toute la filtration. La profondeur d’un parcours et les échelles gaussiennes ne définissent pas cette hiérarchie.
+## Ce que la thèse impose de distinguer
 
-## Un premier essai sans apprentissage
+En K = 2, les atomes sont des **arêtes reliées par des triangles**. En K = 3, ce sont des **facettes triangulaires reliées par des 4-uplets**. Un point partagé ne suffit pas à fusionner deux groupes. La dimension des cellules et le niveau du dendrogramme restent deux structures distinctes.
 
-Reporter ces relations sur les tokens, puis ajouter un biais borné au score visuel :
+Le vote du §9.1 fournit une interface vers les points : `w_xτ = S_τ / T_x` pour `x∈τ` et `T_x>0`, zéro sinon. **S_τ est un score des connecteurs, pas une aire.** La tokenisation exacte et les attributs de surface restent des choix à construire et vérifier.
 
-$$
-A' = \operatorname{softmax}(QK^\top/\sqrt{d_h} + \alpha B).
-$$
+## Deux terrains d’étude
 
-`B` est la relation projetée, avec diagonale neutralisée. Les poids de SAM et de son adaptation aux fissures restent gelés ; `α` est choisi sur validation, avec `α = 0` comme référence. Un bloc global de Hiera-L, par exemple le bloc 43, permet une intervention initiale sans modifier la grille. La projection des candidats vers les tokens et les faux raccordements du graphe sont les principaux risques.
+**LiDAR 3D :** caractéristiques d’un encodeur 3D gelé, lecteur géométrique, sortie fine. Superpoint Transformer fournit le précédent 3D le plus proche ; les attentions cellulaires éclairent les incidences. Commencer en K = 2, puis qualifier K = 3.
 
-[CASS, CVPR 2025](https://arxiv.org/html/2411.17150v3) fournit un précédent de transfert de relations vers une attention visuelle gelée. **La hiérarchie Frangi dans SAM 2 est notre proposition**, pas un résultat de cet article. Comparer impérativement au même support de candidats, à une partition unique, au graphe local et à des arbres témoins.
+**EUVIP :** geler la [baseline locale SAM 2 + LoRA](../CrackSAM/README.md), distincte du CrackSAM publié sur SAM 1 ; prendre le graphe Frangi comme cas K = 1. Le [biais dans l’attention et les autres pistes](PISTES_SANS_REENTRAINEMENT.md) restent des comparateurs pour un guidage interne. Ce cas 2D ne démontre pas encore le programme surfacique.
 
-## La suite vers la soutenance
+## Pour préparer la soutenance
 
-Un petit lecteur hiérarchique inspiré de [Superpoint Transformer, ICCV 2023](https://arxiv.org/abs/2306.08045), entraîné sur les caractéristiques SAM sauvegardées, prolongerait davantage l’idée « alphabet–grammaire ». Il demanderait un apprentissage nouveau, sans rétropropagation dans SAM.
-
-Les [formulations pour la soutenance](SOUTENANCE.md) résument cette distinction. Les [résultats négatifs](RECHERCHES.md) restent documentés. Le montage est à implémenter ; aucun gain n’a été mesuré. Le schéma vectoriel se régénère avec `python figures/make_figure.py` depuis ce dossier.
+Les [formulations courtes](SOUTENANCE.md) présentent le lecteur ; les [recherches antérieures](RECHERCHES.md) documentent les résultats négatifs des descripteurs locaux. Aucun gain de segmentation n’est annoncé. Les deux schémas se régénèrent avec les scripts `figures/make_figure.py` et `figures/make_polyhedra_figure.py`.

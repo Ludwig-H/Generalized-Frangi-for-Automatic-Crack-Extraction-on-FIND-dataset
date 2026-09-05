@@ -1,5 +1,7 @@
 # Hiérarchie Frangi et SAM 2 gelé : quelles pistes retenir ?
 
+Cette comparaison privilégie une intervention **dans les attentions de SAM 2 gelé**. Pour le critère de cohérence avec la voie polyèdres du LiDAR 3D, la [note consacrée au lecteur géométrique](VOIE_POLYEDRES.md) approfondit et privilégie la voie B.
+
 **Verdict : commencer par guider une attention de SAM 2 avec les relations multi-échelles du graphe Frangi (A).** Cette intervention répond directement à « guider SAM 2 », conserve ses tokens et ses poids et permet un retour au modèle initial. Un petit lecteur hiérarchique entraîné sur ses caractéristiques gelées (B) constituerait ensuite un programme plus proche de l’« alphabet–grammaire » de la thèse. HSA et la compression des clés/valeurs restent des comparateurs.
 
 Il s’agit de propositions : **aucune n’est implémentée ou mesurée ici**. Les poids de SAM 2, y compris une adaptation préalable aux fissures, resteraient gelés. La lecture s’appuie sur EUVIP et la [soutenance figée au commit `8ddbae760c5a337c4e033c45e5f60c16ca58cc67`](https://github.com/Ludwig-H/Manuscrit-de-th-se/blob/8ddbae760c5a337c4e033c45e5f60c16ca58cc67/Soutenance/soutenance/Soutenance_These_2026-09-08_LouisHauseux.pdf). Les pages ci-dessous désignent les pages PDF, puis les numéros imprimés des diapositives.
