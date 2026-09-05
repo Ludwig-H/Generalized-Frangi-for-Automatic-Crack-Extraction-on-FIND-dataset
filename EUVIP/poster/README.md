@@ -11,7 +11,7 @@ la palette, les bandeaux et la typographie EB Garamond. Tous les blocs utilisent
 le bleu nuit, y compris la perspective. Les logos Inria, Ayana,
 3IA et DS4H viennent du template ; les auteurs et affiliations sont ceux du
 papier final. Imprimer à **100 %**, sans ajustement à la page.
-La bibliographie dispose de son propre bloc, en corps 19 pt.
+Le bloc bibliographique réunit huit références et un QR code de 6 cm.
 
 ## Contenu et sources
 
@@ -23,7 +23,8 @@ Les images expérimentales sont copiées sans modification depuis `../LaTeX/`.
 La courbe de bruit est celle du papier, avec des axes et une légende lisibles ;
 les bandes représentent l'écart-type. Aucun résultat nouveau n'est ajouté.
 
-Deux dessins vectoriels sont adaptés des TikZ de la soutenance de Louis Hauseux :
+Les schémas sont insérés directement en TikZ, sans fond blanc ni PDF intermédiaire.
+Deux dessins sont adaptés de la soutenance de Louis Hauseux :
 
 - [frangi-hessian.tex](figures/frangi-hessian.tex) reprend
   [`frangi_hessienne.tex`](https://github.com/Ludwig-H/Manuscrit-de-th-se/blob/8ddbae760c5a337c4e033c45e5f60c16ca58cc67/Soutenance/soutenance/figs/frangi_hessienne.tex).
@@ -51,8 +52,8 @@ fourni. La consigne A4 du « Paper Kit » concerne les articles, pas les posters
 
 ## Modifier et compiler
 
-Dépendances : XeLaTeX, Beamer/beamerposter, TikZ, `qrcode`, `unicode-math`,
-polices EB Garamond et Latin Modern. Sur Debian/Ubuntu :
+Dépendances : XeLaTeX, Beamer/beamerposter, TikZ, `qrcode` et EB Garamond.
+Sur Debian/Ubuntu :
 
 ```bash
 sudo apt-get install texlive-xetex texlive-latex-extra texlive-fonts-recommended fonts-ebgaramond
@@ -60,9 +61,9 @@ cd EUVIP/poster
 make
 ```
 
-`make` recompile les trois TikZ, puis le poster en deux passes. Les fichiers
+`make` compile le poster et ses fragments TikZ en deux passes. Les fichiers
 temporaires restent dans `build/`, ignoré par Git ; `make clean` les supprime.
-Le PDF final et les PDF vectoriels sont conservés comme livrables du poster.
+Le PDF final et son aperçu PNG sont conservés comme livrables du poster.
 Contrôler après modification : une seule page A0, polices incorporées,
 aucun débordement, légendes visibles et QR code lisible.
 

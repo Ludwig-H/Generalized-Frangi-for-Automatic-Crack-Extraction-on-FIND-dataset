@@ -2,45 +2,40 @@
 % Same three geometric vignettes, translated into English and made legible.
 % Rejection crosses removed: the paper uses soft similarity penalties.
 % Shared header: classical Frangi cues adapted to pixel pairs; alignment is added by the graph.
-\documentclass[tikz,border=6pt]{standalone}
-\usepackage{fontspec}
-\setmainfont{EB Garamond}
-\usepackage{amsmath}
-\usepackage{unicode-math}
-\setmathfont{Latin Modern Math}
-\usetikzlibrary{arrows.meta}
-\definecolor{navy}{RGB}{56,66,87}
-\definecolor{red}{RGB}{230,51,18}
-\definecolor{teal}{RGB}{0,117,128}
-\definecolor{blue}{RGB}{20,136,202}
-\begin{document}
+% Reusable fragment: \resizebox{...}{!}{\input{figures/frangi-terms.tex}}.
+% Fonts and colors are local; the poster supplies TikZ, amsmath and its font family.
+\begingroup
+\definecolor{frangiTermsNavy}{RGB}{56,66,87}
+\definecolor{frangiTermsRed}{RGB}{230,51,18}
+\definecolor{frangiTermsTeal}{RGB}{0,117,128}
+\definecolor{frangiTermsBlue}{RGB}{20,136,202}
 \begin{tikzpicture}[x=1.85cm,y=1.85cm,
- every node/.style={font=\fontsize{16}{19}\selectfont,text=navy},
- ridge/.style={line width=10pt,navy!32,line cap=round},
- pixel/.style={circle,fill=teal,inner sep=0pt,minimum size=6pt},
- strong/.style={red,line width=2.2pt},
- weak/.style={navy!55,line width=1.6pt,densely dashed},
- heading/.style={font=\fontsize{20}{23}\selectfont\bfseries},
- caption/.style={align=center,font=\fontsize{15}{18}\selectfont}]
+ every node/.style={font=\normalfont\fontsize{16}{19}\selectfont,text=frangiTermsNavy},
+ ridge/.style={line width=10pt,frangiTermsNavy!32,line cap=round},
+ pixel/.style={circle,fill=frangiTermsTeal,inner sep=0pt,minimum size=6pt},
+ strong/.style={frangiTermsRed,line width=2.2pt},
+ weak/.style={frangiTermsNavy!55,line width=1.6pt,densely dashed},
+ heading/.style={font=\normalfont\fontsize{20}{23}\selectfont\bfseries},
+ caption/.style={align=center,font=\normalfont\fontsize{15}{18}\selectfont}]
  \path[use as bounding box] (-.04,-1.57) rectangle (11.44,2.40);
  % Group the inherited local cues; distinguish the relational graph term.
- \fill[navy!9] (-.04,1.84) rectangle (7.30,2.40);
- \node[font=\fontsize{18}{21}\selectfont\bfseries] at (3.63,2.12)
+ \fill[frangiTermsNavy,fill opacity=.08] (-.04,1.84) rectangle (7.30,2.40);
+ \node[font=\normalfont\fontsize{18}{21}\selectfont\bfseries] at (3.63,2.12)
        {Classical Frangi cues (paired here)};
- \fill[blue!13] (7.60,1.84) rectangle (11.44,2.40);
- \node[text=blue,font=\fontsize{18}{21}\selectfont\bfseries] at (9.52,2.12)
+ \fill[frangiTermsBlue,fill opacity=.12] (7.60,1.84) rectangle (11.44,2.40);
+ \node[text=frangiTermsBlue,font=\normalfont\fontsize{18}{21}\selectfont\bfseries] at (9.52,2.12)
        {Added by the graph};
- \draw[navy!18,line width=.8pt] (3.55,-1.02)--(3.55,1.69);
- \draw[blue!45,line width=1.1pt] (7.45,-1.02)--(7.45,1.69);
+ \draw[frangiTermsNavy!18,line width=.8pt] (3.55,-1.02)--(3.55,1.69);
+ \draw[frangiTermsBlue!45,line width=1.1pt] (7.45,-1.02)--(7.45,1.69);
  \begin{scope}
   \node[heading] at (1.65,1.56) {Intensity / contrast};
   \node at (1.65,1.16) {$S_{\mathrm{int}}^\sigma(i,j)$};
-  \draw[ridge,navy!58] (.40,.66)--(2.90,.66);
+  \draw[ridge,frangiTermsNavy!58] (.40,.66)--(2.90,.66);
   \draw[strong] (1.06,.66)--(2.15,.66);
   \node[pixel] at (1.06,.66) {};
   \node[pixel] at (2.15,.66) {};
-  \draw[ridge,navy!58] (.40,-.13)--(1.35,-.13);
-  \draw[ridge,navy!10] (1.53,-.13)--(2.90,-.13);
+  \draw[ridge,frangiTermsNavy!58] (.40,-.13)--(1.35,-.13);
+  \draw[ridge,frangiTermsNavy!10] (1.53,-.13)--(2.90,-.13);
   \draw[weak] (1.06,-.13)--(2.15,-.13);
   \node[pixel] at (1.06,-.13) {};
   \node[pixel] at (2.15,-.13) {};
@@ -54,7 +49,7 @@
   \draw[strong] (1.06,.66)--(2.15,.66);
   \node[pixel] at (1.06,.66) {};
   \node[pixel] at (2.15,.66) {};
-  \fill[navy!32] (1.65,-.13) circle[radius=.38];
+  \fill[frangiTermsNavy!32] (1.65,-.13) circle[radius=.38];
   \draw[weak] (1.41,-.13)--(1.89,-.13);
   \node[pixel] at (1.41,-.13) {};
   \node[pixel] at (1.89,-.13) {};
@@ -62,15 +57,15 @@
        {Elongated structures\\rather than round blobs};
  \end{scope}
  \begin{scope}[shift={(7.8,0)}]
-  \node[heading,text=blue] at (1.65,1.56) {Alignment};
+  \node[heading,text=frangiTermsBlue] at (1.65,1.56) {Alignment};
   \node at (1.65,1.16) {$S_{\mathrm{align}}^\sigma(i,j)$};
-  \draw[navy!45,line width=5pt,line cap=round] (.61,.66)--(1.51,.66);
-  \draw[navy!45,line width=5pt,line cap=round] (1.70,.66)--(2.60,.66);
+  \draw[frangiTermsNavy!45,line width=5pt,line cap=round] (.61,.66)--(1.51,.66);
+  \draw[frangiTermsNavy!45,line width=5pt,line cap=round] (1.70,.66)--(2.60,.66);
   \draw[strong] (1.06,.66)--(2.15,.66);
   \node[pixel] at (1.06,.66) {};
   \node[pixel] at (2.15,.66) {};
-  \draw[navy!45,line width=5pt,line cap=round] (.61,-.13)--(1.51,-.13);
-  \draw[navy!45,line width=5pt,line cap=round] (1.88,-.45)--(2.42,.19);
+  \draw[frangiTermsNavy!45,line width=5pt,line cap=round] (.61,-.13)--(1.51,-.13);
+  \draw[frangiTermsNavy!45,line width=5pt,line cap=round] (1.88,-.45)--(2.42,.19);
   \draw[weak] (1.06,-.13)--(2.15,-.13);
   \node[pixel] at (1.06,-.13) {};
   \node[pixel] at (2.15,-.13) {};
@@ -79,10 +74,10 @@
  \end{scope}
  % The drawings indicate a relative response, not a thresholded decision.
  \draw[strong] (1.66,-1.40)--(2.22,-1.40);
- \node[anchor=west,font=\fontsize{14}{17}\selectfont] at (2.32,-1.40)
+ \node[anchor=west,font=\normalfont\fontsize{14}{17}\selectfont] at (2.32,-1.40)
        {stronger similarity};
  \draw[weak] (6.48,-1.40)--(7.04,-1.40);
- \node[anchor=west,font=\fontsize{14}{17}\selectfont] at (7.14,-1.40)
+ \node[anchor=west,font=\normalfont\fontsize{14}{17}\selectfont] at (7.14,-1.40)
        {down-weighted connection};
 \end{tikzpicture}
-\end{document}
+\endgroup
