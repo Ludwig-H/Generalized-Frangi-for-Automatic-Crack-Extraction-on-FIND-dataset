@@ -11,8 +11,9 @@ la palette, les bandeaux et la typographie EB Garamond. Tous les blocs utilisent
 le bleu nuit, y compris la perspective. Les logos Inria, Ayana,
 3IA et DS4H viennent du template ; les auteurs et affiliations sont ceux du
 papier final. Imprimer à **100 %**, sans ajustement à la page.
-Le bloc bibliographique réunit sept références ciblées sur les fissures,
-les données et SAM, dont la revue de Zhang et al. (2025), avec un QR code de 6 cm.
+Le bloc bibliographique réunit huit références ciblées sur les fissures,
+les données, SAM et le guidage de l'attention, dont la revue de Zhang et al. (2025),
+avec un QR code de 6 cm.
 
 ## Contenu et sources
 
@@ -41,6 +42,21 @@ Le petit schéma de réduction du graphe dans `poster.tex` est illustratif.
 [foundation-hierarchy.tex](figures/foundation-hierarchy.tex) illustre uniquement
 une perspective : construire des groupes emboîtés depuis le graphe Frangi pour
 guider l'attention d'un modèle de fondation. Le titre « Perspective » indique ce statut.
+Les trois filaments A, B et C correspondent aux trois groupes de l'arbre et de
+la matrice. La référence retenue est
+[Amizadeh et al., *Hierarchical Self-Attention: Generalizing Neural Attention Mechanics
+to Multi-Scale Problems*, NeurIPS 2025](https://papers.neurips.cc/paper_files/paper/2025/hash/0480adaf62a918405a5e3b1031e0c056-Abstract-Conference.html),
+déjà citée dans le dossier ISPRS. HSA partage les coefficients d'attention entre
+sous-arbres frères ; leurs valeurs dépendent des caractéristiques du modèle.
+La matrice illustre cette structure, sans représenter des résultats mesurés.
+Le §4.3 démontre un remplacement partiel des attentions de RoBERTa sans nouvel
+entraînement, avec un compromis coût–précision. Il ne démontre aucun gain sur SAM 2.
+**Tous les poids de SAM 2 resteraient gelés** : la perspective consiste à fournir
+une hiérarchie Frangi à HSA, sans LoRA ni module appris. Cela demande une
+adaptation du calcul d'attention et une correspondance arbre–tokens, fond compris.
+CrackSAM [4] adapte le SAM original ; SAM 2 est documenté par Ravi et al. [6].
+Les [autres pistes examinées](../../ISPRS/CrackSAM-HierarchicalSelfAttention/PISTES_SANS_REENTRAINEMENT.md)
+comparent ce mécanisme au regroupement de tokens et au transfert de relations.
 
 ## Consignes EUVIP vérifiées
 

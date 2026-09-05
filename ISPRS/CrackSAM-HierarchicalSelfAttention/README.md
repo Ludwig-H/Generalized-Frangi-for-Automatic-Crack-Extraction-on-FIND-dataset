@@ -6,6 +6,11 @@ SAM possède déjà de riches représentations visuelles. Notre proposition est 
 
 Lire d’abord les [résultats négatifs et les recherches associées](RECHERCHES.md), puis les [formulations pour la soutenance](SOUTENANCE.md).
 
+Pour la contrainte **sans réentraînement de SAM 2**, consulter les
+[pistes comparées](PISTES_SANS_REENTRAINEMENT.md) : HSA, regroupement hiérarchique
+de tokens et transfert de relations. Le montage à trois coefficients ci-dessous
+reste une variante avec apprentissage limité.
+
 ![Principe du guidage hiérarchique](figures/guidage_hierarchique.png)
 
 ## Ce que nous voulons ajouter

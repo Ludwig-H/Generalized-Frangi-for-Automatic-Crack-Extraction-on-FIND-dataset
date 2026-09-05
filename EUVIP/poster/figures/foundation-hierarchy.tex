@@ -19,9 +19,10 @@
 % Minimal headings; the poster supplies the section title and full caption.
 \node[font=\normalfont\fontsize{10}{12}\selectfont\bfseries] at (2.1,4.55) {Frangi graph};
 \node[font=\normalfont\fontsize{10}{12}\selectfont\bfseries] at (6.85,4.55) {Nested groups};
-\node[font=\normalfont\fontsize{10}{12}\selectfont\bfseries] at (12.3,4.55) {Foundation-model attention};
+\node[font=\normalfont\fontsize{10}{12}\selectfont\bfseries] at (12.3,4.55) {Hierarchical attention (HSA)};
 
-% 1. A sparse ridge graph, with local edges and a small junction.
+% All foundation-model weights stay frozen; the proposed bias is computed from the tree.
+% 1. Three schematic ridge branches, labelled to match the tree and attention matrix.
 \coordinate (g0) at (.8,1.2);
 \coordinate (g1) at (1.05,1.65);
 \coordinate (g2) at (1.25,2.10);
@@ -33,19 +34,20 @@
 \coordinate (g8) at (2.88,2.24);
 \coordinate (g9) at (3.27,2.04);
 \coordinate (g10) at (3.54,1.67);
-\coordinate (g11) at (1.33,3.03);
-\coordinate (g12) at (1.19,3.48);
 \draw[edge,frangiOutlookBlue] (g0)--(g1)--(g2)--(g3)--(g4);
 \draw[edge,frangiOutlookRed] (g4)--(g5)--(g6)--(g7);
 \draw[edge,frangiOutlookNavy] (g4)--(g8)--(g9)--(g10);
-\draw[edge,frangiOutlookNavy!65] (g3)--(g11)--(g12);
-\foreach \k in {0,...,12} \node[ridge] at (g\k) {};
+\foreach \k in {0,...,10} \node[ridge] at (g\k) {};
+\node[text=frangiOutlookBlue,font=\normalfont\fontsize{10}{12}\selectfont\bfseries] at (.61,1.83) {A};
+\node[text=frangiOutlookRed,font=\normalfont\fontsize{10}{12}\selectfont\bfseries] at (2.38,3.65) {B};
+\node[text=frangiOutlookNavy,font=\normalfont\fontsize{10}{12}\selectfont\bfseries] at (3.30,1.33) {C};
 \node[anchor=west] at (2.98,3.37) {$d_{ij}$};
 \node at (2.1,.54) {Pairwise connection costs};
 
 \draw[arrow] (4.08,2.50)--(4.78,2.50);
 
-% 2. Merge tree: six leaves, three local groups, then coarser unions.
+% 2. Six illustrative segments form three branches A/B/C, then a network.
+% The leaf pairs illustrate nested grouping; they are not all sampled graph pixels.
 % This is a proposed extension of the EUVIP graph, not an existing output.
 \foreach \x in {5.48,5.98} \node[ridge,fill=frangiOutlookBlue] at (\x,1.30) {};
 \foreach \x in {6.53,7.03} \node[ridge,fill=frangiOutlookRed] at (\x,1.30) {};
@@ -64,15 +66,39 @@
 \draw[arrow,dashed,frangiOutlookRed] (8.82,2.50)--(10.08,2.50);
 \node[text=frangiOutlookRed,inner sep=2pt] at (9.45,2.89) {?};
 
-% 3. Illustrative additive bias, not a measured attention heatmap.
-% Fine groups occupy 2x2 blocks; A and B share a coarser, weaker block.
+% 3. HSA block constraint (Amizadeh et al., NeurIPS 2025, section 3.2).
+% One attention weight is shared between all leaves of two sibling subtrees.
+% This is an attention matrix, not an additive bias or a learned diagonal prior.
+% Row/column order: a1,a2,b1,b2,c1,c2. The diagonal is zero.
+% Illustrative coefficients, not measurements, chosen to sum to 1 per row:
+% A-internal=.14, A->B=.25, B->A=.10, B-internal=.44,
+% AB->C=.18, C->AB=.22, C-internal=.12 (values are per matrix entry).
+% The example has no systematic preference for interactions inside a group.
+% Distinct directions may have distinct weights; AB->C is one 4x2 block.
 \begin{scope}[shift={(10.9,1.15)},x=.45cm,y=.45cm]
-  \fill[frangiOutlookBlue,fill opacity=.12] (0,2) rectangle (4,6);
-  \fill[frangiOutlookBlue,fill opacity=.50] (0,4) rectangle (2,6);
-  \fill[frangiOutlookRed,fill opacity=.45] (2,2) rectangle (4,4);
-  \fill[frangiOutlookNavy,fill opacity=.38] (4,0) rectangle (6,2);
+  % Highest sibling interaction: subtree AB with subtree C.
+  \fill[frangiOutlookBlue,fill opacity=.4091] (4,2) rectangle (6,6);
+  \fill[frangiOutlookBlue,fill opacity=.50] (0,0) rectangle (4,2);
+  % Sibling interaction inside subtree AB.
+  \fill[frangiOutlookBlue,fill opacity=.5682] (2,4) rectangle (4,6);
+  \fill[frangiOutlookBlue,fill opacity=.2273] (0,2) rectangle (2,4);
+  % Two leaves per branch: only the off-diagonal entries receive a weight.
+  \foreach \x/\y in {0/4,1/5}
+    \fill[frangiOutlookBlue,fill opacity=.3182] (\x,\y) rectangle ++(1,1);
+  \foreach \x/\y in {2/2,3/3}
+    \fill[frangiOutlookBlue,fill opacity=1] (\x,\y) rectangle ++(1,1);
+  \foreach \x/\y in {4/0,5/1}
+    \fill[frangiOutlookBlue,fill opacity=.2727] (\x,\y) rectangle ++(1,1);
+  % A subtle grid exposes six tokens without white cell borders.
+  \draw[step=1,line width=.20pt,frangiOutlookNavy!22] (0,0) grid (6,6);
   \draw[line width=.45pt,frangiOutlookNavy!60] (0,0) rectangle (6,6);
-  \draw[line width=.8pt,frangiOutlookNavy!65] (0,2) rectangle (4,6);
+  \draw[line width=.65pt,frangiOutlookNavy!60] (4,0)--(4,6);
+  \draw[line width=.65pt,frangiOutlookNavy!60] (0,2)--(6,2);
+  \draw[line width=.65pt,frangiOutlookNavy!60] (2,2)--(2,6);
+  \draw[line width=.65pt,frangiOutlookNavy!60] (0,4)--(4,4);
+  \foreach \x/\y in {.5/5.5,1.5/4.5,2.5/3.5,3.5/2.5,4.5/1.5,5.5/.5}
+    \node[font=\normalfont\fontsize{7}{8}\selectfont,text=frangiOutlookNavy!65]
+      at (\x,\y) {0};
   \foreach \x/\label in {1/A,3/B,5/C} {
     \node at (\x,6.48) {\label};
   }
@@ -80,7 +106,7 @@
     \node at (-.47,\y) {\label};
   }
 \end{scope}
-\node at (12.3,.54) {Bias from shared group levels};
+\node at (12.3,.54) {Shared weights between groups};
 
 \end{tikzpicture}
 \endgroup
