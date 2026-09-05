@@ -7,9 +7,11 @@
 
 Poster en anglais, au format **841 × 1189 mm**, adapté du template Inria / 3IA /
 DS4H fourni dans `../Template_beamer_Inria_Poster_NEO_team.zip`. Il conserve
-la palette, les bandeaux et la typographie EB Garamond. Les logos Inria, Ayana,
+la palette, les bandeaux et la typographie EB Garamond. Tous les blocs utilisent
+le bleu nuit, y compris la perspective. Les logos Inria, Ayana,
 3IA et DS4H viennent du template ; les auteurs et affiliations sont ceux du
 papier final. Imprimer à **100 %**, sans ajustement à la page.
+La bibliographie dispose de son propre bloc, en corps 19 pt.
 
 ## Contenu et sources
 
@@ -28,7 +30,9 @@ Deux dessins vectoriels sont adaptés des TikZ de la soutenance de Louis Hauseux
 - [frangi-terms.tex](figures/frangi-terms.tex) reprend
   [`frangi_termes.tex`](https://github.com/Ludwig-H/Manuscrit-de-th-se/blob/8ddbae760c5a337c4e033c45e5f60c16ca58cc67/Soutenance/soutenance/figs/frangi_termes.tex).
 
-Les légendes sont traduites en anglais, avec les notations du papier. Les
+Les légendes sont traduites en anglais, avec les notations du papier. Un bandeau
+commun regroupe intensité/contraste et forme comme critères du Frangi classique
+adaptés aux paires ; un second identifie l’alignement comme ajout du graphe. Les
 connexions défavorables sont affaiblies, conformément aux pénalités souples.
 Le petit schéma de réduction du graphe dans `poster.tex` est illustratif.
 [foundation-hierarchy.tex](figures/foundation-hierarchy.tex) illustre uniquement
@@ -66,3 +70,5 @@ Livraison contrôlée : une page A0, toutes les polices incorporées, aucun
 avertissement ni débordement LaTeX, QR code décodé vers le dépôt attendu,
 revue visuelle de la page et des détails. Les images expérimentales sont
 identiques octet par octet aux sources du papier.
+Le QR code imprimé et son lien cliquable dans le PDF pointent tous deux vers
+[`Ayana-Inria/Frangi-EUVIP`](https://github.com/Ayana-Inria/Frangi-EUVIP).

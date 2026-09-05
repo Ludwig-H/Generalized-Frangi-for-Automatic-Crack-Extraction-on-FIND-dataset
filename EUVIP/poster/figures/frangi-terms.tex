@@ -1,6 +1,7 @@
 % Adapted from the author's soutenance/frangi_termes.tex.
 % Same three geometric vignettes, translated into English and made legible.
 % Rejection crosses removed: the paper uses soft similarity penalties.
+% Shared header: classical Frangi cues adapted to pixel pairs; alignment is added by the graph.
 \documentclass[tikz,border=6pt]{standalone}
 \usepackage{fontspec}
 \setmainfont{EB Garamond}
@@ -11,6 +12,7 @@
 \definecolor{navy}{RGB}{56,66,87}
 \definecolor{red}{RGB}{230,51,18}
 \definecolor{teal}{RGB}{0,117,128}
+\definecolor{blue}{RGB}{20,136,202}
 \begin{document}
 \begin{tikzpicture}[x=1.85cm,y=1.85cm,
  every node/.style={font=\fontsize{16}{19}\selectfont,text=navy},
@@ -21,52 +23,58 @@
  heading/.style={font=\fontsize{20}{23}\selectfont\bfseries},
  caption/.style={align=center,font=\fontsize{15}{18}\selectfont}]
  \path[use as bounding box] (-.04,-1.57) rectangle (11.44,2.40);
- % Light separators preserve the original three-column organization.
- \draw[navy!18,line width=.8pt] (3.55,-.98)--(3.55,2.15);
- \draw[navy!18,line width=.8pt] (7.45,-.98)--(7.45,2.15);
+ % Group the inherited local cues; distinguish the relational graph term.
+ \fill[navy!9] (-.04,1.84) rectangle (7.30,2.40);
+ \node[font=\fontsize{18}{21}\selectfont\bfseries] at (3.63,2.12)
+       {Classical Frangi cues (paired here)};
+ \fill[blue!13] (7.60,1.84) rectangle (11.44,2.40);
+ \node[text=blue,font=\fontsize{18}{21}\selectfont\bfseries] at (9.52,2.12)
+       {Added by the graph};
+ \draw[navy!18,line width=.8pt] (3.55,-1.02)--(3.55,1.69);
+ \draw[blue!45,line width=1.1pt] (7.45,-1.02)--(7.45,1.69);
  \begin{scope}
-  \node[heading] at (1.65,2.07) {Curvature evidence};
-  \node at (1.65,1.67) {$S_{\mathrm{int}}^\sigma(i,j)$};
-  \draw[ridge,navy!58] (.40,1.04)--(2.90,1.04);
-  \draw[strong] (1.06,1.04)--(2.15,1.04);
-  \node[pixel] at (1.06,1.04) {};
-  \node[pixel] at (2.15,1.04) {};
-  \draw[ridge,navy!58] (.40,.10)--(1.35,.10);
-  \draw[ridge,navy!10] (1.53,.10)--(2.90,.10);
-  \draw[weak] (1.06,.10)--(2.15,.10);
-  \node[pixel] at (1.06,.10) {};
-  \node[pixel] at (2.15,.10) {};
-  \node[caption] at (1.65,-.72)
-       {Strong dark-ridge curvature\\at \emph{both} endpoints};
+  \node[heading] at (1.65,1.56) {Intensity / contrast};
+  \node at (1.65,1.16) {$S_{\mathrm{int}}^\sigma(i,j)$};
+  \draw[ridge,navy!58] (.40,.66)--(2.90,.66);
+  \draw[strong] (1.06,.66)--(2.15,.66);
+  \node[pixel] at (1.06,.66) {};
+  \node[pixel] at (2.15,.66) {};
+  \draw[ridge,navy!58] (.40,-.13)--(1.35,-.13);
+  \draw[ridge,navy!10] (1.53,-.13)--(2.90,-.13);
+  \draw[weak] (1.06,-.13)--(2.15,-.13);
+  \node[pixel] at (1.06,-.13) {};
+  \node[pixel] at (2.15,-.13) {};
+  \node[caption] at (1.65,-.84)
+       {Curvature strength\\at \emph{both} endpoints};
  \end{scope}
  \begin{scope}[shift={(3.9,0)}]
-  \node[heading] at (1.65,2.07) {Elongation};
-  \node at (1.65,1.67) {$S_{\mathrm{shape}}^\sigma(i,j)$};
-  \draw[ridge] (.40,1.04)--(2.90,1.04);
-  \draw[strong] (1.06,1.04)--(2.15,1.04);
-  \node[pixel] at (1.06,1.04) {};
-  \node[pixel] at (2.15,1.04) {};
-  \fill[navy!32] (1.65,.10) circle[radius=.38];
-  \draw[weak] (1.41,.10)--(1.89,.10);
-  \node[pixel] at (1.41,.10) {};
-  \node[pixel] at (1.89,.10) {};
-  \node[caption] at (1.65,-.72)
+  \node[heading] at (1.65,1.56) {Shape};
+  \node at (1.65,1.16) {$S_{\mathrm{shape}}^\sigma(i,j)$};
+  \draw[ridge] (.40,.66)--(2.90,.66);
+  \draw[strong] (1.06,.66)--(2.15,.66);
+  \node[pixel] at (1.06,.66) {};
+  \node[pixel] at (2.15,.66) {};
+  \fill[navy!32] (1.65,-.13) circle[radius=.38];
+  \draw[weak] (1.41,-.13)--(1.89,-.13);
+  \node[pixel] at (1.41,-.13) {};
+  \node[pixel] at (1.89,-.13) {};
+  \node[caption] at (1.65,-.84)
        {Elongated structures\\rather than round blobs};
  \end{scope}
  \begin{scope}[shift={(7.8,0)}]
-  \node[heading] at (1.65,2.07) {Alignment};
-  \node at (1.65,1.67) {$S_{\mathrm{align}}^\sigma(i,j)$};
-  \draw[navy!45,line width=5pt,line cap=round] (.61,1.04)--(1.51,1.04);
-  \draw[navy!45,line width=5pt,line cap=round] (1.70,1.04)--(2.60,1.04);
-  \draw[strong] (1.06,1.04)--(2.15,1.04);
-  \node[pixel] at (1.06,1.04) {};
-  \node[pixel] at (2.15,1.04) {};
-  \draw[navy!45,line width=5pt,line cap=round] (.61,.10)--(1.51,.10);
-  \draw[navy!45,line width=5pt,line cap=round] (1.88,-.22)--(2.42,.42);
-  \draw[weak] (1.06,.10)--(2.15,.10);
-  \node[pixel] at (1.06,.10) {};
-  \node[pixel] at (2.15,.10) {};
-  \node[caption] at (1.65,-.72)
+  \node[heading,text=blue] at (1.65,1.56) {Alignment};
+  \node at (1.65,1.16) {$S_{\mathrm{align}}^\sigma(i,j)$};
+  \draw[navy!45,line width=5pt,line cap=round] (.61,.66)--(1.51,.66);
+  \draw[navy!45,line width=5pt,line cap=round] (1.70,.66)--(2.60,.66);
+  \draw[strong] (1.06,.66)--(2.15,.66);
+  \node[pixel] at (1.06,.66) {};
+  \node[pixel] at (2.15,.66) {};
+  \draw[navy!45,line width=5pt,line cap=round] (.61,-.13)--(1.51,-.13);
+  \draw[navy!45,line width=5pt,line cap=round] (1.88,-.45)--(2.42,.19);
+  \draw[weak] (1.06,-.13)--(2.15,-.13);
+  \node[pixel] at (1.06,-.13) {};
+  \node[pixel] at (2.15,-.13) {};
+  \node[caption] at (1.65,-.84)
        {Compatible local directions\\$\theta^\sigma(x_i)$ and $\theta^\sigma(x_j)$};
  \end{scope}
  % The drawings indicate a relative response, not a thresholded decision.

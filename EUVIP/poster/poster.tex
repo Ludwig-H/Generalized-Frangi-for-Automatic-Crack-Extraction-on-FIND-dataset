@@ -37,14 +37,14 @@
 \textbf{Idea:} combine the geometry seen by several sensors, link compatible pixels,
 then extract the main centerline. No annotated training set is required.
 \par\vspace{0.25cm}
-\panel{0.107}{Intensity_1FIND.png}{Intensity $I$}
-\hfill\panel{0.107}{Range_1FIND.png}{Range $R$}
-\hfill\panel{0.107}{Int_1FIND.png}{Positive curvature}
-\hfill\panel{0.107}{FrangiSim_1FIND.png}{Graph similarity}
-\hfill\panel{0.107}{Cluster_1FIND.png}{Largest component}
-\hfill\panel{0.107}{Betweenness_1FIND.png}{Tree centrality}
-\hfill\panel{0.107}{Resultat_1FIND.png}{Our skeleton $\widehat\Gamma$}
-\hfill\panel{0.107}{GroundTruth_1FIND.png}{Ground truth}
+\panel{0.10}{Intensity_1FIND.png}{Intensity $I$}
+\hfill\panel{0.10}{Range_1FIND.png}{Range $R$}
+\hfill\panel{0.10}{Int_1FIND.png}{Positive curvature}
+\hfill\panel{0.10}{FrangiSim_1FIND.png}{Graph similarity}
+\hfill\panel{0.10}{Cluster_1FIND.png}{Largest component}
+\hfill\panel{0.10}{Betweenness_1FIND.png}{Tree centrality}
+\hfill\panel{0.10}{Resultat_1FIND.png}{Our skeleton $\widehat\Gamma$}
+\hfill\panel{0.10}{GroundTruth_1FIND.png}{Ground truth}
 \par{\captiontext FIND example from the paper. Similarity: maximum over incident edges. Red: extracted skeleton.}
 \end{block}
 
@@ -72,7 +72,8 @@ Inputs must be aligned and share a dark-ridge polarity.}
 
 \begin{block}{2. From pixel-wise Frangi [1] to pairwise links}
 \centering\includegraphics[width=0.9\linewidth]{figures/frangi-terms.pdf}\par\RaggedRight
-\par{\smalltext \textbf{Curvature provides the main evidence.} Shape and alignment refine it.
+\par{\smalltext Contrast and shape reuse classical Frangi cues.
+\textbf{The graph adds alignment.}
 For nearby pixels, $0<\rho_{ij}=\|x_i-x_j\|_2\leq R$:}
 \[
 C_\sigma(x)=\max\{\lambda_2^\sigma(x),0\},\qquad
@@ -161,7 +162,7 @@ Adding filtered range $F$ gives 63\% (equal weights). $F$ is a post-processing o
 \par\centering
 \begin{tikzpicture}[every node/.style={font=\fontsize{24}{28}\selectfont}]
   \node[anchor=south west,inner sep=0pt] (plot) at (0,0)
-    {\includegraphics[width=24cm]{Jaccard_noisy.png}};
+    {\includegraphics[width=22cm]{Jaccard_noisy.png}};
   \draw[-{Latex[length=4mm]},line width=0.6mm] (plot.south west)--(plot.north west);
   \draw[-{Latex[length=4mm]},line width=0.6mm] (plot.south west)--(plot.south east);
   \node[anchor=east] at (plot.north west) {100};
@@ -214,20 +215,20 @@ initial transfer tests, not a general validation.}
 \end{alertblock}
 
 \begin{minipage}[c]{0.82\textwidth}
-{\fontsize{21}{25}\selectfont
-\textbf{Selected references}\quad
+\begin{block}{References}
+{\fontsize{19}{23}\selectfont
 [1] Frangi et al., \emph{Multiscale vessel enhancement filtering}, MICCAI, 1998.
 [2] Zhou et al., \emph{FIND}, Zenodo, 2022.\par
 [3] Jiang et al., \emph{CrackSegDiff}, arXiv:2410.08100, 2024.
 [4] Ge et al., \emph{Fine-tuning vision foundation model for crack segmentation in civil infrastructures},
 Constr. Build. Mater. 431, 136573, 2024.\par
-\textbf{Support:} Bpifrance (LiChIE, 2020--2025); DS4H (ANR-17-EURE-0004);
-3IA (ANR-19-P3IA-0002).\par
 \href{mailto:louis.hauseux@inria.fr}{louis.hauseux@inria.fr}\quad\textbullet\quad
 \href{https://github.com/Ayana-Inria/Frangi-EUVIP}{github.com/Ayana-Inria/Frangi-EUVIP}}
+\end{block}
 \end{minipage}\hfill
 \begin{minipage}[c]{0.16\textwidth}\centering
-\qrcode[height=3.3cm,hyperlink=false]{https://github.com/Ayana-Inria/Frangi-EUVIP}
+\href{https://github.com/Ayana-Inria/Frangi-EUVIP}{\XeTeXLinkBox{\textcolor{black}{%
+\qrcode[height=3.3cm,hyperlink=false]{https://github.com/Ayana-Inria/Frangi-EUVIP}}}}
 \par{\captiontext Code \& data}
 \end{minipage}
 \end{frame}
