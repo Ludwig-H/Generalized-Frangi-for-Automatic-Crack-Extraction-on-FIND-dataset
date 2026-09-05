@@ -1,0 +1,61 @@
+% Adapted from the user's Inria / 3IA / DS4H Gemini poster template.
+% Original Gemini theme: https://github.com/anishathalye/gemini
+% Compact A0 layout; supplied Inria colours and EB Garamond text preserved.
+\RequirePackage{fontspec}
+\RequirePackage{ragged2e}
+\usefonttheme{professionalfonts}
+\setsansfont{EBGaramond12}[Extension=.otf,UprightFont=*-Regular,
+  BoldFont=*-Bold,ItalicFont=*-Italic,BoldItalicFont=*-Italic]
+\setmainfont{EBGaramond12}[Extension=.otf,UprightFont=*-Regular,
+  BoldFont=*-Bold,ItalicFont=*-Italic,BoldItalicFont=*-Italic]
+\setbeamerfont{normal text}{size=\fontsize{28}{32}\selectfont}
+\setbeamerfont{block title}{size=\fontsize{36}{41}\selectfont,series=\bfseries}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{headline}{%
+  \begin{beamercolorbox}[wd=\paperwidth,center]{headline}
+    \vskip0.6cm
+    \hbox to \paperwidth{\hskip3cm
+      \includegraphics[height=3.3cm]{logos/3ia.png}\hfil
+      \includegraphics[width=14cm]{logos/inria.png}\hfil
+      \includegraphics[width=11cm]{logos/ayana.png}\hfil
+      \includegraphics[height=3.6cm]{logos/ds4h.png}\hskip3cm}
+    \vskip0.5cm
+    {\fontsize{70}{76}\selectfont\bfseries\inserttitle\par}
+    \vskip0.10cm
+    {\fontsize{33}{38}\selectfont\insertauthor\par}
+    \vskip0.35cm
+    {\fontsize{27}{31}\selectfont\insertinstitute\par}
+    \vskip0.5cm
+  \end{beamercolorbox}
+  \begin{beamercolorbox}[wd=\paperwidth,ht=0.18cm]{headline rule}\end{beamercolorbox}
+}
+\setbeamertemplate{block begin}{%
+  \begin{beamercolorbox}[wd=\linewidth,sep=0.32cm]{block title}
+    \usebeamerfont{block title}\insertblocktitle
+  \end{beamercolorbox}
+  \begin{beamercolorbox}[wd=\linewidth,sep=0.35cm]{block body}
+  \begin{minipage}{\dimexpr\linewidth-0.7cm\relax}
+    \fontsize{28}{32}\selectfont\RaggedRight
+    \setlength{\parskip}{0.22cm}
+    \setlength{\abovedisplayskip}{0.22cm}
+    \setlength{\belowdisplayskip}{0.22cm}
+}
+\setbeamertemplate{block end}{\end{minipage}\end{beamercolorbox}\vskip0.10cm}
+\setbeamertemplate{block alerted begin}{%
+  \begin{beamercolorbox}[wd=\linewidth,sep=0.32cm]{block alerted title}
+    \usebeamerfont{block title}\insertblocktitle
+  \end{beamercolorbox}
+  \begin{beamercolorbox}[wd=\linewidth,sep=0.35cm]{block alerted body}
+  \begin{minipage}{\dimexpr\linewidth-0.7cm\relax}
+    \fontsize{28}{32}\selectfont\RaggedRight
+    \setlength{\parskip}{0.22cm}
+}
+\setbeamertemplate{block alerted end}{\end{minipage}\end{beamercolorbox}\vskip0.45cm}
+\setbeamertemplate{footline}{%
+  \begin{beamercolorbox}[wd=\paperwidth,ht=0.13cm]{headline rule}\end{beamercolorbox}
+  \begin{beamercolorbox}[wd=\paperwidth,center,sep=0.4cm]{headline}
+    \fontsize{26}{30}\selectfont
+    \textbf{EUVIP 2026}\quad 14th European Conference on Visual Information Processing
+    \quad\textperiodcentered\quad Luxembourg, 28 September--1 October 2026
+  \end{beamercolorbox}
+}

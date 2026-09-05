@@ -1,0 +1,49 @@
+% Adapted from the author's soutenance/frangi_hessienne.tex.
+% Original geometry retained: 27-degree dark ridge and inverse-curvature ellipse.
+% English labels, explicit poster-friendly type sizes, and EUVIP scale notation.
+\documentclass[tikz,border=6pt]{standalone}
+\usepackage{fontspec}
+\setmainfont{EB Garamond}
+\usepackage{amsmath}
+\usepackage{unicode-math}
+\setmathfont{Latin Modern Math}
+\usetikzlibrary{arrows.meta,positioning}
+\definecolor{navy}{RGB}{56,66,87}
+\definecolor{red}{RGB}{230,51,18}
+\definecolor{teal}{RGB}{0,117,128}
+\begin{document}
+\begin{tikzpicture}[x=2cm,y=2cm,
+ every node/.style={font=\fontsize{16}{19}\selectfont,text=navy},
+ ridge/.style={line width=14pt,navy!42,line cap=round},
+ vector/.style={-{Latex[length=3mm]},line width=1.6pt}]
+ \path[use as bounding box] (-2.65,-1.92) rectangle (3.00,2.04);
+ \begin{scope}[rotate=27]
+  \draw[ridge] (-2.05,0)--(2.05,0);
+  \draw[red,line width=1.5pt,fill=red!6,fill opacity=.7]
+       (0,0) ellipse (1.75 and .62);
+  \draw[vector,red] (0,0)--(1.75,0);
+  \draw[vector,teal] (0,0)--(0,.62);
+  \draw[red!65,dashed,line width=.9pt] (1.75,0)--(2.3,0);
+ \end{scope}
+ % Eigenvector labels are horizontal for readability.
+ \node[text=red,fill=white,inner sep=1.5pt] at (.77,.39) {$e_1^\sigma$};
+ \node[text=teal,fill=white,inner sep=1.5pt] at (-.27,.34) {$e_2^\sigma$};
+ \draw[navy!60,dashed,line width=.9pt] (0,0)--(2.28,0);
+ \draw[navy,line width=1.0pt] (2.02,0) arc (0:27:2.02);
+ \node[fill=white,inner sep=1pt] at (2.34,.46) {$\theta^\sigma(x)$};
+ \fill[teal] (0,0) circle[radius=2.5pt];
+ \node[below left=3pt] at (0,0) {$x$};
+ % Exact semiaxes from the supplied Hessian drawing.
+ \draw[red,line width=1pt] (1.5593,.7945)--(1.83,1.19);
+ \node[anchor=south,text=red] at (1.86,1.25)
+       {$\displaystyle\frac{1}{\sqrt{|\lambda_1^\sigma(x)|}}$};
+ \draw[teal,line width=1pt] (-.2815,.5524)--(-.84,1.08);
+ \node[anchor=south,text=teal] at (-1.02,1.18)
+       {$\displaystyle\frac{1}{\sqrt{|\lambda_2^\sigma(x)|}}$};
+ \node[align=center] at (0,-1.42)
+       {Dark ridge: $|\lambda_1^\sigma(x)|\ll\lambda_2^\sigma(x)$,
+        \quad $\lambda_2^\sigma(x)>0$};
+ \node[font=\fontsize{14}{17}\selectfont] at (0,-1.80)
+       {$e_1^\sigma$: along the ridge \qquad $e_2^\sigma$: across the ridge};
+\end{tikzpicture}
+\end{document}

@@ -1,0 +1,234 @@
+% Scientific source: EUVIP/LaTeX/main.tex (final camera-ready version).
+% Build with XeLaTeX: make. Figures remain editable vector drawings.
+\documentclass[final]{beamer}
+\usepackage[orientation=portrait,size=a0,scale=1.2]{beamerposter}
+% ISO 216 A0, explicitly set: beamerposter's preset rounds the short side.
+\geometry{paperwidth=841mm,paperheight=1189mm,hmargin=20mm}
+\usetheme{gemini}
+\usecolortheme{inria}
+\usepackage[english]{babel}
+\usepackage{amsmath,amssymb,booktabs,graphicx,tikz,qrcode}
+\usetikzlibrary{arrows.meta,positioning,calc}
+\graphicspath{{figures/}}
+\pdfstringdefDisableCommands{\def\textsuperscript#1{#1}}
+\hypersetup{pdftitle={Multi-Modal, Training-Free Crack Extraction via Generalized Frangi Graph},
+  pdfauthor={Louis Hauseux; Raphael Antoine; Philippe Foucher; Pierre Charbonnier; Josiane Zerubia},
+  pdfsubject={EUVIP 2026 poster, A0 portrait},colorlinks=true,urlcolor=inriablue}
+\newcommand{\Hess}{\mathcal H}
+\newcommand{\matnorm}[1]{\left\lvert\mkern-2mu\left\lvert\mkern-2mu\left\lvert #1 \right\rvert\mkern-2mu\right\rvert\mkern-2mu\right\rvert}
+\newcommand{\captiontext}{\fontsize{24}{28}\selectfont}
+\newcommand{\smalltext}{\fontsize{27}{31}\selectfont}
+\newcommand{\panel}[3]{\begin{minipage}[t]{#1\linewidth}\centering
+  \includegraphics[width=\linewidth]{#2}\par\vspace{0.15cm}
+  {\captiontext #3\par}\end{minipage}}
+\newcommand{\colorline}[1]{\textcolor{#1}{\rule[0.18ex]{1.2cm}{0.11cm}}}
+\title{Multi-Modal, Training-Free Crack Extraction via Generalized Frangi Graph}
+\author[Hauseux et al.]{Louis \textsc{Hauseux}\textsuperscript{1}, Raphaël \textsc{Antoine}\textsuperscript{2},
+  Philippe \textsc{Foucher}\textsuperscript{2}, Pierre \textsc{Charbonnier}\textsuperscript{2},
+  Josiane \textsc{Zerubia}\textsuperscript{1}}
+\institute[Inria and Cerema]{\textsuperscript{1}Inria, Université Côte d'Azur, Ayana team, France
+  \qquad\textsuperscript{2}Cerema, ENDSUM research team, France}
+
+\hypersetup{pdfauthor={Louis Hauseux; Raphaël Antoine; Philippe Foucher; Pierre Charbonnier; Josiane Zerubia}}
+\begin{document}
+\begin{frame}[t]
+\vspace{0.15cm}
+\begin{block}{From aligned images to a crack skeleton: without training}
+\textbf{Idea:} combine the geometry seen by several sensors, link compatible pixels,
+then extract the main centerline. No annotated training set is required.
+\par\vspace{0.25cm}
+\panel{0.107}{Intensity_1FIND.png}{Intensity $I$}
+\hfill\panel{0.107}{Range_1FIND.png}{Range $R$}
+\hfill\panel{0.107}{Int_1FIND.png}{Positive curvature}
+\hfill\panel{0.107}{FrangiSim_1FIND.png}{Graph similarity}
+\hfill\panel{0.107}{Cluster_1FIND.png}{Largest component}
+\hfill\panel{0.107}{Betweenness_1FIND.png}{Tree centrality}
+\hfill\panel{0.107}{Resultat_1FIND.png}{Our skeleton $\widehat\Gamma$}
+\hfill\panel{0.107}{GroundTruth_1FIND.png}{Ground truth}
+\par{\captiontext FIND example from the paper. Similarity: maximum over incident edges. Red: extracted skeleton.}
+\end{block}
+
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.488\textwidth}
+\begin{block}{1. Fuse the geometry across modalities}
+\begin{minipage}[c]{0.34\linewidth}\centering
+  \includegraphics[width=\linewidth]{figures/frangi-hessian.pdf}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.63\linewidth}
+  The Hessian $\Hess_\sigma^{(m)}$ describes ridge geometry at scale $\sigma$.
+  \par\smallskip
+  $|\lambda_1^\sigma|\leq|\lambda_2^\sigma|$: the first eigenvector follows the ridge;
+  $\theta^\sigma$ gives its direction.
+\end{minipage}
+\[
+\widehat\Hess_\sigma^{(m)}(x)=
+\frac{\Hess_\sigma^{(m)}(x)}{\max_{y\in\Omega}\matnorm{\Hess_\sigma^{(m)}(y)}_2},
+\qquad
+\Hess_\sigma^{\mathrm{fused}}=\sum_{m\in\mathcal M}w_m\widehat\Hess_\sigma^{(m)}.
+\]
+{\smalltext $w_m\geq0$, $\sum_m w_m=1$. Recompute the eigensystem after fusion.
+Inputs must be aligned and share a dark-ridge polarity.}
+\end{block}
+
+\begin{block}{2. From pixel-wise Frangi [1] to pairwise links}
+\centering\includegraphics[width=0.9\linewidth]{figures/frangi-terms.pdf}\par\RaggedRight
+\par{\smalltext \textbf{Curvature provides the main evidence.} Shape and alignment refine it.
+For nearby pixels, $0<\rho_{ij}=\|x_i-x_j\|_2\leq R$:}
+\[
+C_\sigma(x)=\max\{\lambda_2^\sigma(x),0\},\qquad
+R_B^\sigma(x)=\frac{|\lambda_1^\sigma(x)|}{|\lambda_2^\sigma(x)|}.
+\]
+\[
+\boxed{S_{ij}^{(0)}=\max_{\sigma\in\Sigma}
+ S_{\mathrm{int}}^\sigma(i,j)\,S_{\mathrm{shape}}^\sigma(i,j)\,S_{\mathrm{align}}^\sigma(i,j)}
+\]
+\[
+d_{ij}=\min\{1,\rho_{ij}(1-S_{ij}^{(0)})\},\qquad S_{ij}=1-d_{ij}.
+\]
+{\smalltext $\rho_{ij}$ penalizes longer links. Directions are unoriented:
+$\theta$ and $\theta+\pi$ describe the same axis.}
+\end{block}
+
+\begin{block}{3. Reduce the graph to its main centerline}
+\centering
+\resizebox{0.87\linewidth}{!}{%
+\begin{tikzpicture}[x=1cm,y=.64cm, every node/.style={font=\fontsize{10}{12}\selectfont},
+  edge/.style={draw=inriagrayblue!45,line width=0.7pt},
+  main/.style={draw=inriared,line width=1.8pt},
+  flow/.style={-{Latex[length=3mm]},draw=inriagrayblue,line width=0.9pt}]
+  \foreach \offset/\labeltext in {0/Retained graph,5/Minimum spanning tree,10/Pruned centerline}{
+    \begin{scope}[xshift=\offset cm]
+      \coordinate (a) at (0,0); \coordinate (b) at (.7,.6);
+      \coordinate (c) at (1.4,1.0); \coordinate (d) at (2.0,.8);
+      \coordinate (e) at (2.8,1.4); \coordinate (f) at (3.5,1.6);
+      \coordinate (g) at (1.9,1.8); \coordinate (h) at (2.4,2.25);
+      \draw[edge] (a)--(b)--(c)--(d)--(e)--(f);
+      \draw[edge] (c)--(g)--(h);
+      \foreach \p in {a,b,c,d,e,f,g,h}{\fill[inriagrayblue] (\p) circle (1.6pt);}
+      \ifnum\offset=0
+        \draw[edge] (b)--(g)--(d) (c)--(e) (g)--(e)--(h);
+      \fi
+      \ifnum\offset=10
+        \draw[main] (a)--(b)--(c)--(d)--(e)--(f);
+        \draw[inriared,line width=.9pt] (2.1,1.9)--(2.55,1.55);
+      \fi
+      \node[align=center] at (1.7,-.6) {\labeltext};
+    \end{scope}
+  }
+  \draw[flow] (3.75,1.1)--(4.6,1.1);
+  \draw[flow] (8.75,1.1)--(9.6,1.1);
+\end{tikzpicture}}
+\par\RaggedRight
+Retain strong edges and nodes using $S_{ij}$; select components. Build one tree $\mathcal T$ per component using costs $d_{ij}$.
+\par
+Similarity-weighted tree centrality selects the main axis and prunes peripheral branches.
+{\captiontext Diagram is schematic. Settings are selected per dataset; on FIND,
+$\Sigma=\{1,3,5,7\}$, $R=3$, retained fractions $\tau_E=\tau_V=0.25$.}
+\end{block}
+
+\begin{block}{A second setting: a fractured limestone wall}
+\begin{minipage}[c]{0.70\linewidth}
+\panel{0.315}{PalaisDesPapes.png}{Intensity}
+\hfill\panel{0.315}{PalaisDesPapes_IntDepth.png}{Depth overlay}
+\hfill\panel{0.315}{PalaisDesPapes_Result.png}{Our skeleton}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.27\linewidth}
+{\smalltext \textbf{Palais des Papes.} Main fracture recovered without retraining;
+minor cracks missed at low contrast or depth resolution.}
+\end{minipage}
+\end{block}
+\end{column}
+
+\begin{column}{0.488\textwidth}
+\begin{block}{4. FIND: clean accuracy and noise sensitivity}
+\textbf{Clean images: the supervised model performs best.}
+\par\vspace{0.15cm}
+{\fontsize{28}{33}\selectfont\setlength{\tabcolsep}{0.30cm}
+\begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}lccc@{}}
+\toprule
+Method ($I+R$) & Jaccard $\uparrow$ & Tversky $\uparrow$ & $W$ $\downarrow$\\
+\midrule
+Ours, no training & 60\% & 68\% & 18 px\\
+CrackSegDiff [3] & \textbf{87\%} & \textbf{90\%} & \textbf{5 px}\\
+\bottomrule
+\end{tabular*}}
+\par{\captiontext FIND [2], $256\!\times\!256$. Both skeletons are dilated by 3 px for
+overlap scores; Tversky: $\alpha=1$, $\beta=0.5$. $W$: Wasserstein distance between skeleton pixels.}
+\par{\smalltext \textbf{Fusion:} intensity alone gives 41\% Jaccard; $I+R$ gives 60\%.
+Adding filtered range $F$ gives 63\% (equal weights). $F$ is a post-processing of $R$.}
+\par\vspace{0.35cm}
+\textbf{Under the tested noise, our scores degrade more slowly.}
+\par\centering
+\begin{tikzpicture}[every node/.style={font=\fontsize{24}{28}\selectfont}]
+  \node[anchor=south west,inner sep=0pt] (plot) at (0,0)
+    {\includegraphics[width=24cm]{Jaccard_noisy.png}};
+  \draw[-{Latex[length=4mm]},line width=0.6mm] (plot.south west)--(plot.north west);
+  \draw[-{Latex[length=4mm]},line width=0.6mm] (plot.south west)--(plot.south east);
+  \node[anchor=east] at (plot.north west) {100};
+  \node[anchor=north east] at (plot.south west) {0};
+  \node[anchor=north] at (plot.south east) {0.5};
+  \node[anchor=south west] at (plot.north west) {Jaccard (\%)};
+  \node[anchor=north,yshift=-.9cm] at (plot.south) {Synthetic noise level $s$};
+\end{tikzpicture}
+\par{\captiontext\colorline{red!80!black} Ours\qquad\colorline{green!55!black} CrackSegDiff
+\par Bands: standard deviation. Curves from the paper.}
+\par\vspace{0.15cm}
+\panel{0.28}{IntensityNoisy_1FIND.png}{Noisy intensity}
+\hfill\panel{0.28}{RangeNoisy_1FIND.png}{Noisy range}
+\hfill\panel{0.28}{ResultatNoisy_1FIND.png}{Our skeleton}
+\par\RaggedRight{\captiontext Example at $s=0.5$: multiplicative speckle on intensity,
+additive Gaussian noise on range.}
+\end{block}
+
+\begin{block}{5. Geological transfer without training labels}
+\textbf{Vaches Noires landslide, Normandy.} Two visible UAV patches,
+$512\!\times\!512$ pixels, supplied by Cerema.
+\par\vspace{0.2cm}
+\begin{minipage}[c]{0.78\linewidth}
+\panel{0.482}{Test1_512_512_result.png}{Test1: 47\% / 50\%}
+\hfill\panel{0.482}{Test2_512_512_result.png}{Test2: 29\% / 34\%}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.19\linewidth}
+{\captiontext Jaccard:\par ours / U-Net.
+\par\smallskip U-Net adapted on a separate nearby image.}
+\end{minipage}
+\par{\captiontext\colorline{red} Ours\quad\colorline{blue} U-Net + transfer learning\quad\colorline{green} Ground truth}
+\par{\smalltext U-Net adaptation required about \textbf{two days of expert annotation}.
+Our method uses no training annotation. Two patches and one wall example are
+initial transfer tests, not a general validation.}
+\end{block}
+\end{column}
+\end{columns}
+
+\begin{alertblock}{Outlook: could a Frangi hierarchy guide a foundation model?}
+\begin{minipage}[c]{0.485\linewidth}
+  \centering\includegraphics[width=0.79\linewidth]{figures/foundation-hierarchy.pdf}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.49\linewidth}
+  CrackSAM [4] adapts SAM to cracks. Could \textbf{nested groups of candidate pixels}
+  derived from the Frangi graph guide a foundation model's internal attention?
+  \par\smallskip
+  Such a hierarchy would describe which fragments belong together, from local segments
+  to the whole network. \textbf{A research hypothesis, not evaluated here.}
+\end{minipage}
+\end{alertblock}
+
+\begin{minipage}[c]{0.82\textwidth}
+{\fontsize{21}{25}\selectfont
+\textbf{Selected references}\quad
+[1] Frangi et al., \emph{Multiscale vessel enhancement filtering}, MICCAI, 1998.
+[2] Zhou et al., \emph{FIND}, Zenodo, 2022.\par
+[3] Jiang et al., \emph{CrackSegDiff}, arXiv:2410.08100, 2024.
+[4] Ge et al., \emph{Fine-tuning vision foundation model for crack segmentation in civil infrastructures},
+Constr. Build. Mater. 431, 136573, 2024.\par
+\textbf{Support:} Bpifrance (LiChIE, 2020--2025); DS4H (ANR-17-EURE-0004);
+3IA (ANR-19-P3IA-0002).\par
+\href{mailto:louis.hauseux@inria.fr}{louis.hauseux@inria.fr}\quad\textbullet\quad
+\href{https://github.com/Ayana-Inria/Frangi-EUVIP}{github.com/Ayana-Inria/Frangi-EUVIP}}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.16\textwidth}\centering
+\qrcode[height=3.3cm,hyperlink=false]{https://github.com/Ayana-Inria/Frangi-EUVIP}
+\par{\captiontext Code \& data}
+\end{minipage}
+\end{frame}
+\end{document}
