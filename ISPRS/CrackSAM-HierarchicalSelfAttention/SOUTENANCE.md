@@ -1,43 +1,34 @@
-# Une perspective en deux diapositives
+# Perspective : donner une organisation aux représentations de SAM
 
-## 1 — SAM voit déjà les détails ; donnons-lui leur organisation
+## Une diapositive pour EUVIP
 
-**À afficher**
+**Titre : « Perspective — guider SAM gelé par une hiérarchie de relations »**
 
-- Nos essais : ajouter des cartes de Frangi, d’orientation et de dérivées n’apporte pas de gain convaincant.
-- Une autre information explicite : quels morceaux appartiennent aux mêmes groupes, du détail à l’ensemble.
-- La hiérarchie du graphe peut guider les échanges entre les représentations visuelles de SAM 2.
+![Principe du guidage](figures/guidage_hierarchique.png)
 
-**À dire — environ 40 secondes**
+À afficher :
 
-> Nos premiers essais suggèrent que rajouter des descripteurs visuels n’est pas la bonne voie. SAM dispose déjà de représentations très riches. Ce que nous proposons maintenant, c’est de lui donner une organisation : quels morceaux se regroupent, et à quel niveau. L’arbre couvrant du graphe Frangi permet de retrouver cette succession de regroupements. Nous passons ainsi d’une description locale de l’image à une structure qui peut organiser les échanges dans le modèle.
+- SAM fournit les représentations visuelles.
+- Le graphe Frangi fournit les groupes et leurs niveaux de fusion.
+- Ces relations modulent l’attention ; chaque token est conservé.
+- Premier test : aucun apprentissage, un seul bloc modifié.
 
-Cette diapositive prolonge la page PDF **64** (numéro affiché **55**). Pour rester défendable, remplacer « SAM a déjà tout vu » par **« Dans nos essais, les descripteurs ajoutés n’apportent pas de gain convaincant »**. Réserver les limites du protocole aux questions du jury ; elles sont documentées dans [RECHERCHES.md](RECHERCHES.md).
+À dire, environ 40 secondes :
 
-## 2 — La hiérarchie module l’attention
+> Notre graphe ne doit pas produire un meilleur masque que SAM pour être utile. Nous proposons d’exploiter la succession de ses regroupements : quels fragments se réunissent tôt, lesquels seulement plus tard. Cette relation pourrait orienter les échanges entre les représentations de SAM, sans modifier ses poids ni fusionner ses tokens. CASS montre qu’un transfert de relations vers une attention visuelle gelée est possible ; l’emploi de notre hiérarchie dans SAM reste à tester.
 
-**À afficher**
+Référence technique : [Kim et al., CASS, CVPR 2025](https://arxiv.org/html/2411.17150v3). L’article transfère un graphe DINO vers CLIP ; il ne valide pas déjà notre combinaison.
 
-![Schéma de la perspective](figures/guidage_hierarchique.png)
+## Le lien avec le programme hiérarchique de la thèse
 
-- Deux régions se retrouvent dans un groupe commun : son niveau fournit un biais à l’attention.
-- Premier essai : un seul bloc modifié, trois coefficients appris, initialisés à zéro.
-- Question décisive : la hiérarchie Frangi aide-t-elle davantage qu’une seule partition ou un arbre témoin ?
+La diapositive **59** présente l’alphabet et la grammaire ; les **104–107** précisent les unités, leurs recollements, leurs niveaux et les contrôles. Le premier essai EUVIP traduit seulement une partie de ce programme : la filtration des connexions du graphe ordinaire.
 
-**À dire — environ 45 secondes**
+Pour aller plus loin : **SAM gelé → caractéristiques sauvegardées → petit lecteur de la hiérarchie → prédiction fine**. [Superpoint Transformer, Robert et al., ICCV 2023](https://arxiv.org/abs/2306.08045) est ici une référence plus directe : une hiérarchie géométrique organise un Transformer. Ce lecteur serait appris séparément ; SAM servirait d’extracteur gelé.
 
-> Pour chaque paire de régions, on regarde à quel niveau elles se réunissent dans l’arbre. On utilise cette relation pour moduler le score d’attention que SAM calcule déjà. Chaque paire conserve son propre score visuel ; le modèle apprend à y ajouter la préférence hiérarchique. Le premier essai peut être très limité, avec trois coefficients dans un seul bloc. Pour être convaincant, il faudra montrer que les vrais regroupements apportent davantage qu’une partition unique ou qu’un arbre dont on a mélangé les feuilles. Aujourd’hui, c’est une perspective, pas un gain acquis.
+## Deux réponses au jury
 
-Cette diapositive peut remplacer la page PDF **65** (numéro **56**). Le [SVG](figures/guidage_hierarchique.svg) est réutilisable dans la présentation.
+**« Est-ce vraiment la hiérarchie qui aide ? »** Comparer au même ensemble de candidats sans niveaux, au graphe local, à une seule partition et à des arbres témoins. SAM seul ne suffit pas comme contrôle.
 
-## Trois réponses courtes pour le jury
+**« Cela réalise-t-il déjà le programme des K-polyèdres ? »** Le premier montage porte sur le graphe ordinaire. À K ≥ 2, la hiérarchie regroupe des arêtes ou facettes dont les supports peuvent se recouvrir ; une affectation exclusive des pixels ne la représente pas correctement.
 
-**« SAM n’a-t-il pas déjà une hiérarchie ? »** Hiera organise plusieurs résolutions. Ici, les groupes dépendent de l’image et des relations du graphe Frangi. Leur intérêt supplémentaire reste à mesurer.
-
-**« Frangi doit-il mieux segmenter que SAM ? »** Le pari porte sur l’utilité de certaines relations entre régions. Il n’exige pas que le masque Frangi soit meilleur. Des relations erronées peuvent cependant nuire.
-
-**« Pourquoi ne pas remplacer l’attention par HSA ? »** HSA est une possibilité plus contraignante. Le biais additif permet un premier test ciblé et retrouve le modèle initial lorsque ses coefficients sont nuls. Cela ne réfute pas HSA.
-
-## Alléger les diapositives de secours
-
-La page PDF **111** peut conserver l’explication de SAM, en déplaçant l’entrée hiérarchique vers l’attention de l’encodeur. Remplacer **112–114 et 119** par le montage et les contrôles du [README](README.md). Les anciennes mesures sur arbres synthétiques ne justifient ni une impossibilité générale, ni un plafond de segmentation. Un essai utilisant la vérité terrain resterait un diagnostic d’interface, pas une borne universelle.
+Les mécanismes et les limites de HSA, des fusions de tokens et de ces deux voies sont détaillés dans la [comparaison](PISTES_SANS_REENTRAINEMENT.md).
