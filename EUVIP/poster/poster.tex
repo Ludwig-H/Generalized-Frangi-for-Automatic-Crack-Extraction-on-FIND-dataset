@@ -7,13 +7,18 @@
 \usetheme{gemini}
 \usecolortheme{inria}
 \usepackage[english]{babel}
-\usepackage{amsmath,amssymb,booktabs,graphicx,tikz,qrcode}
+\usepackage{amsmath,amssymb,booktabs,graphicx,tikz,qrcode,multicol}
+\usepackage[numbers,square]{natbib}
+\renewcommand{\bibsection}{}
+\renewcommand{\bibfont}{\fontsize{18}{21}\selectfont\interlinepenalty=10000}
+\setlength{\bibsep}{0.13cm}
+\setbeamertemplate{bibliography item}[text]
 \usetikzlibrary{arrows.meta,positioning,calc}
 \graphicspath{{figures/}}
 \pdfstringdefDisableCommands{\def\textsuperscript#1{#1}}
 \hypersetup{pdftitle={Multi-Modal, Training-Free Crack Extraction via Generalized Frangi Graph},
   pdfauthor={Louis Hauseux; Raphael Antoine; Philippe Foucher; Pierre Charbonnier; Josiane Zerubia},
-  pdfsubject={EUVIP 2026 poster, A0 portrait},colorlinks=true,urlcolor=inriablue}
+  pdfsubject={EUVIP 2026 poster, A0 portrait},colorlinks=true,urlcolor=inriablue,citecolor=inriagrayblue}
 \newcommand{\Hess}{\mathcal H}
 \newcommand{\matnorm}[1]{\left\lvert\mkern-2mu\left\lvert\mkern-2mu\left\lvert #1 \right\rvert\mkern-2mu\right\rvert\mkern-2mu\right\rvert}
 \newcommand{\captiontext}{\fontsize{24}{28}\selectfont}
@@ -23,6 +28,14 @@
   {\captiontext #3\par}\end{minipage}}
 \newcommand{\tikzfigure}[2]{\resizebox{#1}{!}{\input{figures/#2.tex}}}
 \newcommand{\colorline}[1]{\textcolor{#1}{\rule[0.18ex]{1.2cm}{0.11cm}}}
+% Measure the panels once, then distribute the spare height between panels.
+\newsavebox{\fusepanel}\newsavebox{\linkpanel}\newsavebox{\centerpanel}
+\newsavebox{\palaispanel}\newsavebox{\accuracypanel}\newsavebox{\noisepanel}\newsavebox{\geologypanel}
+\newlength{\leftcolumnheight}\newlength{\rightcolumnheight}\newlength{\maincolumnheight}
+\newenvironment{posterpanel}[1]{%
+  \def\currentposterpanel{#1}%
+  \begin{lrbox}{#1}\begin{minipage}{0.488\textwidth}\setlength{\posterblockgap}{0pt}%
+}{\end{minipage}\end{lrbox}\global\setbox\currentposterpanel=\copy\currentposterpanel}
 \title{Multi-Modal, Training-Free Crack Extraction via Generalized Frangi Graph}
 \author[Hauseux et al.]{Louis \textsc{Hauseux}\textsuperscript{1}, Raphaël \textsc{Antoine}\textsuperscript{2},
   Philippe \textsc{Foucher}\textsuperscript{2}, Pierre \textsc{Charbonnier}\textsuperscript{2},
@@ -46,14 +59,13 @@
 \par{\captiontext FIND example. Similarity: maximum over incident edges; skeleton in red.}
 \end{block}
 
-\begin{columns}[T,onlytextwidth]
-\begin{column}{0.488\textwidth}
+\begin{posterpanel}{\fusepanel}
 \begin{block}{1. Fuse the modalities}
-\begin{minipage}[c]{0.34\linewidth}\centering
+\begin{minipage}[c]{0.30\linewidth}\centering
   \tikzfigure{\linewidth}{frangi-hessian}
 \end{minipage}\hfill
 \begin{minipage}[c]{0.63\linewidth}\RaggedRight
-  Hessian geometry [1] at scale $\sigma$:
+  Hessian geometry~\cite{frangi1998} at scale $\sigma$:
   $|\lambda_1^\sigma|\leq|\lambda_2^\sigma|$; $\theta^\sigma$ follows the ridge.
 \end{minipage}
 \[
@@ -64,9 +76,11 @@
 \]
 {\smalltext $w_m\geq0$, $\sum_m w_m=1$. Aligned dark-ridge inputs; eigensystem computed after fusion.}
 \end{block}
+\end{posterpanel}
 
-\begin{block}{2. From pixel-wise Frangi [1] to pairwise links}
-\centering\tikzfigure{0.9\linewidth}{frangi-terms}\par\RaggedRight
+\begin{posterpanel}{\linkpanel}
+\begin{block}{2. From pixel-wise Frangi to pairwise links}
+\centering\tikzfigure{0.86\linewidth}{frangi-terms}\par\RaggedRight
 \par{\smalltext \textbf{Classical Frangi cues + neighbor alignment.}
 For pixels with $0<\rho_{ij}=\|x_i-x_j\|_2\leq R$:}
 \[
@@ -82,7 +96,9 @@ d_{ij}=\min\{1,\rho_{ij}(1-S_{ij}^{(0)})\},\qquad S_{ij}=1-d_{ij}.
 \]
 {\smalltext $\rho_{ij}$ penalizes long links; $\theta$ and $\theta+\pi$ denote the same axis.}
 \end{block}
+\end{posterpanel}
 
+\begin{posterpanel}{\centerpanel}
 \begin{block}{3. Extract the centerline}
 \centering
 \resizebox{0.87\linewidth}{!}{%
@@ -117,7 +133,9 @@ then similarity-weighted centrality.
 {\captiontext FIND settings:
 $\Sigma=\{1,3,5,7\}$, $R=3$, retained fractions $\tau_E=\tau_V=0.25$.}
 \end{block}
+\end{posterpanel}
 
+\begin{posterpanel}{\palaispanel}
 \begin{block}{Multimodality: Palais des Papes (France)}
 \begin{minipage}[c]{0.70\linewidth}
 \panel{0.315}{PalaisDesPapes.png}{Intensity}
@@ -128,32 +146,34 @@ $\Sigma=\{1,3,5,7\}$, $R=3$, retained fractions $\tau_E=\tau_V=0.25$.}
 {\smalltext Fuse visible intensity and photogrammetric depth.}
 \end{minipage}
 \end{block}
-\end{column}
+\end{posterpanel}
 
-\begin{column}{0.488\textwidth}
-\begin{block}{4. FIND: accuracy and noise}
-\textbf{Clean FIND: the supervised model performs best.}
-\par\vspace{0.15cm}
+\begin{posterpanel}{\accuracypanel}
+\begin{block}{4. FIND: clean data}
 {\fontsize{28}{33}\selectfont\setlength{\tabcolsep}{0.30cm}
 \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}lccc@{}}
 \toprule
 Method ($I+R$) & Jaccard $\uparrow$ & Tversky $\uparrow$ & $W$ $\downarrow$\\
 \midrule
 Ours, no training & 60\% & 68\% & 18 px\\
-CrackSegDiff [3] & \textbf{87\%} & \textbf{90\%} & \textbf{5 px}\\
+CrackSegDiff~\cite{jiang2024cracksegdiff} & \textbf{87\%} & \textbf{90\%} & \textbf{5 px}\\
 \bottomrule
 \end{tabular*}}
-\par{\captiontext FIND [2], $256\!\times\!256$. Overlap: 3 px dilation of both skeletons;
-Tversky: $\alpha=1$, $\beta=0.5$. $W$: skeleton Wasserstein distance.}
+\par{\captiontext FIND~\cite{zhou2022find}, $256\!\times\!256$. Overlap: both skeletons dilated by 3 px;
+Tversky: $\alpha=1$, $\beta=0.5$; $W$: skeleton Wasserstein distance.}
 \par{\smalltext \textbf{Fusion improves Jaccard:} $I$: 41\%; $I+R$: 60\%; $I+R+F$: 63\%.
 Equal weights; $F$ is filtered range.}
-\par\vspace{0.35cm}
+\end{block}
+\end{posterpanel}
+
+\begin{posterpanel}{\noisepanel}
+\begin{block}{5. FIND: synthetic noise}
 \textbf{Slower degradation under the tested synthetic noise.}
 \par\centering
 % Multiply removes the raster plot's white backing while preserving its source data.
 \begin{tikzpicture}[blend mode=multiply,every node/.style={font=\fontsize{24}{28}\selectfont}]
   \node[anchor=south west,inner sep=0pt] (plot) at (0,0)
-    {\includegraphics[width=22cm]{Jaccard_noisy.png}};
+    {\includegraphics[width=20cm]{Jaccard_noisy.png}};
   \draw[-{Latex[length=4mm]},line width=0.6mm] (plot.south west)--(plot.north west);
   \draw[-{Latex[length=4mm]},line width=0.6mm] (plot.south west)--(plot.south east);
   \node[anchor=east] at (plot.north west) {100};
@@ -162,16 +182,17 @@ Equal weights; $F$ is filtered range.}
   \node[anchor=south west] at (plot.north west) {Jaccard (\%)};
   \node[anchor=north,yshift=-.9cm] at (plot.south) {Synthetic noise level $s$};
 \end{tikzpicture}
-\par{\captiontext\colorline{red!80!black} Ours\qquad\colorline{green!55!black} CrackSegDiff
-\par Bands: standard deviation.}
+\par{\captiontext\colorline{red!80!black} Ours\quad\colorline{green!55!black} CrackSegDiff\quad Bands: standard deviation.}
 \par\vspace{0.15cm}
-\panel{0.28}{IntensityNoisy_1FIND.png}{Noisy intensity}
-\hfill\panel{0.28}{RangeNoisy_1FIND.png}{Noisy range}
-\hfill\panel{0.28}{ResultatNoisy_1FIND.png}{Our skeleton}
+\panel{0.245}{IntensityNoisy_1FIND.png}{Noisy intensity}
+\hfill\panel{0.245}{RangeNoisy_1FIND.png}{Noisy range}
+\hfill\panel{0.245}{ResultatNoisy_1FIND.png}{Our skeleton}
 \par\RaggedRight{\captiontext $s=0.5$: multiplicative speckle on $I$, additive Gaussian noise on $R$.}
 \end{block}
+\end{posterpanel}
 
-\begin{block}{5. Geological domain shift [5]}
+\begin{posterpanel}{\geologypanel}
+\begin{block}{6. Geological domain shift~{\hypersetup{citecolor=white}\cite{zhang2025review}}}
 \textbf{Vaches Noires.} Two Cerema UAV patches ($512\!\times\!512$).
 \par\vspace{0.2cm}
 \begin{minipage}[c]{0.78\linewidth}
@@ -180,50 +201,59 @@ Equal weights; $F$ is filtered range.}
 \end{minipage}\hfill
 \begin{minipage}[c]{0.19\linewidth}\RaggedRight
 {\captiontext Jaccard:\par ours / U-Net.
-\par\smallskip Transfer strategy [7]; local U-Net trained on a separate image.}
+\par\smallskip Transfer strategy~\cite{shi2023geocrack}; local U-Net trained on a separate image.}
 \end{minipage}
 \par{\captiontext\colorline{red} Ours\quad\colorline{blue} U-Net + transfer learning\quad\colorline{green} Ground truth}
 \par{\smalltext U-Net: \textbf{about two days of expert annotation}; ours: none.}
 \end{block}
+\end{posterpanel}
+
+\setlength{\leftcolumnheight}{\dimexpr\ht\fusepanel+\dp\fusepanel+\ht\linkpanel+\dp\linkpanel+\ht\centerpanel+\dp\centerpanel+\ht\palaispanel+\dp\palaispanel+3\posterblockgap\relax}
+\setlength{\rightcolumnheight}{\dimexpr\ht\accuracypanel+\dp\accuracypanel+\ht\noisepanel+\dp\noisepanel+\ht\geologypanel+\dp\geologypanel+2\posterblockgap\relax}
+\setlength{\maincolumnheight}{\leftcolumnheight}
+\ifdim\rightcolumnheight>\maincolumnheight\setlength{\maincolumnheight}{\rightcolumnheight}\fi
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.488\textwidth}
+\vbox to \maincolumnheight{\offinterlineskip
+  \hbox{\usebox{\fusepanel}}\vfil
+  \hbox{\usebox{\linkpanel}}\vfil
+  \hbox{\usebox{\centerpanel}}\vfil
+  \hbox{\usebox{\palaispanel}}\kern0pt}
+\end{column}
+\begin{column}{0.488\textwidth}
+\vbox to \maincolumnheight{\offinterlineskip
+  \hbox{\usebox{\accuracypanel}}\vfil
+  \hbox{\usebox{\noisepanel}}\vfil
+  \hbox{\usebox{\geologypanel}}\kern0pt}
 \end{column}
 \end{columns}
+\vspace{\posterblockgap}
 
 \begin{block}{Perspective: frozen SAM 2 + LoRA + Frangi hierarchy}
 \begin{minipage}[c]{0.56\linewidth}
   \centering\tikzfigure{0.98\linewidth}{foundation-hierarchy}
 \end{minipage}\hfill
 \begin{minipage}[c]{0.415\linewidth}\RaggedRight
-  \textbf{SAM 2 [6]: frozen pretrained weights.}\par
-  \textbf{LoRA [9] + one coefficient $\beta$: learned together.}
+  \textbf{SAM 2~\cite{ravi2025sam2}: frozen pretrained weights.}\par
+  \textbf{LoRA~\cite{hu2022lora} + one coefficient $\beta$: learned together.}
   \[A_H=\mathrm{softmax}(L+\beta B_H).\]
   {\smalltext $L$: visual scores; $B_H$: hierarchy bias.\par
-  Merge heights describe connectivity [10]. We use them to bias attention,
-  following Graphormer [8].
-  CrackSAM [4] motivates adaptation to cracks.\par
+  Merge heights describe connectivity~\cite{turaga2009malis}. We use them to bias attention,
+  following Graphormer~\cite{ying2021graphormer}.
+  CrackSAM~\cite{ge2024cracksam} motivates adaptation to cracks.\par
   \textbf{Aim: fewer breaks without more false links.}}
 \end{minipage}
 \end{block}
 
 \begin{block}{References}
 \begin{minipage}[c]{0.80\linewidth}
-{\fontsize{19}{23}\selectfont\setlength{\parskip}{0.18cm}
-\begin{minipage}[t]{0.485\linewidth}\RaggedRight
-[1] Frangi et al., \emph{Multiscale vessel enhancement filtering}, MICCAI, 1998.\par
-[2] Zhou et al., \emph{FIND}, Zenodo, 2022.\par
-[3] Jiang et al., \emph{CrackSegDiff}, arXiv:2410.08100, 2024.\par
-[4] Ge et al., \emph{Fine-tuning vision foundation model for crack segmentation in civil infrastructures},
-Constr. Build. Mater. 431, 136573, 2024.\par
-[5] Zhang et al., \emph{Deep Learning for Crack Detection: A Review of Learning Paradigms,
-Generalizability, and Datasets}, arXiv:2508.10256, 2025.
-\end{minipage}\hfill
-\begin{minipage}[t]{0.485\linewidth}\RaggedRight
-[6] Ravi et al., \emph{SAM 2: Segment Anything in Images and Videos}, ICLR, 2025.\par
-[7] Shi et al., \emph{Semi-universal geo-crack detection by machine learning}, Front. Earth Sci. 11, 1073211, 2023.\par
-[8] Ying et al., \emph{Do Transformers Really Perform Badly for Graph Representation?}
-(Graphormer), NeurIPS, 2021.\par
-[9] Hu et al., \emph{LoRA: Low-Rank Adaptation of Large Language Models}, ICLR, 2022.\par
-[10] Turaga et al., \emph{Maximin affinity learning of image segmentation} (MALIS), NIPS, 2009.
-\end{minipage}
+{\fontsize{18}{21}\selectfont\RaggedRight
+\hypersetup{urlcolor=black}
+\setlength{\columnsep}{0.8cm}\setlength{\multicolsep}{0pt}
+\begin{multicols}{2}
+\bibliographystyle{poster}
+\bibliography{references}
+\end{multicols}
 \par\smallskip
 \href{mailto:louis.hauseux@inria.fr}{louis.hauseux@inria.fr}\quad\textbullet\quad
 \href{https://github.com/Ayana-Inria/Frangi-EUVIP}{github.com/Ayana-Inria/Frangi-EUVIP}}

@@ -8,3 +8,5 @@ build/
 *.xdv
 *.vrb
 *.synctex.gz
+*.bbl
+*.blg
