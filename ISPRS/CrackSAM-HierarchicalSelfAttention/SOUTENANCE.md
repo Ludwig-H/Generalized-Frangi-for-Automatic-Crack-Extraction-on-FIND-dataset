@@ -1,25 +1,23 @@
 # Une slide : SAM gelé + LoRA + hiérarchie Frangi-graphe
 
-**Titre : « Perspective — guider les échanges de SAM par la proximité ultramétrique »**
+**Titre : « Perspective : relier les fragments grâce à la hiérarchie »**
 
-![Principe du guidage](figures/guidage_hierarchique.png)
+![Principe du guidage](figures/03_sam_lora.png)
 
-À afficher :
+## Trois messages
 
-- **SAM gelé + LoRA** reconnaît les fissures et le fond.
-- **Frangi-graphe** rapproche des fragments reliés par une chaîne compatible.
-- **Un bonus d’attention** favorise leurs échanges, selon un poids appris β.
-- **Apprentissage : LoRA + β**, avec les mêmes annotations que la baseline.
+- **SAM reconnaît** les fissures et le fond.
+- **L’arbre rapproche** des fragments reliés par une chaîne compatible.
+- **LoRA apprend avec ce guidage**, pondéré par un seul coefficient.
 
-$$
-\text{attention}=\operatorname{softmax}
-\bigl(\text{scores visuels}+\beta\,\text{proximité hiérarchique}\bigr).
-$$
+$$\text{attention}=\mathrm{softmax}(\text{scores visuels}+\beta B_H).$$
 
-À dire, environ 35 secondes :
+## À dire en trente secondes
 
-> Frangi surdétecte les ombres et les textures, alors que SAM les distingue mieux. L’idée est d’exploiter une autre propriété : deux morceaux d’une même fissure peuvent être proches dans la hiérarchie, même s’ils sont éloignés dans l’image. Cette proximité donne un bonus à leurs échanges dans une attention de SAM. Les scores visuels restent présents et LoRA apprend avec ce guidage. Il faudra vérifier que les bonnes relations apportées par le graphe compensent ses faux raccords.
+> Frangi surdétecte les ombres et les textures. Mais deux fragments d’une fissure peuvent rester proches dans sa hiérarchie, même loin dans l’image. Nous proposons de favoriser leurs échanges dans SAM, tout en conservant ses scores visuels. Les poids préentraînés restent gelés ; LoRA apprend avec un seul poids de guidage. L’objectif est de réduire les ruptures sans multiplier les faux raccords.
 
-**Référence :** [Ying et al., Graphormer, NeurIPS 2021](https://arxiv.org/abs/2106.05234), pour le biais relationnel dans l’attention. La proximité ultramétrique Frangi et l’adaptation LoRA sont notre transposition.
+## Références à afficher
 
-Les [définitions et limites](DECISION_SAM_LORA.md) restent hors slide. Ce premier essai K=1 ne valide pas encore le programme des polyèdres LiDAR K≥2.
+**Ying et al., Graphormer, NeurIPS 2021** : biais relationnel dans l’attention. **Turaga et al., MALIS, NIPS 2009** : proximité fondée sur les chemins et la connexité. [Titres, liens et limites](REFERENCES.md).
+
+Choisir le [TikZ 3](figures/03_sam_lora.tikz) pour la slide principale ; les deux autres figures expliquent l’arbre et le biais si nécessaire.

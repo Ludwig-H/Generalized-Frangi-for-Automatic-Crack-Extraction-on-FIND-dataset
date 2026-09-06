@@ -1,31 +1,44 @@
 # Perspective : SAM gelé + LoRA + hiérarchie Frangi-graphe
 
-**Proposition principale : un biais fondé sur la proximité ultramétrique, dans une seule attention globale de SAM 2, présent pendant l’apprentissage de LoRA.** Les poids préentraînés restent gelés. Aucun gain sur la baseline n’est actuellement démontré.
+**SAM reconnaît les fissures ; Frangi-graphe propose quels fragments mettre en relation.** On ajoute un biais hiérarchique dans une attention de SAM 2, pendant l’apprentissage de LoRA. Le gain recherché concerne les fissures fragmentées ; il reste à vérifier.
 
-## Le principe en une slide
+![SAM gelé, LoRA et guidage hiérarchique](figures/03_sam_lora.png)
 
-![SAM gelé, LoRA et relations hiérarchiques](figures/guidage_hierarchique.png)
+## Pourquoi une hiérarchie ?
 
-**SAM reconnaît le contenu ; Frangi-graphe propose des relations entre fragments.** Deux morceaux éloignés peuvent rester proches dans la hiérarchie si une chaîne de raccords compatibles les relie. Cette proximité ajoute un bonus aux scores d’attention, qui conservent les compatibilités visuelles.
+Frangi surdétecte les ombres et la granularité. Pourtant, deux morceaux éloignés d’une fissure peuvent fusionner tôt dans son arbre : une chaîne de raccords compatibles les rapproche. **La hauteur de fusion décrit cette relation globale.** Elle organise l’information géométrique sans fournir une nouvelle observation de l’image.
 
-Les mêmes LoRA que la baseline apprennent avec ce guidage, ainsi qu’un seul coefficient β. La [formulation orale](SOUTENANCE.md) tient sur une slide ; le [bilan complet](DECISION_SAM_LORA.md) compare les propositions et définit le test décisif.
+Des relations ombre–ombre peuvent apporter un contexte de fond. Le risque est surtout une fusion précoce fissure–fond ; les scores visuels de SAM doivent rester présents.
 
-## Pourquoi l’ultramétrique mérite un essai
+## Du graphe au biais d’attention
 
-La surdétection des ombres et de la granularité ne signifie pas nécessairement que toutes les relations Frangi sont mauvaises. Un groupe d’ombre peut fournir un contexte de fond. Le risque important est de rapprocher trop tôt fissure et fond, ou de mélanger leurs branches dans les tokens.
+**1. Construire les regroupements.** Reprendre les candidats et les coûts [EUVIP](../../EUVIP/LaTeX/main.tex), avant sélection de composante et élagage. Intensité et forme prolongent Frangi ; l’alignement caractérise les relations du graphe.
 
-Les essais de cartes locales, clDice et d’arbitrage sur fragments plats n’ont pas démontré de gain propre au graphe. Ils n’ont pas testé cette proximité hiérarchique dans l’attention de SAM.
+$$d_{ij}=\min\{1,\rho_{ij}(1-S_{ij}^{(0)})\}.$$
 
-[Graphormer, NeurIPS 2021](https://arxiv.org/abs/2106.05234), fournit le précédent du biais structurel dans l’attention. Sa transposition à Frangi et SAM + LoRA reste une hypothèse.
+Ici, $\rho_{ij}$ est la distance entre candidats et $S_{ij}^{(0)}$ leur compatibilité multiscalaire du papier. Pour deux candidats distincts d’une même composante, la hauteur de première fusion est le coût maximal sur leur chemin $T_{ij}$ dans l’arbre couvrant minimal :
 
-## Niveau de confiance
+$$u_{ij}=\max_{e\in T_{ij}}d_e,\qquad \kappa_{ij}=1-u_{ij}.$$
 
-Un contexte utile pour des fissures fragmentées est plausible. Il faut vérifier que la hiérarchie apporte de bonnes relations précisément là où SAM se trompe, au-delà des relations spatiales ou visuelles. Si cet avantage n’apparaît pas, conserver **SAM + LoRA sans Frangi**.
+Poser $u_{ii}=0$ et $\kappa_{ij}=0$ entre composantes déconnectées. Fusion précoce signifie proximité forte, sans choisir une coupe unique.
 
-## Recherches complémentaires
+**2. Passer aux tokens.** Chaque token moyenne les candidats qu’il couvre. Avec ces poids dans $P$, calculer $P\kappa P^\top$, puis annuler diagonale et interactions non couvertes : on obtient $B_H$. Les lignes couvertes de $P$ somment à un. Cette moyenne ne conserve généralement pas l’ultramétrie des candidats.
 
-- [Résultats négatifs et interfaces déjà testées](RECHERCHES.md).
-- [Ancienne comparaison avec LoRA également gelée](PISTES_SANS_REENTRAINEMENT.md).
-- [Programme des polyèdres LiDAR 3D](VOIE_POLYEDRES.md) et [lecteur multirésolution](LECTURE_MULTIECHELLE.md), pour une perspective plus large.
+**3. Favoriser les échanges.** Dans une seule attention globale de l’encodeur :
 
-Le schéma se régénère avec `python figures/make_figure.py` depuis ce dossier.
+$$A_H=\mathrm{softmax}\left(Q_{\mathrm{LoRA}}K^\top/\sqrt{d_h}+\beta B_H\right),\qquad Y=A_HV_{\mathrm{LoRA}}.$$
+
+Les poids préentraînés restent gelés. Les [LoRA existantes](../CrackSAM/cracksam2/model.py) adaptent les projections Q et V. Un seul $\beta$, partagé entre têtes, apprend avec elles : départ à zéro, projection dans $[0,1]$ après chaque mise à jour. Le biais favorise un échange, sans imposer une étiquette de fissure. [Graphormer](REFERENCES.md) fournit ce principe d’insertion dans l’attention.
+
+## Le premier test
+
+Comparer **SAM + LoRA**, **biais de proximité spatiale** et **biais hiérarchique**, sur les mêmes candidats et avec le même budget. Garder annotations, pertes et augmentations alignées ; reconstruire les chemins après recadrage. Mesurer IoU, ruptures et faux raccords, notamment dans les ombres. Les [anciens essais négatifs](ARCHIVES.md) motivent ce contrôle.
+
+Point de départ technique : bloc global 43 de Hiera-L. À 4096 tokens, le biais FP16 coûte 32 Mio par image, hors calcul d’attention : vérifier la mémoire. Ce dossier présente la méthode ; il ne contient pas son implémentation SAM.
+
+## Pour la soutenance
+
+- [Une slide et son texte oral](SOUTENANCE.md).
+- [Trois figures TikZ réutilisables et leur PDF](figures/README.md).
+- [Références : idées reprises et limites](REFERENCES.md), avec [BibTeX](references.bib).
+- [Archive unique des anciennes pistes](ARCHIVES.md).

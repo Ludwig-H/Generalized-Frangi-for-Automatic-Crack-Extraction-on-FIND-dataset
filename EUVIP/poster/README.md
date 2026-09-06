@@ -55,8 +55,8 @@ entraînement, avec un compromis coût–précision. Il ne démontre aucun gain 
 une hiérarchie Frangi à HSA, sans LoRA ni module appris. Cela demande une
 adaptation du calcul d'attention et une correspondance arbre–tokens, fond compris.
 CrackSAM [4] adapte le SAM original ; SAM 2 est documenté par Ravi et al. [6].
-Les [autres pistes examinées](../../ISPRS/CrackSAM-HierarchicalSelfAttention/PISTES_SANS_REENTRAINEMENT.md)
-comparent ce mécanisme au regroupement de tokens et au transfert de relations.
+Les [archives des pistes examinées](../../ISPRS/CrackSAM-HierarchicalSelfAttention/ARCHIVES.md)
+conservent la comparaison avec le regroupement de tokens et le transfert de relations.
 
 ## Consignes EUVIP vérifiées
 

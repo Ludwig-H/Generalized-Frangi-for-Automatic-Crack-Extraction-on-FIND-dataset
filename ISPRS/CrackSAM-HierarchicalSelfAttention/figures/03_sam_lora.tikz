@@ -1,0 +1,45 @@
+% Figure 3 : biais dans une seule attention globale, appris avec LoRA.
+\begingroup
+\definecolor{fhNavy}{HTML}{17364A}
+\definecolor{fhTeal}{HTML}{168C93}
+\definecolor{fhGray}{HTML}{7A8791}
+\begin{tikzpicture}[x=1cm,y=1cm,font=\sffamily,>=stealth,
+  every node/.style={text=fhNavy},
+  fhBox/.style={draw=fhNavy!60,rounded corners=4pt,line width=0.8pt,
+    minimum height=0.9cm,align=center,font=\sffamily\small,inner sep=5pt},
+  fhArrow/.style={->,line width=1.05pt,fhNavy},
+  fhGuide/.style={->,line width=1.2pt,fhTeal},
+  fhNote/.style={font=\sffamily\footnotesize,text=fhGray,align=center}]
+\path[use as bounding box] (0,0) rectangle (14,7.2);
+\node[anchor=west,font=\sffamily\large\bfseries] at (0.25,6.8)
+  {Perspective : SAM gelé + LoRA + hiérarchie};
+
+\draw[fhNavy!30,rounded corners=6pt] (2.6,3.65) rectangle (11.45,6.1);
+\node[font=\sffamily\small\bfseries] at (7,5.78)
+  {SAM 2 : poids préentraînés gelés};
+\node[fhBox,minimum width=1.4cm] (input) at (1,4.75) {Image};
+\node[fhBox,minimum width=2cm] (features) at (4,4.75) {Caractéristiques\\visuelles};
+\node[fhBox,draw=fhTeal,fill=fhTeal!8,minimum width=2.25cm] (attention) at (7.25,4.75)
+  {Attention globale\\de l'encodeur};
+\node[fhBox,minimum width=1.65cm] (decoder) at (10.2,4.75) {Décodeur};
+\node[fhBox,minimum width=1.4cm] (mask) at (12.7,4.75) {Masque};
+\draw[fhArrow] (input) -- (features);
+\draw[fhArrow] (features) -- (attention);
+\draw[fhArrow] (attention) -- (decoder);
+\draw[fhArrow] (decoder) -- (mask);
+
+\node[fhBox,draw=fhTeal,minimum width=2.15cm] (frangi) at (3.1,2.45) {Frangi-graphe};
+\node[fhBox,draw=fhTeal,minimum width=2.45cm] (hierarchy) at (7.25,2.45)
+  {Hiérarchie\\$\longrightarrow$ proximité $B_H$};
+\draw[fhGuide] (input.south) |- (frangi.west);
+\draw[fhGuide] (frangi) -- (hierarchy);
+\draw[fhGuide] (hierarchy.north) -- node[right,font=\sffamily\footnotesize,text=fhTeal] {$\beta B_H$} (attention.south);
+\node[align=left,anchor=west,font=\sffamily\small,text=fhTeal] at (9.35,2.45)
+  {Appris ensemble :\\LoRA sur Q/V + $\beta$};
+
+\node[font=\sffamily\normalsize] at (7,1.25)
+  {$\mathrm{attention}=\mathrm{softmax}\!\left(\mathrm{scores\ visuels}+\beta B_H\right)$};
+\node[fhNote,text=fhNavy] at (7,0.7)
+  {SAM reconnaît le contenu ; la hiérarchie propose les relations.};
+\end{tikzpicture}
+\endgroup
