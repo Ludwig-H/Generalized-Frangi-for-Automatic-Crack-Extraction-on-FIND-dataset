@@ -1,34 +1,31 @@
-# Lire la hiérarchie géométrique avec un modèle de fondation gelé
+# Perspective : SAM gelé + LoRA + hiérarchie Frangi-graphe
 
-**Pour prolonger la voie polyèdres de la soutenance LiDAR 3D, la piste principale est un petit lecteur appris sur des représentations gelées.** Il reçoit les éléments géométriques, leurs incidences et leurs événements de fusion. Lire la [proposition approfondie](VOIE_POLYEDRES.md) pour les définitions, les références et les expériences décisives.
+**Proposition principale : un biais fondé sur la proximité ultramétrique, dans une seule attention globale de SAM 2, présent pendant l’apprentissage de LoRA.** Les poids préentraînés restent gelés. Aucun gain sur la baseline n’est actuellement démontré.
 
-Le [premier mécanisme à tester](LECTURE_MULTIECHELLE.md) conserve les différences enfant–parent et apprend leur importance à chaque regroupement. L’attention entre enfants reste une variante plus expressive.
+## Le principe en une slide
 
-## Le principe
+![SAM gelé, LoRA et relations hiérarchiques](figures/guidage_hierarchique.png)
 
-L’encodeur fournit les caractéristiques ; notre construction géométrique fournit les objets et leur organisation. Un petit module apprend à exploiter les deux, sans réentraîner l’encodeur.
+**SAM reconnaît le contenu ; Frangi-graphe propose des relations entre fragments.** Deux morceaux éloignés peuvent rester proches dans la hiérarchie si une chaîne de raccords compatibles les relie. Cette proximité ajoute un bonus aux scores d’attention, qui conservent les compatibilités visuelles.
 
-![Lecteur des éléments et de leurs regroupements](figures/lecteur_polyedres.png)
+Les mêmes LoRA que la baseline apprennent avec ce guidage, ainsi qu’un seul coefficient β. La [formulation orale](SOUTENANCE.md) tient sur une slide ; le [bilan complet](DECISION_SAM_LORA.md) compare les propositions et définit le test décisif.
 
-- Décrire les éléments et les groupes à chaque niveau.
-- Conserver les moyennes des groupes et les écarts de leurs enfants.
-- Apprendre, selon la géométrie et le niveau, quels écarts restituer aux éléments fins.
-- Conserver les points partagés et leurs appartenances pondérées jusqu’à la prédiction finale.
+## Pourquoi l’ultramétrique mérite un essai
 
-Le même petit réseau calcule les gains des événements. Un gain identique partout réduit le calcul à un mélange local–global : il faut vérifier l’utilité des niveaux intermédiaires. La voie fine conserve les caractéristiques originales.
+La surdétection des ombres et de la granularité ne signifie pas nécessairement que toutes les relations Frangi sont mauvaises. Un groupe d’ombre peut fournir un contexte de fond. Le risque important est de rapprocher trop tôt fissure et fond, ou de mélanger leurs branches dans les tokens.
 
-## Ce que la thèse impose de distinguer
+Les essais de cartes locales, clDice et d’arbitrage sur fragments plats n’ont pas démontré de gain propre au graphe. Ils n’ont pas testé cette proximité hiérarchique dans l’attention de SAM.
 
-En K = 2, les atomes sont des **arêtes reliées par des triangles**. En K = 3, ce sont des **facettes triangulaires reliées par des 4-uplets**. Un point partagé ne suffit pas à fusionner deux groupes. La dimension des cellules et le niveau du dendrogramme restent deux structures distinctes.
+[Graphormer, NeurIPS 2021](https://arxiv.org/abs/2106.05234), fournit le précédent du biais structurel dans l’attention. Sa transposition à Frangi et SAM + LoRA reste une hypothèse.
 
-Le vote du §9.1 fournit une interface vers les points : `w_xτ = S_τ / T_x` pour `x∈τ` et `T_x>0`, zéro sinon. **S_τ est un score des connecteurs, pas une aire.** La tokenisation exacte et les attributs de surface restent des choix à construire et vérifier.
+## Niveau de confiance
 
-## Deux terrains d’étude
+Un contexte utile pour des fissures fragmentées est plausible. Il faut vérifier que la hiérarchie apporte de bonnes relations précisément là où SAM se trompe, au-delà des relations spatiales ou visuelles. Si cet avantage n’apparaît pas, conserver **SAM + LoRA sans Frangi**.
 
-**LiDAR 3D :** caractéristiques d’un encodeur 3D gelé, lecteur géométrique, sortie fine. Superpoint Transformer fournit le précédent 3D le plus proche ; les attentions cellulaires éclairent les incidences. Commencer en K = 2, puis qualifier K = 3.
+## Recherches complémentaires
 
-**EUVIP :** geler la [baseline locale SAM 2 + LoRA](../CrackSAM/README.md), distincte du CrackSAM publié sur SAM 1 ; prendre le graphe Frangi comme cas K = 1. Le [biais dans l’attention et les autres pistes](PISTES_SANS_REENTRAINEMENT.md) restent des comparateurs pour un guidage interne. Ce cas 2D ne démontre pas encore le programme surfacique.
+- [Résultats négatifs et interfaces déjà testées](RECHERCHES.md).
+- [Ancienne comparaison avec LoRA également gelée](PISTES_SANS_REENTRAINEMENT.md).
+- [Programme des polyèdres LiDAR 3D](VOIE_POLYEDRES.md) et [lecteur multirésolution](LECTURE_MULTIECHELLE.md), pour une perspective plus large.
 
-## Pour préparer la soutenance
-
-Les [formulations courtes](SOUTENANCE.md) présentent le lecteur ; les [recherches antérieures](RECHERCHES.md) documentent les résultats négatifs des descripteurs locaux. Aucun gain de segmentation n’est annoncé. Les deux schémas se régénèrent avec les scripts `figures/make_figure.py` et `figures/make_polyhedra_figure.py`.
+Le schéma se régénère avec `python figures/make_figure.py` depuis ce dossier.

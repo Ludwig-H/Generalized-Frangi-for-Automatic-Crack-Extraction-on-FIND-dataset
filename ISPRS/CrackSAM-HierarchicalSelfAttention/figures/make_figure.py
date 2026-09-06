@@ -34,13 +34,13 @@ def arrow(a, b, color=NAVY, lw=1.8):
 
 # Navy and teal keep the perspective distinct without red blocks.
 ax.plot([.55, .55, .88], [8.06, 8.58, 8.58], color=ACCENT, lw=4)
-text(1.03, 8.42, "SAM fournit les représentations ;", 26, weight="bold", ha="left")
-text(1.03, 7.88, "le graphe Frangi organise leurs relations", 26, weight="bold", ha="left")
+text(1.03, 8.42, "Perspective : SAM gelé + LoRA", 26, weight="bold", ha="left")
+text(1.03, 7.88, "La proximité hiérarchique guide les échanges", 26, weight="bold", ha="left")
 
 box(.55, 2.03, 4.95, 5.16, fill=PALE)
 box(5.84, 2.03, 9.60, 5.16)
 text(.84, 6.85, "La hiérarchie Frangi", 19, weight="bold", ha="left")
-text(6.15, 6.85, "Un biais dans un seul bloc d’attention", 18,
+text(6.15, 6.85, "LoRA apprend avec le guidage", 18,
      weight="bold", ha="left")
 
 # Exact merge tree: edge costs are illustrative, not measurements.
@@ -61,15 +61,15 @@ for node_id, (left, right, cost) in enumerate(merges, start=6):
 for px, name in zip(x, "abcdef"):
     ax.scatter(px, base, color=NAVY, s=40, zorder=3)
     text(px, 2.93, name, 14)
-text(3.03, 6.17, "Coût de fusion illustratif", 12, GRAY)
-text(3.03, 2.56, "Feuilles : positions dans l’image", 12)
+text(3.03, 6.17, "Fusion précoce → relation forte", 12, GRAY)
+text(3.03, 2.56, "Feuilles : candidats dans l’image", 12)
 text(3.03, 2.25, "Branches : groupes emboîtés", 12)
 
 # Image representation flows downward into a modified attention block.
 box(6.17, 5.67, 1.38, .72, "Image", size=15)
 arrow((7.58, 6.03), (8.08, 6.03))
 box(8.12, 5.67, 6.62, .72,
-    "SAM 2  ·  caractéristiques avant le bloc choisi", size=14, fill=PALE, bold=True)
+    "SAM 2 + LoRA  ·  caractéristiques visuelles", size=14, fill=PALE, bold=True)
 arrow((10.37, 5.64), (10.37, 5.02))
 box(8.76, 4.03, 3.24, .96, "Attention guidée\ndans l’encodeur", fill=TINT, edge=ACCENT,
     size=16, bold=True)
@@ -78,20 +78,21 @@ box(12.54, 4.03, 2.20, .96, "Suite de SAM 2\n+ masque", size=14)
 
 # Explicit relation, not a point prompt: first shared group of each pair.
 arrow((5.53, 4.51), (8.72, 4.51), color=ACCENT, lw=2)
-text(7.14, 5.06, "Niveaux de fusion\n→ relations entre tokens", 12, ACCENT)
-text(10.66, 3.58, "score(i, j) = score SAM(i, j) + α × relation(i, j)",
+text(7.14, 5.06, "Proximité ultramétrique\n→ relation entre tokens", 12, ACCENT)
+text(10.66, 3.58, "attention = softmax(scores visuels + β × relation)",
      14, color=NAVY)
 box(6.36, 2.38, 8.55, .78,
-    "Tous les poids gelés · aucun token fusionné\nα fixé sur validation ; α = 0 retrouve le modèle initial",
+    "Appris : LoRA Q/V + β\nPoids préentraînés de SAM gelés",
     fill=PALE, edge=LINE, size=13)
 
-text(.61, 1.51, "La hiérarchie organise les échanges ; chaque token est conservé.",
+text(.61, 1.51, "Des fragments éloignés peuvent être proches dans l’ultramétrique.",
      17, weight="bold", ha="left")
-text(.61, 1.08, "Test décisif : les niveaux aident-ils davantage qu’une seule partition ?",
+text(.61, 1.08, "Test : aider les fissures fragmentées sans multiplier les faux raccords.",
      15, ha="left")
 ax.plot([.6, 15.4], [.66, .66], color=LINE, lw=1)
-text(.61, .35, "Perspective · SAM 2 gelé", 13, ACCENT, weight="bold", ha="left")
-text(15.4, .35, "Arbre illustratif · aucun masque simulé", 11, GRAY, ha="right")
+text(.61, .35, "SAM reconnaît le contenu ; Frangi propose des relations.",
+     12, ACCENT, weight="bold", ha="left")
+text(15.4, .35, "Graphormer · Ying et al., NeurIPS 2021", 11, GRAY, ha="right")
 for suffix in ("svg", "png"):
     destination = OUT / f"guidage_hierarchique.{suffix}"
     metadata = {"Date": None} if suffix == "svg" else None

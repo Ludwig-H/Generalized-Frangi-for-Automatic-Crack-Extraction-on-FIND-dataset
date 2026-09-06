@@ -1,5 +1,7 @@
 # Perspective : apprendre ce qui compte à chaque regroupement
 
+Ce lecteur extérieur reste une piste du programme polyèdres. La [solution simple SAM gelé + LoRA retenue](DECISION_SAM_LORA.md) guide directement une attention pendant l’apprentissage des LoRA.
+
 **Premier lecteur recommandé : conserver les différences entre enfants et parents, puis apprendre leur importance selon la géométrie et le niveau de fusion.** L’encodeur reste gelé. Cette variante précise le [lecteur de polyèdres](VOIE_POLYEDRES.md) ; l’attention entre enfants demeure un comparateur plus expressif.
 
 ## Pourquoi cette piste

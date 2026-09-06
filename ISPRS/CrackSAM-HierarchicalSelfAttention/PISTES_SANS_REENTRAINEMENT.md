@@ -1,5 +1,7 @@
 # Hiérarchie Frangi et SAM 2 gelé : quelles pistes retenir ?
 
+**Périmètre historique : LoRA également gelée.** La [décision actuelle](DECISION_SAM_LORA.md) retient le biais ultramétrique **pendant l’apprentissage de LoRA**. Les comparaisons ci-dessous documentent le régime antérieur.
+
 Cette comparaison privilégie une intervention **dans les attentions de SAM 2 gelé**. Pour le critère de cohérence avec la voie polyèdres du LiDAR 3D, la [note consacrée au lecteur géométrique](VOIE_POLYEDRES.md) approfondit et privilégie la voie B.
 
 **Verdict : commencer par guider une attention de SAM 2 avec les relations multi-échelles du graphe Frangi (A).** Cette intervention répond directement à « guider SAM 2 », conserve ses tokens et ses poids et permet un retour au modèle initial. Un petit lecteur hiérarchique entraîné sur ses caractéristiques gelées (B) constituerait ensuite un programme plus proche de l’« alphabet–grammaire » de la thèse. HSA et la compression des clés/valeurs restent des comparateurs.

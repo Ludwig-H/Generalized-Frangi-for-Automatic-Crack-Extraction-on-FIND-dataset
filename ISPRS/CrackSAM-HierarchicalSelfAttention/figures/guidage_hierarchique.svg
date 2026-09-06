@@ -210,16 +210,16 @@ L 1108.8 600.48
 " clip-path="url(#pd42881528b)" style="fill: none; stroke: #cdd5e0; stroke-linecap: square"/>
    </g>
    <g id="text_1">
-    <text style="font-weight: 700; font-size: 26px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #243a59" x="74.16" y="49.454375" transform="rotate(-0 74.16 49.454375)">SAM fournit les représentations ;</text>
+    <text style="font-weight: 700; font-size: 26px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #243a59" x="74.16" y="49.352813" transform="rotate(-0 74.16 49.352813)">Perspective : SAM gelé + LoRA</text>
    </g>
    <g id="text_2">
-    <text style="font-weight: 700; font-size: 26px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #243a59" x="74.16" y="87.712813" transform="rotate(-0 74.16 87.712813)">le graphe Frangi organise leurs relations</text>
+    <text style="font-weight: 700; font-size: 26px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #243a59" x="74.16" y="88.232813" transform="rotate(-0 74.16 88.232813)">La proximité hiérarchique guide les échanges</text>
    </g>
    <g id="text_3">
     <text style="font-weight: 700; font-size: 19px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #243a59" x="60.48" y="160.348594" transform="rotate(-0 60.48 160.348594)">La hiérarchie Frangi</text>
    </g>
    <g id="text_4">
-    <text style="font-weight: 700; font-size: 18px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #243a59" x="442.8" y="161.510625" transform="rotate(-0 442.8 161.510625)">Un biais dans un seul bloc d’attention</text>
+    <text style="font-weight: 700; font-size: 18px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #243a59" x="442.8" y="159.696563" transform="rotate(-0 442.8 159.696563)">LoRA apprend avec le guidage</text>
    </g>
    <g id="text_5">
     <g id="patch_13">
@@ -338,10 +338,10 @@ z
     <text style="font-size: 14px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #243a59" x="362.16" y="442.358906" transform="rotate(-0 362.16 442.358906)">f</text>
    </g>
    <g id="text_16">
-    <text style="font-size: 12px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #627186" x="218.16" y="208.47375" transform="rotate(-0 218.16 208.47375)">Coût de fusion illustratif</text>
+    <text style="font-size: 12px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #627186" x="218.16" y="207.31125" transform="rotate(-0 218.16 207.31125)">Fusion précoce → relation forte</text>
    </g>
    <g id="text_17">
-    <text style="font-size: 12px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #243a59" x="218.16" y="466.99125" transform="rotate(-0 218.16 466.99125)">Feuilles : positions dans l’image</text>
+    <text style="font-size: 12px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #243a59" x="218.16" y="466.99125" transform="rotate(-0 218.16 466.99125)">Feuilles : candidats dans l’image</text>
    </g>
    <g id="text_18">
     <text style="font-size: 12px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #243a59" x="218.16" y="489.55125" transform="rotate(-0 218.16 489.55125)">Branches : groupes emboîtés</text>
@@ -350,7 +350,7 @@ z
     <text style="font-size: 15px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #243a59" x="493.92" y="217.748203" transform="rotate(-0 493.92 217.748203)">Image</text>
    </g>
    <g id="text_20">
-    <text style="font-weight: 700; font-size: 14px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #243a59" x="822.96" y="217.983125" transform="rotate(-0 822.96 217.983125)">SAM 2  ·  caractéristiques avant le bloc choisi</text>
+    <text style="font-weight: 700; font-size: 14px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #243a59" x="822.96" y="217.983125" transform="rotate(-0 822.96 217.983125)">SAM 2 + LoRA  ·  caractéristiques visuelles</text>
    </g>
    <g id="text_21">
     <text style="font-weight: 700; font-size: 16px; font-family: 'DejaVu Sans'; fill: #243a59" transform="translate(671.115 317.1525)">Attention guidée</text>
@@ -361,27 +361,27 @@ z
     <text style="font-size: 14px; font-family: 'DejaVu Sans'; fill: #243a59" transform="translate(946.0475 335.663438)">+ masque</text>
    </g>
    <g id="text_23">
-    <text style="font-size: 12px; font-family: 'DejaVu Sans'; fill: #177e89" transform="translate(460.155 280.05375)">Niveaux de fusion</text>
-    <text style="font-size: 12px; font-family: 'DejaVu Sans'; fill: #177e89" transform="translate(441.56625 296.25375)">→ relations entre tokens</text>
+    <text style="font-size: 12px; font-family: 'DejaVu Sans'; fill: #177e89" transform="translate(442.775625 279.13125)">Proximité ultramétrique</text>
+    <text style="font-size: 12px; font-family: 'DejaVu Sans'; fill: #177e89" transform="translate(444.691875 296.25375)">→ relation entre tokens</text>
    </g>
    <g id="text_24">
-    <text style="font-size: 14px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #243a59" x="767.52" y="394.103125" transform="rotate(-0 767.52 394.103125)">score(i, j) = score SAM(i, j) + α × relation(i, j)</text>
+    <text style="font-size: 14px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #243a59" x="767.52" y="394.146875" transform="rotate(-0 767.52 394.146875)">attention = softmax(scores visuels + β × relation)</text>
    </g>
    <g id="text_25">
-    <text style="font-size: 13px; font-family: 'DejaVu Sans'; fill: #243a59" transform="translate(625.007188 443.632187)">Tous les poids gelés · aucun token fusionné</text>
-    <text style="font-size: 13px; font-family: 'DejaVu Sans'; fill: #243a59" transform="translate(593.265859 461.778359)">α fixé sur validation ; α = 0 retrouve le modèle initial</text>
+    <text style="font-size: 13px; font-family: 'DejaVu Sans'; fill: #243a59" transform="translate(695.105625 443.412812)">Appris : LoRA Q/V + β</text>
+    <text style="font-size: 13px; font-family: 'DejaVu Sans'; fill: #243a59" transform="translate(659.439922 461.182187)">Poids préentraînés de SAM gelés</text>
    </g>
    <g id="text_26">
-    <text style="font-weight: 700; font-size: 17px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #243a59" x="43.92" y="544.244531" transform="rotate(-0 43.92 544.244531)">La hiérarchie organise les échanges ; chaque token est conservé.</text>
+    <text style="font-weight: 700; font-size: 17px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #243a59" x="43.92" y="544.244531" transform="rotate(-0 43.92 544.244531)">Des fragments éloignés peuvent être proches dans l’ultramétrique.</text>
    </g>
    <g id="text_27">
-    <text style="font-size: 15px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #243a59" x="43.92" y="574.679062" transform="rotate(-0 43.92 574.679062)">Test décisif : les niveaux aident-ils davantage qu’une seule partition ?</text>
+    <text style="font-size: 15px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #243a59" x="43.92" y="574.679062" transform="rotate(-0 43.92 574.679062)">Test : aider les fissures fragmentées sans multiplier les faux raccords.</text>
    </g>
    <g id="text_28">
-    <text style="font-weight: 700; font-size: 13px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #177e89" x="43.92" y="626.596406" transform="rotate(-0 43.92 626.596406)">Perspective · SAM 2 gelé</text>
+    <text style="font-weight: 700; font-size: 12px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #177e89" x="43.92" y="626.304375" transform="rotate(-0 43.92 626.304375)">SAM reconnaît le contenu ; Frangi propose des relations.</text>
    </g>
    <g id="text_29">
-    <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: end; fill: #627186" x="1108.8" y="626.055313" transform="rotate(-0 1108.8 626.055313)">Arbre illustratif · aucun masque simulé</text>
+    <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: end; fill: #627186" x="1108.8" y="625.835312" transform="rotate(-0 1108.8 625.835312)">Graphormer · Ying et al., NeurIPS 2021</text>
    </g>
   </g>
  </g>

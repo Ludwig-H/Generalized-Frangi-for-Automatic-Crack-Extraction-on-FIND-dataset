@@ -1,5 +1,7 @@
 # Apprendre à lire la hiérarchie de polyèdres
 
+Cette note concerne le programme LiDAR 3D. Pour la solution simple **SAM gelé + LoRA + Frangi-graphe**, lire la [décision recentrée](DECISION_SAM_LORA.md).
+
 **Choix pour prolonger la soutenance LiDAR 3D : un petit lecteur appris sur les éléments géométriques, leurs recollements et leurs fusions, alimenté par un encodeur gelé.** Le biais dans l’attention de SAM reste un essai relationnel plus restreint. Il ne remplace pas ce programme.
 
 **Mécanisme à essayer en premier :** la [lecture des différences entre enfants et parents](LECTURE_MULTIECHELLE.md), conditionnée par la géométrie et les niveaux. Elle conserve explicitement les détails ; l’attention décrite ci-dessous reste une variante plus expressive à comparer.
