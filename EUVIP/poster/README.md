@@ -11,13 +11,13 @@ la palette, les bandeaux et la typographie EB Garamond. Tous les blocs utilisent
 le bleu nuit, y compris la perspective. Les logos Inria, Ayana,
 3IA et DS4H viennent du template ; les auteurs et affiliations sont ceux du
 papier final. Imprimer à **100 %**, sans ajustement à la page.
-Le bloc bibliographique réunit huit références ciblées sur les fissures,
+Le bloc bibliographique réunit dix références ciblées sur les fissures,
 les données, SAM et le guidage de l'attention, dont la revue de Zhang et al. (2025),
 avec un QR code de 6 cm.
 
 ## Contenu et sources
 
-Le contenu scientifique suit exclusivement [le papier final](../LaTeX/main.tex)
+La méthode et les résultats suivent [le papier final](../LaTeX/main.tex)
 et sa [camera-ready](../EUVIP_2026_Generalized_Frangi_Multimodality_camera-ready.pdf).
 Les illustrations montrent la fusion hessienne, les trois contraintes de la
 similarité, la réduction du graphe, FIND propre/bruité et les cas géologiques.
@@ -39,24 +39,18 @@ commun regroupe intensité/contraste et forme comme critères du Frangi classiqu
 adaptés aux paires ; un second identifie l’alignement comme ajout du graphe. Les
 connexions défavorables sont affaiblies, conformément aux pénalités souples.
 Le petit schéma de réduction du graphe dans `poster.tex` est illustratif.
-[foundation-hierarchy.tex](figures/foundation-hierarchy.tex) illustre uniquement
-une perspective : construire des groupes emboîtés depuis le graphe Frangi pour
-guider l'attention d'un modèle de fondation. Le titre « Perspective » indique ce statut.
-Les trois filaments A, B et C correspondent aux trois groupes de l'arbre et de
-la matrice. La référence retenue est
-[Amizadeh et al., *Hierarchical Self-Attention: Generalizing Neural Attention Mechanics
-to Multi-Scale Problems*, NeurIPS 2025](https://papers.neurips.cc/paper_files/paper/2025/hash/0480adaf62a918405a5e3b1031e0c056-Abstract-Conference.html),
-déjà citée dans le dossier ISPRS. HSA partage les coefficients d'attention entre
-sous-arbres frères ; leurs valeurs dépendent des caractéristiques du modèle.
-La matrice illustre cette structure, sans représenter des résultats mesurés.
-Le §4.3 démontre un remplacement partiel des attentions de RoBERTa sans nouvel
-entraînement, avec un compromis coût–précision. Il ne démontre aucun gain sur SAM 2.
-**Tous les poids de SAM 2 resteraient gelés** : la perspective consiste à fournir
-une hiérarchie Frangi à HSA, sans LoRA ni module appris. Cela demande une
-adaptation du calcul d'attention et une correspondance arbre–tokens, fond compris.
-CrackSAM [4] adapte le SAM original ; SAM 2 est documenté par Ravi et al. [6].
-Les [archives des pistes examinées](../../ISPRS/CrackSAM-HierarchicalSelfAttention/ARCHIVES.md)
-conservent la comparaison avec le regroupement de tokens et le transfert de relations.
+
+## Perspective : SAM gelé + LoRA + hiérarchie Frangi
+
+Le [TikZ](figures/foundation-hierarchy.tex) reprend la [piste retenue dans ISPRS](../../ISPRS/CrackSAM-HierarchicalSelfAttention/README.md) : deux fragments éloignés peuvent fusionner tôt dans l’arbre Frangi. Construire cette hiérarchie avant sélection de composante et élagage. Sa proximité donne un biais à une attention globale de SAM 2, qui conserve ses scores visuels. **Les poids préentraînés restent gelés ; LoRA et un seul coefficient β apprennent ensemble.**
+
+Les hauteurs et les relations du dessin sont illustratives. Le titre « Perspective » distingue cette proposition des résultats EUVIP. L’objectif est de réduire les ruptures sans multiplier les faux raccords.
+
+- **Graphormer [8]** : ajout d’un biais relationnel avant softmax ; nous remplaçons la relation de plus court chemin par une proximité issue des hauteurs de fusion.
+- **LoRA [9]** : adaptation par des matrices de faible rang ; ici sur les projections Q/V.
+- **MALIS [10]** : lien entre affinités, chemins et connexité après seuillage ; nous ne reprenons ni sa perte ni l’apprentissage des arêtes.
+
+CrackSAM [4] adapte le SAM original ; la proposition utilise SAM 2 [6]. Les [références complètes et leurs limites](../../ISPRS/CrackSAM-HierarchicalSelfAttention/REFERENCES.md) précisent cette transposition. Aucun de ces articles ne démontre le gain de la combinaison proposée.
 
 ## Consignes EUVIP vérifiées
 

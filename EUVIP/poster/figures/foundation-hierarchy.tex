@@ -1,112 +1,79 @@
-% Original editable schematic for the EUVIP 2026 poster outlook.
-% Size: 15 cm x 5 cm. All labels use explicit 10 pt type at this base size.
-% Reusable fragment: \resizebox{...}{!}{\input{figures/foundation-hierarchy.tex}}.
-% Fonts and colors are local; the poster supplies TikZ, amsmath and its font family.
+% Editable outlook figure: 18 cm x 4.5 cm, with explicit 10 pt labels.
+% Reuse with \resizebox{...}{!}{\input{figures/foundation-hierarchy.tex}}.
+% Local styles and colors; transparent canvas; font family inherited from poster.
+% Illustrative hierarchy, one candidate per token. In general, average candidate
+% proximities within tokens before neutralizing the diagonal and uncovered pairs.
+% Build merge heights from the paper's graph costs before component selection
+% and centrality pruning. The leaves are candidates, not semantic crack classes.
 \begingroup
 \definecolor{frangiOutlookNavy}{RGB}{56,66,87}
-\definecolor{frangiOutlookRed}{RGB}{230,51,18}
-\definecolor{frangiOutlookBlue}{RGB}{20,136,202}
+\definecolor{frangiOutlookTeal}{RGB}{22,140,147}
+\definecolor{frangiOutlookGray}{RGB}{122,135,145}
 \begin{tikzpicture}[
   x=1cm,y=1cm,
   every node/.style={font=\normalfont\fontsize{10}{12}\selectfont,text=frangiOutlookNavy},
-  edge/.style={line width=1.15pt,line cap=round,line join=round},
-  ridge/.style={circle,inner sep=0pt,minimum size=3.5pt,fill=frangiOutlookNavy},
-  arrow/.style={-{Stealth[length=2.3mm,width=1.5mm]},line width=.9pt,frangiOutlookNavy},
-  branch/.style={line width=.95pt,line cap=round,line join=round}
+  fhTitle/.style={font=\normalfont\fontsize{10}{12}\selectfont\bfseries},
+  fhBranch/.style={line width=1.05pt,line cap=round,line join=round},
+  fhArrow/.style={-{Stealth[length=2.1mm,width=1.4mm]},line width=.9pt,frangiOutlookNavy},
+  fhGuide/.style={-{Stealth[length=2.1mm,width=1.4mm]},line width=1.1pt,frangiOutlookTeal},
+  fhBox/.style={draw=frangiOutlookNavy!65,line width=.7pt,rounded corners=3pt,
+    minimum height=.9cm,align=center,inner sep=4pt},
+  fhSmall/.style={font=\normalfont\fontsize{9}{11}\selectfont}
 ]
-\path[use as bounding box] (0,0) rectangle (15,5);
+\path[use as bounding box] (0,0) rectangle (18,4.5);
+\node[fhTitle] at (1.75,4.15) {Frangi-graph tree};
+\node[fhTitle] at (5.65,4.15) {Token proximity $B_H$};
+\node[fhTitle] at (11.9,4.15) {SAM 2: pretrained weights frozen};
 
-% Minimal headings; the poster supplies the section title and full caption.
-\node[font=\normalfont\fontsize{10}{12}\selectfont\bfseries] at (2.1,4.55) {Frangi graph};
-\node[font=\normalfont\fontsize{10}{12}\selectfont\bfseries] at (6.85,4.55) {Nested groups};
-\node[font=\normalfont\fontsize{10}{12}\selectfont\bfseries] at (12.3,4.55) {Hierarchical attention (HSA)};
+% Merge heights are scaled consistently: 0.2, 0.4 and 0.9 above the leaves.
+\draw[fhBranch,frangiOutlookTeal] (.4,1.15)--(.4,1.65)--(1.2,1.65)--(1.2,1.15);
+\draw[fhBranch,frangiOutlookTeal] (.8,1.65)--(.8,3.4);
+\draw[fhBranch,frangiOutlookGray] (2.1,1.15)--(2.1,2.15)--(2.9,2.15)--(2.9,1.15);
+\draw[fhBranch,frangiOutlookGray] (2.5,2.15)--(2.5,3.4);
+\draw[fhBranch,frangiOutlookNavy] (.8,3.4)--(2.5,3.4);
+\node[anchor=south] at (1.65,3.42) {$0.9$};
+\node[anchor=south,text=frangiOutlookTeal] at (.4,1.7) {$0.2$};
+\node[anchor=south,text=frangiOutlookGray] at (2.8,2.2) {$0.4$};
+\foreach \x/\label/\colour in {.4/A/frangiOutlookTeal,1.2/B/frangiOutlookTeal,2.1/C/frangiOutlookGray,2.9/D/frangiOutlookGray}
+  \node[fhTitle,text=\colour] at (\x,.87) {\label};
+\draw[fhArrow] (3.24,2.5)--(3.85,2.5);
 
-% All foundation-model weights stay frozen; the proposed bias is computed from the tree.
-% 1. Three schematic ridge branches, labelled to match the tree and attention matrix.
-\coordinate (g0) at (.8,1.2);
-\coordinate (g1) at (1.05,1.65);
-\coordinate (g2) at (1.25,2.10);
-\coordinate (g3) at (1.65,2.42);
-\coordinate (g4) at (2.10,2.52);
-\coordinate (g5) at (2.48,2.80);
-\coordinate (g6) at (2.72,3.25);
-\coordinate (g7) at (2.82,3.72);
-\coordinate (g8) at (2.88,2.24);
-\coordinate (g9) at (3.27,2.04);
-\coordinate (g10) at (3.54,1.67);
-\draw[edge,frangiOutlookBlue] (g0)--(g1)--(g2)--(g3)--(g4);
-\draw[edge,frangiOutlookRed] (g4)--(g5)--(g6)--(g7);
-\draw[edge,frangiOutlookNavy] (g4)--(g8)--(g9)--(g10);
-\foreach \k in {0,...,10} \node[ridge] at (g\k) {};
-\node[text=frangiOutlookBlue,font=\normalfont\fontsize{10}{12}\selectfont\bfseries] at (.61,1.83) {A};
-\node[text=frangiOutlookRed,font=\normalfont\fontsize{10}{12}\selectfont\bfseries] at (2.38,3.65) {B};
-\node[text=frangiOutlookNavy,font=\normalfont\fontsize{10}{12}\selectfont\bfseries] at (3.30,1.33) {C};
-\node[anchor=west] at (2.98,3.37) {$d_{ij}$};
-\node at (2.1,.54) {Pairwise connection costs};
+% One candidate per token: B_H(i,j)=1-u_ij off the diagonal.
+% Opacity preserves the poster background; no opaque white cell or figure fill.
+\foreach \row/\label in {0/A,1/B,2/C,3/D} {
+  \node[fhSmall] at (4.825+.55*\row,3.72) {\label};
+  \node[fhSmall] at (4.28,3.225-.55*\row) {\label};
+}
+\foreach \row/\col/\value/\opacity in {
+  0/0/0/0,0/1/0.8/.62,0/2/0.1/.08,0/3/0.1/.08,
+  1/0/0.8/.62,1/1/0/0,1/2/0.1/.08,1/3/0.1/.08,
+  2/0/0.1/.08,2/1/0.1/.08,2/2/0/0,2/3/0.6/.38,
+  3/0/0.1/.08,3/1/0.1/.08,3/2/0.6/.38,3/3/0/0} {
+  \fill[frangiOutlookTeal,fill opacity=\opacity]
+    (4.55+.55*\col,2.95-.55*\row) rectangle ++(.55,.55);
+  \node[fhSmall] at (4.825+.55*\col,3.225-.55*\row) {$\value$};
+}
+\draw[step=.55,line width=.2pt,frangiOutlookNavy!25,shift={(4.55,1.3)}] (0,0) grid (2.2,2.2);
+\draw[line width=.5pt,frangiOutlookNavy!60] (4.55,1.3) rectangle (6.75,3.5);
+\node[fhSmall] at (5.65,.99) {One candidate per token};
+\node at (3.1,.3) {Early merge $\longrightarrow$ larger bonus};
 
-\draw[arrow] (4.08,2.50)--(4.78,2.50);
-
-% 2. Six illustrative segments form three branches A/B/C, then a network.
-% The leaf pairs illustrate nested grouping; they are not all sampled graph pixels.
-% This is a proposed extension of the EUVIP graph, not an existing output.
-\foreach \x in {5.48,5.98} \node[ridge,fill=frangiOutlookBlue] at (\x,1.30) {};
-\foreach \x in {6.53,7.03} \node[ridge,fill=frangiOutlookRed] at (\x,1.30) {};
-\foreach \x in {7.78,8.28} \node[ridge,fill=frangiOutlookNavy] at (\x,1.30) {};
-\draw[branch,frangiOutlookBlue] (5.48,1.30)--(5.48,1.98)--(5.98,1.98)--(5.98,1.30);
-\draw[branch,frangiOutlookRed] (6.53,1.30)--(6.53,1.98)--(7.03,1.98)--(7.03,1.30);
-\draw[branch,frangiOutlookNavy] (7.78,1.30)--(7.78,1.98)--(8.28,1.98)--(8.28,1.30);
-\draw[branch,frangiOutlookNavy!75] (5.73,1.98)--(5.73,2.87)--(6.78,2.87)--(6.78,1.98);
-\draw[branch,frangiOutlookNavy] (6.255,2.87)--(6.255,3.70)--(8.03,3.70)--(8.03,1.98);
-\node[inner sep=1pt] at (5.73,1.01) {A};
-\node[inner sep=1pt] at (6.78,1.01) {B};
-\node[inner sep=1pt] at (8.03,1.01) {C};
-\node at (6.85,.54) {Groups merge along the graph};
-
-% The proposed link to a foundation model must remain explicitly uncertain.
-\draw[arrow,dashed,frangiOutlookRed] (8.82,2.50)--(10.08,2.50);
-\node[text=frangiOutlookRed,inner sep=2pt] at (9.45,2.89) {?};
-
-% 3. HSA block constraint (Amizadeh et al., NeurIPS 2025, section 3.2).
-% One attention weight is shared between all leaves of two sibling subtrees.
-% This is an attention matrix, not an additive bias or a learned diagonal prior.
-% Row/column order: a1,a2,b1,b2,c1,c2. The diagonal is zero.
-% Illustrative coefficients, not measurements, chosen to sum to 1 per row:
-% A-internal=.14, A->B=.25, B->A=.10, B-internal=.44,
-% AB->C=.18, C->AB=.22, C-internal=.12 (values are per matrix entry).
-% The example has no systematic preference for interactions inside a group.
-% Distinct directions may have distinct weights; AB->C is one 4x2 block.
-\begin{scope}[shift={(10.9,1.15)},x=.45cm,y=.45cm]
-  % Highest sibling interaction: subtree AB with subtree C.
-  \fill[frangiOutlookBlue,fill opacity=.4091] (4,2) rectangle (6,6);
-  \fill[frangiOutlookBlue,fill opacity=.50] (0,0) rectangle (4,2);
-  % Sibling interaction inside subtree AB.
-  \fill[frangiOutlookBlue,fill opacity=.5682] (2,4) rectangle (4,6);
-  \fill[frangiOutlookBlue,fill opacity=.2273] (0,2) rectangle (2,4);
-  % Two leaves per branch: only the off-diagonal entries receive a weight.
-  \foreach \x/\y in {0/4,1/5}
-    \fill[frangiOutlookBlue,fill opacity=.3182] (\x,\y) rectangle ++(1,1);
-  \foreach \x/\y in {2/2,3/3}
-    \fill[frangiOutlookBlue,fill opacity=1] (\x,\y) rectangle ++(1,1);
-  \foreach \x/\y in {4/0,5/1}
-    \fill[frangiOutlookBlue,fill opacity=.2727] (\x,\y) rectangle ++(1,1);
-  % A subtle grid exposes six tokens without white cell borders.
-  \draw[step=1,line width=.20pt,frangiOutlookNavy!22] (0,0) grid (6,6);
-  \draw[line width=.45pt,frangiOutlookNavy!60] (0,0) rectangle (6,6);
-  \draw[line width=.65pt,frangiOutlookNavy!60] (4,0)--(4,6);
-  \draw[line width=.65pt,frangiOutlookNavy!60] (0,2)--(6,2);
-  \draw[line width=.65pt,frangiOutlookNavy!60] (2,2)--(2,6);
-  \draw[line width=.65pt,frangiOutlookNavy!60] (0,4)--(4,4);
-  \foreach \x/\y in {.5/5.5,1.5/4.5,2.5/3.5,3.5/2.5,4.5/1.5,5.5/.5}
-    \node[font=\normalfont\fontsize{7}{8}\selectfont,text=frangiOutlookNavy!65]
-      at (\x,\y) {0};
-  \foreach \x/\label in {1/A,3/B,5/C} {
-    \node at (\x,6.48) {\label};
-  }
-  \foreach \y/\label in {5/A,3/B,1/C} {
-    \node at (-.47,\y) {\label};
-  }
-\end{scope}
-\node at (12.3,.54) {Shared weights between groups};
-
+% Visual attention scores remain pair-specific; only an additive bias is added.
+% LoRA Q/V and beta learn together; the pretrained model weights stay frozen.
+\draw[frangiOutlookNavy!35,line width=.6pt,rounded corners=5pt]
+  (7.65,1.6) rectangle (16.2,3.7);
+\node[fhBox,minimum width=1.85cm] (features) at (8.85,2.7) {Image\\features};
+\node[fhBox,draw=frangiOutlookTeal,minimum width=2.4cm] (attention) at (11.65,2.7)
+  {One global\\encoder attention};
+\node[fhBox,minimum width=1.75cm] (decoder) at (14.6,2.7) {Decoder};
+\node[fhBox,minimum width=1.4cm] (mask) at (17.15,2.7) {Mask};
+\draw[fhArrow] (features)--(attention);
+\draw[fhArrow] (attention)--(decoder);
+\draw[fhArrow] (decoder)--(mask);
+\node[fhSmall] at (9.2,1.9) {Visual scores retained};
+\node[fhSmall,text=frangiOutlookTeal] at (14.35,1.9) {Learn: LoRA Q/V + $\beta$};
+\draw[fhGuide] (6.75,1.58)--(7.2,1.58)--(7.2,.8)--(11.65,.8)--(attention.south);
+\node[text=frangiOutlookTeal,anchor=south] at (9.2,.82) {Add $\beta B_H$};
+\node at (12.4,.3) {Distant fragments can be close in the hierarchy};
 \end{tikzpicture}
 \endgroup
