@@ -2,6 +2,8 @@
 
 **Pour prolonger la voie polyèdres de la soutenance LiDAR 3D, la piste principale est un petit lecteur appris sur des représentations gelées.** Il reçoit les éléments géométriques, leurs incidences et leurs événements de fusion. Lire la [proposition approfondie](VOIE_POLYEDRES.md) pour les définitions, les références et les expériences décisives.
 
+Le [premier mécanisme à tester](LECTURE_MULTIECHELLE.md) conserve les différences enfant–parent et apprend leur importance à chaque regroupement. L’attention entre enfants reste une variante plus expressive.
+
 ## Le principe
 
 L’encodeur fournit les caractéristiques ; notre construction géométrique fournit les objets et leur organisation. Un petit module apprend à exploiter les deux, sans réentraîner l’encodeur.
@@ -9,10 +11,11 @@ L’encodeur fournit les caractéristiques ; notre construction géométrique fo
 ![Lecteur des éléments et de leurs regroupements](figures/lecteur_polyedres.png)
 
 - Décrire les éléments et les groupes à chaque niveau.
-- Faire remonter les informations lors des fusions, puis rendre ce contexte aux éléments fins.
+- Conserver les moyennes des groupes et les écarts de leurs enfants.
+- Apprendre, selon la géométrie et le niveau, quels écarts restituer aux éléments fins.
 - Conserver les points partagés et leurs appartenances pondérées jusqu’à la prédiction finale.
 
-Les poids du lecteur sont partagés entre événements. Ses entrées incluent les vrais niveaux ; une profondeur informatique ne suffit pas. La voie fine conserve les caractéristiques originales.
+Le même petit réseau calcule les gains des événements. Un gain identique partout réduit le calcul à un mélange local–global : il faut vérifier l’utilité des niveaux intermédiaires. La voie fine conserve les caractéristiques originales.
 
 ## Ce que la thèse impose de distinguer
 

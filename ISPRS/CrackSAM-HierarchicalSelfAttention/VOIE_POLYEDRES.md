@@ -2,6 +2,8 @@
 
 **Choix pour prolonger la soutenance LiDAR 3D : un petit lecteur appris sur les éléments géométriques, leurs recollements et leurs fusions, alimenté par un encodeur gelé.** Le biais dans l’attention de SAM reste un essai relationnel plus restreint. Il ne remplace pas ce programme.
 
+**Mécanisme à essayer en premier :** la [lecture des différences entre enfants et parents](LECTURE_MULTIECHELLE.md), conditionnée par la géométrie et les niveaux. Elle conserve explicitement les détails ; l’attention décrite ci-dessous reste une variante plus expressive à comparer.
+
 Cette note du **5 septembre 2026** approfondit les chapitres 8–9 du [manuscrit](../../Manuscrit_de_these_LouisHauseux.pdf) et les diapos 59, 104–107 de la [soutenance vérifiée](https://github.com/Ludwig-H/Manuscrit-de-th-se/blob/8ddbae760c5a337c4e033c45e5f60c16ca58cc67/Soutenance/soutenance/Soutenance_These_2026-09-08_LouisHauseux.pdf). L’architecture décrite est une proposition ; aucun modèle n’est entraîné ou évalué ici.
 
 ## 1. Ce que signifie l’alphabet géométrique
@@ -28,6 +30,8 @@ Pour un premier lecteur, je propose de conserver un état pour chaque atome et c
 
 Un arbre seul ne conserve pas toutes les incidences ; un graphe de facettes à un seul niveau ne conserve pas la trajectoire. Le théorème du K-MST porte sur les supports des polyèdres non triviaux : il ne livre pas automatiquement toutes les faces et tous les attributs nécessaires au lecteur.
 
+Un connecteur peut aussi apparaître dans un groupe déjà connecté, sans nouvelle fusion. Lire toute l’évolution du complexe demande ses naissances internes, ou des attributs d’incidence selon l’échelle. L’arbre avec les seuls témoins des fusions décrit une information plus restreinte.
+
 ## 3. Le lecteur minimal proposé
 
 ### Des observations gelées vers les éléments
@@ -48,7 +52,7 @@ Ici, ρ(σ) est le rayon de naissance du connecteur et ψ une fonction de pondé
 
 Une initialisation possible est la moyenne pondérée des `f_x` incidents à τ, normalisée par `m_τ = Σ_x w_xτ`, complétée par sa géométrie et sa naissance. Garder aussi les caractéristiques originales : une moyenne reste une compression. Les atomes sans masse positive demandent un traitement déclaré, pas une division par zéro.
 
-### Lire les compositions, puis restituer le contexte
+### Variante avec attention : lire les compositions et restituer le contexte
 
 Un seul petit module peut réaliser trois opérations :
 
@@ -86,7 +90,7 @@ Le contrat minimum contient : identifiants des atomes et sommets ; incidences et
 
 **Commencer en K = 2**, dont le manuscrit documente l’implémentation, pour vérifier le lecteur et les recouvrements. Passer à K = 3 après qualification de la construction géométrique et de ses attributs. Le [statut E-HGP consulté](https://github.com/Ludwig-H/E-HGP/blob/764c80b995268cebfc7a38c9d4bb4fb31605d7aa/README.md) distingue source à recouvrements et projection ponctuelle laminaire ; il ne suffit pas à annoncer une chaîne LiDAR complète prête à apprendre.
 
-Comparer le même lecteur, sur **les mêmes atomes et caractéristiques**, avec : géométrie seule ; incidences seules ; arbre seul ; incidences et arbre ; hauteurs canoniques contre vraies hauteurs ; deux coupes contre tous les événements. Ajouter les arbres témoins des slides. Même budget de paramètres et de réglages, voie fine identique, test séparé par scène. Cela distingue l’apport de l’alphabet de celui de la grammaire.
+Comparer le même lecteur, sur **les mêmes atomes et caractéristiques**, avec : géométrie seule ; incidences seules ; arbre seul ; incidences et arbre ; hauteurs canoniques contre vraies hauteurs ; deux coupes contre tous les événements. Même budget de paramètres et de réglages, voie fine identique, test séparé par scène. Ajouter un lecteur des mêmes nœuds sans parcours explicite, puis les arbres témoins des slides avec attributs recalculés. Changer ces arbres change aussi les objets internes : ce contrôle ne sépare pas à lui seul alphabet et grammaire. Voir les [contrôles du lecteur minimal](LECTURE_MULTIECHELLE.md#ce-qui-décidera-de-la-suite).
 
 Mesurer également stabilité sous raréfaction, occultation et changement de portée. Des retours surfaciques dans R³ ne donnent pas automatiquement une densité physique de surface à partir de `r⁻³`. La stabilité de la sémantique ne découle pas du théorème géométrique fini. Les objets filiformes et leurs naissances tardives restent un test prioritaire.
 
