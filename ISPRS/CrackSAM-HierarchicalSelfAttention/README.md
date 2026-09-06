@@ -30,6 +30,8 @@ $$A_H=\mathrm{softmax}\left(Q_{\mathrm{LoRA}}K^\top/\sqrt{d_h}+\beta B_H\right),
 
 Les poids préentraînés restent gelés. Les [LoRA existantes](../CrackSAM/cracksam2/model.py) adaptent les projections Q et V. Un seul $\beta$, partagé entre têtes, apprend avec elles : départ à zéro, projection dans $[0,1]$ après chaque mise à jour. Le biais favorise un échange, sans imposer une étiquette de fissure. [Graphormer](REFERENCES.md) fournit ce principe d’insertion dans l’attention.
 
+> **Note : confiance locale (piste ultérieure).** Sans modifier le premier test, on pourrait remplacer $\beta(B_H)_{ij}$ par $\beta\,g_i(I)g_j(I)(B_H)_{ij}$, avec $g_i(I)\in[0,1]$ prédit par un petit module à partir des caractéristiques visuelles avant l’attention guidée et d’un résumé global de l’image. Ce module apprendrait avec LoRA via la perte de segmentation ; la hiérarchie resterait calculée. L’objectif serait d’atténuer localement un guidage peu fiable, notamment près de certaines ombres, sans désactiver le guidage sur toute l’image. Ces coefficients ne seraient ni des probabilités de fissure ni une évaluation explicite des chemins. Variante non implémentée, à comparer au $\beta$ global ; son bénéfice reste à vérifier.
+
 ## Le premier test
 
 Comparer **SAM + LoRA**, **biais de proximité spatiale** et **biais hiérarchique**, sur les mêmes candidats et avec le même budget. Garder annotations, pertes et augmentations alignées ; reconstruire les chemins après recadrage. Mesurer IoU, ruptures et faux raccords, notamment dans les ombres. Les [anciens essais négatifs](ARCHIVES.md) motivent ce contrôle.
