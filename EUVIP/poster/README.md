@@ -6,6 +6,8 @@
 
 Poster en anglais, **841 × 1189 mm**, selon le template Inria / 3IA / DS4H. Imprimer à **100 %**. Les blocs utilisent le bleu nuit ; le QR code de 6 cm renvoie à [Ayana-Inria/Frangi-EUVIP](https://github.com/Ayana-Inria/Frangi-EUVIP).
 
+Inria et Cerema sont centrés dans le bandeau, entre 3IA et DS4H ; le logo Ayana est retiré. Le [logo Cerema blanc](logos/cerema-white.svg) est une adaptation monochrome locale du [SVG du site Cerema](https://www.cerema.fr/themes/custom/uas_base/images/LogoCerema_horizontal.svg), consulté le 7 septembre 2026. Les contours et le fond transparent sont conservés ; le PDF vectoriel est converti depuis ce SVG avec PyMuPDF. Il ne s’agit pas d’une variante blanche publiée par Cerema.
+
 ## Mise en page et contenu
 
 Les deux colonnes ont une hauteur commune, calculée à partir des blocs. L’espace restant est réparti entre eux ; l’espacement minimal se règle avec `\posterblockgap` dans [le thème](beamerthemegemini.sty). FIND propre et bruité occupent deux blocs distincts.

@@ -1,7 +1,7 @@
 % Adapted from the author's soutenance/frangi_termes.tex.
 % Same three geometric vignettes, translated into English and made legible.
 % Rejection crosses removed: the paper uses soft similarity penalties.
-% Shared header: classical Frangi cues adapted to pixel pairs; alignment is added by the graph.
+% Shared header: classical Frangi terms adapted to pixel pairs; alignment is added by the graph.
 % Reusable fragment: \resizebox{...}{!}{\input{figures/frangi-terms.tex}}.
 % Fonts and colors are local; the poster supplies TikZ, amsmath and its font family.
 \begingroup
@@ -18,10 +18,10 @@
  heading/.style={font=\normalfont\fontsize{20}{23}\selectfont\bfseries},
  caption/.style={align=center,font=\normalfont\fontsize{15}{18}\selectfont}]
  \path[use as bounding box] (-.04,-1.57) rectangle (11.44,2.40);
- % Group the inherited local cues; distinguish the relational graph term.
+ % Group the inherited local terms; distinguish the relational graph term.
  \fill[frangiTermsNavy,fill opacity=.08] (-.04,1.84) rectangle (7.30,2.40);
  \node[font=\normalfont\fontsize{18}{21}\selectfont\bfseries] at (3.63,2.12)
-       {Classical Frangi cues (paired here)};
+       {Classical Frangi terms (paired here)};
  \fill[frangiTermsBlue,fill opacity=.12] (7.60,1.84) rectangle (11.44,2.40);
  \node[text=frangiTermsBlue,font=\normalfont\fontsize{18}{21}\selectfont\bfseries] at (9.52,2.12)
        {Added by the graph};

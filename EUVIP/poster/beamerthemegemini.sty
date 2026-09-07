@@ -16,11 +16,12 @@
 \setbeamertemplate{headline}{%
   \begin{beamercolorbox}[wd=\paperwidth,center]{headline}
     \vskip0.6cm
+    % Equal side boxes keep the Inria / Cerema group centered on the page.
     \hbox to \paperwidth{\hskip3cm
-      \includegraphics[height=3.3cm]{logos/3ia.png}\hfil
-      \includegraphics[width=14cm]{logos/inria.png}\hfil
-      \includegraphics[width=11cm]{logos/ayana.png}\hfil
-      \includegraphics[height=3.6cm]{logos/ds4h.png}\hskip3cm}
+      \makebox[18cm][l]{\raisebox{-0.5\height}{\includegraphics[height=3.3cm]{logos/3ia.png}}}\hfil
+      \raisebox{-0.5\height}{\includegraphics[width=14cm]{logos/inria.png}}\hskip5cm
+      \raisebox{-0.5\height}{\includegraphics[width=11cm]{logos/cerema-white.pdf}}\hfil
+      \makebox[18cm][r]{\raisebox{-0.5\height}{\includegraphics[height=3.6cm]{logos/ds4h.png}}}\hskip3cm}
     \vskip0.5cm
     {\fontsize{70}{76}\selectfont\bfseries\inserttitle\par}
     \vskip0.10cm
