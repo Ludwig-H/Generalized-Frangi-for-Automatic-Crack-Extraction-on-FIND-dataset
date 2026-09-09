@@ -18,7 +18,7 @@ La perspective reprend [SAM gelé + LoRA + biais hiérarchique](../../ISPRS/Crac
 
 ## Bibliographie automatique
 
-Modifier les métadonnées dans [references.bib](references.bib), puis citer les clés avec `\cite{...}` dans `poster.tex`. BibTeX génère la numérotation et les dix entrées, sans liste manuelle.
+Modifier les métadonnées dans [references.bib](references.bib), puis citer les clés avec `\cite{...}` dans `poster.tex`. Placer les citations dans le corps, jamais dans les titres de blocs : préciser s’il s’agit des données, d’une méthode reprise ou d’une review. Les expériences et la proposition hiérarchique sont explicitement attribuées à notre travail. BibTeX génère la numérotation et les dix entrées, sans liste manuelle.
 
 Le style [poster.bst](poster.bst) affiche le premier auteur et « et al. », conserve les titres et les lie au DOI ou à la source. Les auteurs complets restent dans le fichier `.bib`.
 
