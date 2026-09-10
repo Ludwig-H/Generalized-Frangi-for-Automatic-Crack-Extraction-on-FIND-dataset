@@ -2,6 +2,9 @@
 
 [**Rapport illustré**](RAPPORT.md) · [Protocole statistique et références](methods.md) · [Catégories image par image](tables/categories.csv)
 
+[**Complément : comparer 14 représentations avec UMAP**](COMPARAISON_FEATURES.md),
+avec grille visuelle complète, sondes groupées, trois graines et comparaison 3D.
+
 L’analyse reprend **SAM 2 + LoRA baseline, époque 20**, contre **Frangi-similarité,
 époque 25**, choisis par validation : 8 895 observations, 2 122 groupes physiques.
 La neutralité est définie par **|ΔIoU| ≤ 0,01**, avec sensibilité à 0,005 et 0,02.

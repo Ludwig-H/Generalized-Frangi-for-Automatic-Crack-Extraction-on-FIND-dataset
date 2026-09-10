@@ -1,0 +1,48 @@
+{
+  "representation": "multiscale_mean",
+  "dimensions": 352,
+  "silhouette_features": -0.00729738175868988,
+  "silhouette_umap": -0.026645850390195847,
+  "silhouette_domain_umap": 0.350970596075058,
+  "neighbors_features": 0.4700892377502595,
+  "neighbors_umap": 0.4535956080685468,
+  "neighbors_features_within_domain": 0.48550594518001705,
+  "neighbors_umap_within_domain": 0.46420312892780213,
+  "trustworthiness": 0.9722221712651452,
+  "probe": {
+    "n": 8895,
+    "balanced_accuracy": 0.5423703556631535,
+    "macro_f1": 0.5393168987047358,
+    "accuracy": 0.5499718943226531,
+    "chance_balanced_accuracy": 0.3333333333333333,
+    "missing_classes": [],
+    "confusion_matrix": [
+      [
+        1859,
+        599,
+        829
+      ],
+      [
+        799,
+        2007,
+        714
+      ],
+      [
+        594,
+        468,
+        1026
+      ]
+    ],
+    "recall_degraded": 0.5655613020991785,
+    "auroc_degraded": 0.7287438855874111,
+    "recall_neutral": 0.5701704545454546,
+    "auroc_neutral": 0.7608451902748414,
+    "recall_improved": 0.49137931034482757,
+    "auroc_improved": 0.6988120607195546,
+    "macro_auroc_ovr": 0.729467045527269,
+    "frangi_activation_rate": 0.28881394041596403,
+    "hard_gate_mean_delta_iou": 0.004247688845550642,
+    "always_frangi_mean_delta_iou": -0.009849340569106186,
+    "oracle_positive_mean_delta_iou": 0.018073224586996478
+  }
+}

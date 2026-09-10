@@ -2,3 +2,4 @@
 *.csv -text whitespace=cr-at-eol
 # Standalone Plotly export embeds its minified library; review the generator.
 results/umap_3d.html -diff linguist-generated=true
+feature_comparison/*.html -diff linguist-generated=true

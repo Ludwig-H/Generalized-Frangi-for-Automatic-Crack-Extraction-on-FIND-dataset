@@ -1,0 +1,714 @@
+{
+  "best_visual": "std",
+  "metrics": {
+    "mean": {
+      "representation": "mean",
+      "dimensions": 256,
+      "silhouette_features": -0.007703206967562437,
+      "silhouette_umap": -0.021077843382954597,
+      "silhouette_domain_umap": 0.29312193393707275,
+      "neighbors_features": 0.47088214453167687,
+      "neighbors_umap": 0.45202345866745053,
+      "neighbors_features_within_domain": 0.48748346756417105,
+      "neighbors_umap_within_domain": 0.4653515736047836,
+      "trustworthiness": 0.9720566676502626,
+      "probe": {
+        "n": 8895,
+        "balanced_accuracy": 0.5363197222302579,
+        "macro_f1": 0.5333708590707392,
+        "accuracy": 0.5441259134345138,
+        "chance_balanced_accuracy": 0.3333333333333333,
+        "missing_classes": [],
+        "confusion_matrix": [
+          [
+            1846,
+            573,
+            868
+          ],
+          [
+            794,
+            1984,
+            742
+          ],
+          [
+            611,
+            467,
+            1010
+          ]
+        ],
+        "recall_degraded": 0.5616063279586249,
+        "auroc_degraded": 0.7224176846323671,
+        "recall_neutral": 0.5636363636363636,
+        "auroc_neutral": 0.755033932346723,
+        "recall_improved": 0.4837164750957854,
+        "auroc_improved": 0.6900080180026533,
+        "macro_auroc_ovr": 0.7224865449939145,
+        "frangi_activation_rate": 0.29454749859471613,
+        "hard_gate_mean_delta_iou": 0.003673054077877746,
+        "always_frangi_mean_delta_iou": -0.009849340569106186,
+        "oracle_positive_mean_delta_iou": 0.018073224586996478
+      }
+    },
+    "std": {
+      "representation": "std",
+      "dimensions": 256,
+      "silhouette_features": -0.0072789862751960754,
+      "silhouette_umap": -0.018435930833220482,
+      "silhouette_domain_umap": 0.14324931800365448,
+      "neighbors_features": 0.46053878966196965,
+      "neighbors_umap": 0.44303514119931703,
+      "neighbors_features_within_domain": 0.4812506044677302,
+      "neighbors_umap_within_domain": 0.46401138358077243,
+      "trustworthiness": 0.9483788229645997,
+      "probe": {
+        "n": 8895,
+        "balanced_accuracy": 0.5064988343195073,
+        "macro_f1": 0.5041578935087296,
+        "accuracy": 0.5152332771219786,
+        "chance_balanced_accuracy": 0.3333333333333333,
+        "missing_classes": [],
+        "confusion_matrix": [
+          [
+            1716,
+            678,
+            893
+          ],
+          [
+            833,
+            1928,
+            759
+          ],
+          [
+            638,
+            511,
+            939
+          ]
+        ],
+        "recall_degraded": 0.522056586553088,
+        "auroc_degraded": 0.6906186976143862,
+        "recall_neutral": 0.5477272727272727,
+        "auroc_neutral": 0.7338822938689218,
+        "recall_improved": 0.44971264367816094,
+        "auroc_improved": 0.6646665282020368,
+        "macro_auroc_ovr": 0.6963891732284483,
+        "frangi_activation_rate": 0.2912872400224845,
+        "hard_gate_mean_delta_iou": 0.0021241668399503456,
+        "always_frangi_mean_delta_iou": -0.009849340569106186,
+        "oracle_positive_mean_delta_iou": 0.018073224586996478
+      }
+    },
+    "mean_std": {
+      "representation": "mean_std",
+      "dimensions": 512,
+      "silhouette_features": -0.005227478686720133,
+      "silhouette_umap": -0.02006356604397297,
+      "silhouette_domain_umap": 0.24636659026145935,
+      "neighbors_features": 0.4742974024590169,
+      "neighbors_umap": 0.4520600172449654,
+      "neighbors_features_within_domain": 0.48806816527974456,
+      "neighbors_umap_within_domain": 0.46797256549325833,
+      "trustworthiness": 0.9668480465181937,
+      "probe": {
+        "n": 8895,
+        "balanced_accuracy": 0.5345368037790775,
+        "macro_f1": 0.5322921974329201,
+        "accuracy": 0.5444631815626757,
+        "chance_balanced_accuracy": 0.3333333333333333,
+        "missing_classes": [],
+        "confusion_matrix": [
+          [
+            1838,
+            607,
+            842
+          ],
+          [
+            765,
+            2026,
+            729
+          ],
+          [
+            617,
+            492,
+            979
+          ]
+        ],
+        "recall_degraded": 0.5591724977182841,
+        "auroc_degraded": 0.7173441760586272,
+        "recall_neutral": 0.5755681818181818,
+        "auroc_neutral": 0.7535885306553911,
+        "recall_improved": 0.4688697318007663,
+        "auroc_improved": 0.6822534006856813,
+        "macro_auroc_ovr": 0.7177287024665665,
+        "frangi_activation_rate": 0.2866779089376054,
+        "hard_gate_mean_delta_iou": 0.003386099738775985,
+        "always_frangi_mean_delta_iou": -0.009849340569106186,
+        "oracle_positive_mean_delta_iou": 0.018073224586996478
+      }
+    },
+    "grid2": {
+      "representation": "grid2",
+      "dimensions": 1024,
+      "silhouette_features": -0.005391301587224007,
+      "silhouette_umap": -0.02018825151026249,
+      "silhouette_domain_umap": 0.2535944879055023,
+      "neighbors_features": 0.4594577536189239,
+      "neighbors_umap": 0.4463726459087118,
+      "neighbors_features_within_domain": 0.47825621793985434,
+      "neighbors_umap_within_domain": 0.4584342282582618,
+      "trustworthiness": 0.9569255477581284,
+      "probe": {
+        "n": 8895,
+        "balanced_accuracy": 0.5013498129927271,
+        "macro_f1": 0.49915203689583837,
+        "accuracy": 0.5103991006183249,
+        "chance_balanced_accuracy": 0.3333333333333333,
+        "missing_classes": [],
+        "confusion_matrix": [
+          [
+            1691,
+            687,
+            909
+          ],
+          [
+            817,
+            1924,
+            779
+          ],
+          [
+            651,
+            512,
+            925
+          ]
+        ],
+        "recall_degraded": 0.5144508670520231,
+        "auroc_degraded": 0.687173312105311,
+        "recall_neutral": 0.5465909090909091,
+        "auroc_neutral": 0.7335914904862579,
+        "recall_improved": 0.44300766283524906,
+        "auroc_improved": 0.6556290374963343,
+        "macro_auroc_ovr": 0.692131280029301,
+        "frangi_activation_rate": 0.29376053962900506,
+        "hard_gate_mean_delta_iou": 0.0021623476529620328,
+        "always_frangi_mean_delta_iou": -0.009849340569106186,
+        "oracle_positive_mean_delta_iou": 0.018073224586996478
+      }
+    },
+    "between_std": {
+      "representation": "between_std",
+      "dimensions": 256,
+      "silhouette_features": -0.0031845555640757084,
+      "silhouette_umap": -0.025715557858347893,
+      "silhouette_domain_umap": -0.07156284153461456,
+      "neighbors_features": 0.4095695236164633,
+      "neighbors_umap": 0.3783113666929329,
+      "neighbors_features_within_domain": 0.4505681383219639,
+      "neighbors_umap_within_domain": 0.42891365663967346,
+      "trustworthiness": 0.8715227965681378,
+      "probe": {
+        "n": 8895,
+        "balanced_accuracy": 0.4682575176307342,
+        "macro_f1": 0.4665145368077499,
+        "accuracy": 0.4780213603147836,
+        "chance_balanced_accuracy": 0.3333333333333333,
+        "missing_classes": [],
+        "confusion_matrix": [
+          [
+            1540,
+            767,
+            980
+          ],
+          [
+            881,
+            1861,
+            778
+          ],
+          [
+            669,
+            568,
+            851
+          ]
+        ],
+        "recall_degraded": 0.4685123212655917,
+        "auroc_degraded": 0.6615025983134182,
+        "recall_neutral": 0.5286931818181818,
+        "auroc_neutral": 0.6994759513742073,
+        "recall_improved": 0.4075670498084291,
+        "auroc_improved": 0.6232348925801534,
+        "macro_auroc_ovr": 0.6614044807559263,
+        "frangi_activation_rate": 0.29331084879145586,
+        "hard_gate_mean_delta_iou": -0.0006724777989142843,
+        "always_frangi_mean_delta_iou": -0.009849340569106186,
+        "oracle_positive_mean_delta_iou": 0.018073224586996478
+      }
+    },
+    "within_std": {
+      "representation": "within_std",
+      "dimensions": 256,
+      "silhouette_features": -0.008642790839076042,
+      "silhouette_umap": -0.026883365586400032,
+      "silhouette_domain_umap": 0.14778941869735718,
+      "neighbors_features": 0.4598530611632579,
+      "neighbors_umap": 0.449476261536675,
+      "neighbors_features_within_domain": 0.4770313910084683,
+      "neighbors_umap_within_domain": 0.46512655368945577,
+      "trustworthiness": 0.9507011308518828,
+      "probe": {
+        "n": 8895,
+        "balanced_accuracy": 0.5049836820316859,
+        "macro_f1": 0.5029535112608098,
+        "accuracy": 0.514221472737493,
+        "chance_balanced_accuracy": 0.3333333333333333,
+        "missing_classes": [],
+        "confusion_matrix": [
+          [
+            1714,
+            659,
+            914
+          ],
+          [
+            857,
+            1931,
+            732
+          ],
+          [
+            675,
+            484,
+            929
+          ]
+        ],
+        "recall_degraded": 0.5214481289930027,
+        "auroc_degraded": 0.6910256198824141,
+        "recall_neutral": 0.5485795454545455,
+        "auroc_neutral": 0.733978488372093,
+        "recall_improved": 0.44492337164750956,
+        "auroc_improved": 0.6640770685124114,
+        "macro_auroc_ovr": 0.6963603922556395,
+        "frangi_activation_rate": 0.2894884766722878,
+        "hard_gate_mean_delta_iou": 0.001378321864507407,
+        "always_frangi_mean_delta_iou": -0.009849340569106186,
+        "oracle_positive_mean_delta_iou": 0.018073224586996478
+      }
+    },
+    "highres32": {
+      "representation": "highres32",
+      "dimensions": 32,
+      "silhouette_features": -0.02482287958264351,
+      "silhouette_umap": -0.046002618968486786,
+      "silhouette_domain_umap": 0.30848923325538635,
+      "neighbors_features": 0.4166816840076896,
+      "neighbors_umap": 0.4115188779901115,
+      "neighbors_features_within_domain": 0.43985475836659543,
+      "neighbors_umap_within_domain": 0.43315144676746903,
+      "trustworthiness": 0.9887545908908583,
+      "probe": {
+        "n": 8895,
+        "balanced_accuracy": 0.43386126810877396,
+        "macro_f1": 0.43402039237355633,
+        "accuracy": 0.4487914558740866,
+        "chance_balanced_accuracy": 0.3333333333333333,
+        "missing_classes": [],
+        "confusion_matrix": [
+          [
+            1477,
+            1098,
+            712
+          ],
+          [
+            1101,
+            1808,
+            611
+          ],
+          [
+            674,
+            707,
+            707
+          ]
+        ],
+        "recall_degraded": 0.4493459081229084,
+        "auroc_degraded": 0.5979706996437355,
+        "recall_neutral": 0.5136363636363637,
+        "auroc_neutral": 0.6319338530655391,
+        "recall_improved": 0.33860153256704983,
+        "auroc_improved": 0.6108342873884051,
+        "macro_auroc_ovr": 0.6135796133658933,
+        "frangi_activation_rate": 0.22821810005621135,
+        "hard_gate_mean_delta_iou": -9.060768047794306e-06,
+        "always_frangi_mean_delta_iou": -0.009849340569106186,
+        "oracle_positive_mean_delta_iou": 0.018073224586996478
+      }
+    },
+    "highres64": {
+      "representation": "highres64",
+      "dimensions": 64,
+      "silhouette_features": -0.01020888052880764,
+      "silhouette_umap": -0.035815224051475525,
+      "silhouette_domain_umap": 0.33146506547927856,
+      "neighbors_features": 0.42905827956105913,
+      "neighbors_umap": 0.4238703959414292,
+      "neighbors_features_within_domain": 0.4483901229879461,
+      "neighbors_umap_within_domain": 0.44324984444516397,
+      "trustworthiness": 0.9759277699092593,
+      "probe": {
+        "n": 8895,
+        "balanced_accuracy": 0.4698639915356369,
+        "macro_f1": 0.46891756097574655,
+        "accuracy": 0.4822934232715008,
+        "chance_balanced_accuracy": 0.3333333333333333,
+        "missing_classes": [],
+        "confusion_matrix": [
+          [
+            1727,
+            790,
+            770
+          ],
+          [
+            1037,
+            1762,
+            721
+          ],
+          [
+            736,
+            551,
+            801
+          ]
+        ],
+        "recall_degraded": 0.5254031031335564,
+        "auroc_degraded": 0.6520186946632369,
+        "recall_neutral": 0.5005681818181819,
+        "auroc_neutral": 0.6867474630021142,
+        "recall_improved": 0.38362068965517243,
+        "auroc_improved": 0.6295319023070121,
+        "macro_auroc_ovr": 0.6560993533241211,
+        "frangi_activation_rate": 0.25767284991568296,
+        "hard_gate_mean_delta_iou": 0.0007793832911246546,
+        "always_frangi_mean_delta_iou": -0.009849340569106186,
+        "oracle_positive_mean_delta_iou": 0.018073224586996478
+      }
+    },
+    "highres96": {
+      "representation": "highres96",
+      "dimensions": 96,
+      "silhouette_features": -0.01366663258522749,
+      "silhouette_umap": -0.04618631303310394,
+      "silhouette_domain_umap": 0.3428850769996643,
+      "neighbors_features": 0.4305710507077632,
+      "neighbors_umap": 0.4225224447780051,
+      "neighbors_features_within_domain": 0.44884730083369934,
+      "neighbors_umap_within_domain": 0.44130186418669676,
+      "trustworthiness": 0.9797298340288229,
+      "probe": {
+        "n": 8895,
+        "balanced_accuracy": 0.4793547415484147,
+        "macro_f1": 0.4775599122076251,
+        "accuracy": 0.48858909499718944,
+        "chance_balanced_accuracy": 0.3333333333333333,
+        "missing_classes": [],
+        "confusion_matrix": [
+          [
+            1751,
+            772,
+            764
+          ],
+          [
+            1068,
+            1732,
+            720
+          ],
+          [
+            704,
+            521,
+            863
+          ]
+        ],
+        "recall_degraded": 0.5327045938545787,
+        "auroc_degraded": 0.6634492719123926,
+        "recall_neutral": 0.49204545454545456,
+        "auroc_neutral": 0.6926141649048625,
+        "recall_improved": 0.4133141762452107,
+        "auroc_improved": 0.648302267442744,
+        "macro_auroc_ovr": 0.6681219014199997,
+        "frangi_activation_rate": 0.26385609893198425,
+        "hard_gate_mean_delta_iou": 0.0011763276251879743,
+        "always_frangi_mean_delta_iou": -0.009849340569106186,
+        "oracle_positive_mean_delta_iou": 0.018073224586996478
+      }
+    },
+    "multiscale_mean": {
+      "representation": "multiscale_mean",
+      "dimensions": 352,
+      "silhouette_features": -0.00729738175868988,
+      "silhouette_umap": -0.026645850390195847,
+      "silhouette_domain_umap": 0.350970596075058,
+      "neighbors_features": 0.4700892377502595,
+      "neighbors_umap": 0.4535956080685468,
+      "neighbors_features_within_domain": 0.48550594518001705,
+      "neighbors_umap_within_domain": 0.46420312892780213,
+      "trustworthiness": 0.9722221712651452,
+      "probe": {
+        "n": 8895,
+        "balanced_accuracy": 0.5423703556631535,
+        "macro_f1": 0.5393168987047358,
+        "accuracy": 0.5499718943226531,
+        "chance_balanced_accuracy": 0.3333333333333333,
+        "missing_classes": [],
+        "confusion_matrix": [
+          [
+            1859,
+            599,
+            829
+          ],
+          [
+            799,
+            2007,
+            714
+          ],
+          [
+            594,
+            468,
+            1026
+          ]
+        ],
+        "recall_degraded": 0.5655613020991785,
+        "auroc_degraded": 0.7287438855874111,
+        "recall_neutral": 0.5701704545454546,
+        "auroc_neutral": 0.7608451902748414,
+        "recall_improved": 0.49137931034482757,
+        "auroc_improved": 0.6988120607195546,
+        "macro_auroc_ovr": 0.729467045527269,
+        "frangi_activation_rate": 0.28881394041596403,
+        "hard_gate_mean_delta_iou": 0.004247688845550642,
+        "always_frangi_mean_delta_iou": -0.009849340569106186,
+        "oracle_positive_mean_delta_iou": 0.018073224586996478
+      }
+    },
+    "pre_global_mean": {
+      "representation": "pre_global_mean",
+      "dimensions": 576,
+      "silhouette_features": -0.006384455133229494,
+      "silhouette_umap": -0.021817846223711967,
+      "silhouette_domain_umap": 0.18120606243610382,
+      "neighbors_features": 0.4692830508569889,
+      "neighbors_umap": 0.44966174682555415,
+      "neighbors_features_within_domain": 0.486534919726798,
+      "neighbors_umap_within_domain": 0.4610634130608739,
+      "trustworthiness": 0.9725624626257804,
+      "probe": {
+        "n": 8895,
+        "balanced_accuracy": 0.5226405199064276,
+        "macro_f1": 0.5197109051060488,
+        "accuracy": 0.530185497470489,
+        "chance_balanced_accuracy": 0.3333333333333333,
+        "missing_classes": [],
+        "confusion_matrix": [
+          [
+            1780,
+            643,
+            864
+          ],
+          [
+            808,
+            1949,
+            763
+          ],
+          [
+            613,
+            488,
+            987
+          ]
+        ],
+        "recall_degraded": 0.5415272284758138,
+        "auroc_degraded": 0.7076248856972112,
+        "recall_neutral": 0.5536931818181818,
+        "auroc_neutral": 0.7447145348837209,
+        "recall_improved": 0.47270114942528735,
+        "auroc_improved": 0.6835041908065115,
+        "macro_auroc_ovr": 0.7119478704624812,
+        "frangi_activation_rate": 0.29387296233839233,
+        "hard_gate_mean_delta_iou": 0.0030854888891296934,
+        "always_frangi_mean_delta_iou": -0.009849340569106186,
+        "oracle_positive_mean_delta_iou": 0.018073224586996478
+      }
+    },
+    "mean_cosine": {
+      "representation": "mean_cosine",
+      "dimensions": 256,
+      "silhouette_features": -0.02315177209675312,
+      "silhouette_umap": -0.0266952496021986,
+      "silhouette_domain_umap": 0.2636229693889618,
+      "neighbors_features": 0.47069286646878594,
+      "neighbors_umap": 0.4521619741601242,
+      "neighbors_features_within_domain": 0.4885203189605883,
+      "neighbors_umap_within_domain": 0.4683423654617536,
+      "trustworthiness": 0.9724540955656977,
+      "probe": {
+        "n": 8895,
+        "balanced_accuracy": 0.47199850077342914,
+        "macro_f1": 0.471818602067925,
+        "accuracy": 0.4887015177065767,
+        "chance_balanced_accuracy": 0.3333333333333333,
+        "missing_classes": [],
+        "confusion_matrix": [
+          [
+            1773,
+            695,
+            819
+          ],
+          [
+            1060,
+            1828,
+            632
+          ],
+          [
+            761,
+            581,
+            746
+          ]
+        ],
+        "recall_degraded": 0.5393976270155156,
+        "auroc_degraded": 0.6651355228546989,
+        "recall_neutral": 0.5193181818181818,
+        "auroc_neutral": 0.694818710359408,
+        "recall_improved": 0.35727969348659006,
+        "auroc_improved": 0.6404798601507237,
+        "macro_auroc_ovr": 0.6668113644549435,
+        "frangi_activation_rate": 0.24699269252388983,
+        "hard_gate_mean_delta_iou": -4.715959170344685e-05,
+        "always_frangi_mean_delta_iou": -0.009849340569106186,
+        "oracle_positive_mean_delta_iou": 0.018073224586996478
+      }
+    },
+    "multiscale_balanced": {
+      "representation": "multiscale_balanced",
+      "dimensions": 352,
+      "silhouette_features": -0.010068323463201523,
+      "silhouette_umap": -0.04712647199630737,
+      "silhouette_domain_umap": 0.3424766957759857,
+      "neighbors_features": 0.46242503288837983,
+      "neighbors_umap": 0.4444587884600241,
+      "neighbors_features_within_domain": 0.4779276279197567,
+      "neighbors_umap_within_domain": 0.4570023763773248,
+      "trustworthiness": 0.9760707007818581,
+      "probe": {
+        "n": 8895,
+        "balanced_accuracy": 0.5262901829773807,
+        "macro_f1": 0.5241801159460385,
+        "accuracy": 0.5360314783586284,
+        "chance_balanced_accuracy": 0.3333333333333333,
+        "missing_classes": [],
+        "confusion_matrix": [
+          [
+            1832,
+            636,
+            819
+          ],
+          [
+            870,
+            1974,
+            676
+          ],
+          [
+            598,
+            528,
+            962
+          ]
+        ],
+        "recall_degraded": 0.5573471250380286,
+        "auroc_degraded": 0.7187323283657099,
+        "recall_neutral": 0.5607954545454545,
+        "auroc_neutral": 0.7481051268498943,
+        "recall_improved": 0.460727969348659,
+        "auroc_improved": 0.6934417719645147,
+        "macro_auroc_ovr": 0.7200930757267064,
+        "frangi_activation_rate": 0.27622259696458684,
+        "hard_gate_mean_delta_iou": 0.0026085443842966812,
+        "always_frangi_mean_delta_iou": -0.009849340569106186,
+        "oracle_positive_mean_delta_iou": 0.018073224586996478
+      }
+    },
+    "mean_pca32": {
+      "representation": "mean_pca32",
+      "dimensions": 32,
+      "silhouette_features": -0.007847584784030914,
+      "silhouette_umap": -0.020873332396149635,
+      "silhouette_domain_umap": 0.23041929304599762,
+      "neighbors_features": 0.47091478607050435,
+      "neighbors_umap": 0.45355261834383526,
+      "neighbors_features_within_domain": 0.48785202668684763,
+      "neighbors_umap_within_domain": 0.4654473933757644,
+      "trustworthiness": 0.9717602466044131,
+      "probe": {
+        "n": 8895,
+        "balanced_accuracy": 0.48091501940540216,
+        "macro_f1": 0.4797623097178239,
+        "accuracy": 0.4922990444069702,
+        "chance_balanced_accuracy": 0.3333333333333333,
+        "missing_classes": [],
+        "confusion_matrix": [
+          [
+            1634,
+            749,
+            904
+          ],
+          [
+            955,
+            1894,
+            671
+          ],
+          [
+            689,
+            548,
+            851
+          ]
+        ],
+        "recall_degraded": 0.49710982658959535,
+        "auroc_degraded": 0.6598940591627329,
+        "recall_neutral": 0.5380681818181818,
+        "auroc_neutral": 0.7106279334038055,
+        "recall_improved": 0.4075670498084291,
+        "auroc_improved": 0.642548949498122,
+        "macro_auroc_ovr": 0.6710236473548868,
+        "frangi_activation_rate": 0.2727374929735807,
+        "hard_gate_mean_delta_iou": 0.00010921101503655227,
+        "always_frangi_mean_delta_iou": -0.009849340569106186,
+        "oracle_positive_mean_delta_iou": 0.018073224586996478
+      }
+    }
+  },
+  "stability": [
+    {
+      "representation": "mean",
+      "seed": 42,
+      "silhouette_2d": -0.021077843382954597
+    },
+    {
+      "representation": "mean",
+      "seed": 7,
+      "silhouette_2d": -0.023342786356806755
+    },
+    {
+      "representation": "mean",
+      "seed": 123,
+      "silhouette_2d": -0.029281416907906532
+    },
+    {
+      "representation": "std",
+      "seed": 42,
+      "silhouette_2d": -0.018435930833220482
+    },
+    {
+      "representation": "std",
+      "seed": 7,
+      "silhouette_2d": -0.015716552734375
+    },
+    {
+      "representation": "std",
+      "seed": 123,
+      "silhouette_2d": -0.01743471808731556
+    }
+  ],
+  "silhouettes_3d": {
+    "mean": -0.019978420808911324,
+    "std": -0.022362077608704567
+  },
+  "status": "complete"
+}

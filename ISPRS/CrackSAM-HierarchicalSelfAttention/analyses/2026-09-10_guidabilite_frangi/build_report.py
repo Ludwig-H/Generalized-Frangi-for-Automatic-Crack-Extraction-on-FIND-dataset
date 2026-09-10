@@ -198,6 +198,7 @@ def render(analysis, results, metadata_path, destination, data):
     sections = [
         "# Les features de SAM 2 prédisent-elles le bénéfice de Frangi ?",
         "Analyse du 10 septembre 2026 — SAM 2 + LoRA historique, sans nouvel entraînement de SAM.",
+        "[Complément : comparaison de 14 représentations des features avec UMAP](COMPARAISON_FEATURES.md).",
         "**Oui, partiellement : H contient un signal prédictif, mais les trois catégories ne sont pas "
         "facilement séparables.** Les projections mélangent amélioration et détérioration ; leurs amas "
         "reflètent surtout les collections d’images. Le signal suffit à un petit gain de sélection dans "

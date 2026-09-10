@@ -1,0 +1,115 @@
+{
+  "features_sha256": "6635d362bc07d52b32390bfe27a21ff8707473ff8e00168c71b44c86cf2aaca1",
+  "cases_sha256": "51d05a87f594dee4456cd7b057129a5d23751ed5fc4865f1ad48b3cde862821c",
+  "folds_sha256": "6775239b8cd275a995807376328d451f6a82a268011f332f89104b881e3ec5d9",
+  "script_sha256": "c8b275443046dad8cbc4699d4630cbe526411927dcd1ed06c73e9bb5dab72e57",
+  "variants_sha256": "9f8fb2824e35427e85c1cd92dc8d917a3ee1d27eb038706dc8919f856c7cca1b",
+  "versions": {
+    "numpy": "2.5.2",
+    "pandas": "3.0.5",
+    "scikit-learn": "1.9.0",
+    "umap-learn": "0.5.12",
+    "matplotlib": "3.11.1",
+    "plotly": "7.0.0"
+  },
+  "n_images": 8895,
+  "n_independent_diagnostic_scenes": 2122,
+  "seed": 42,
+  "n_neighbors": 30,
+  "min_dist": 0.1,
+  "labels_used_for_umap_or_preprocessing": false,
+  "diagnostic_sampling": "one deterministic image per physical scene, clean preferred",
+  "selection": "largest silhouette of categories in 2D; exploratory among all published variants",
+  "variants": {
+    "mean": {
+      "title": "Moyenne de H",
+      "description": "Moyenne spatiale des 256 canaux finaux ; référence.",
+      "metric": "euclidean",
+      "transform": "standard"
+    },
+    "std": {
+      "title": "Variabilité spatiale de H",
+      "description": "Écart-type spatial des 256 canaux finaux.",
+      "metric": "euclidean",
+      "transform": "standard"
+    },
+    "mean_std": {
+      "title": "Moyenne + variabilité",
+      "description": "Concaténation de la moyenne et de l’écart-type des canaux finaux.",
+      "metric": "euclidean",
+      "transform": "standard"
+    },
+    "grid2": {
+      "title": "Grille 2 × 2",
+      "description": "Quatre moyennes par canal, avec leur position dans l’image.",
+      "metric": "euclidean",
+      "transform": "standard"
+    },
+    "between_std": {
+      "title": "Variabilité entre quadrants",
+      "description": "Écart-type des quatre moyennes de chaque canal ; variations spatiales grossières.",
+      "metric": "euclidean",
+      "transform": "standard"
+    },
+    "within_std": {
+      "title": "Variabilité dans les quadrants",
+      "description": "Racine de la variance totale moins la variance entre quadrants.",
+      "metric": "euclidean",
+      "transform": "standard"
+    },
+    "highres32": {
+      "title": "Haute résolution : 32 canaux",
+      "description": "Moyennes des 32 canaux de la carte 256 × 256.",
+      "metric": "euclidean",
+      "transform": "standard"
+    },
+    "highres64": {
+      "title": "Haute résolution : 64 canaux",
+      "description": "Moyennes des 64 canaux de la carte 128 × 128.",
+      "metric": "euclidean",
+      "transform": "standard"
+    },
+    "highres96": {
+      "title": "Deux hautes résolutions",
+      "description": "Concaténation des moyennes des cartes 256 × 256 et 128 × 128.",
+      "metric": "euclidean",
+      "transform": "standard"
+    },
+    "multiscale_mean": {
+      "title": "Trois résolutions",
+      "description": "Moyennes des canaux finaux et des deux cartes de haute résolution.",
+      "metric": "euclidean",
+      "transform": "standard"
+    },
+    "pre_global_mean": {
+      "title": "Avant l’attention globale",
+      "description": "Moyenne des 576 canaux disponibles avant la dernière attention globale.",
+      "metric": "euclidean",
+      "transform": "standard"
+    },
+    "mean_cosine": {
+      "title": "Moyenne : distance cosinus",
+      "description": "Moyenne brute normalisée par image en norme L2, puis distance cosinus.",
+      "metric": "cosine",
+      "transform": "l2"
+    },
+    "multiscale_balanced": {
+      "title": "Trois résolutions équilibrées",
+      "description": "Canaux standardisés ; chaque bloc est divisé par la racine de sa dimension.",
+      "metric": "euclidean",
+      "transform": "balanced",
+      "blocks": [
+        256,
+        32,
+        64
+      ]
+    },
+    "mean_pca32": {
+      "title": "Moyenne : PCA à 32 dimensions",
+      "description": "Standardisation puis PCA non blanchie à 32 dimensions, sans catégories.",
+      "metric": "euclidean",
+      "transform": "pca32",
+      "n_components": 32
+    }
+  }
+}
