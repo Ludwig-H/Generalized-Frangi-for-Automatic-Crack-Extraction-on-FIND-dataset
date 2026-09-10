@@ -1,0 +1,58 @@
+{
+  "features_sha256": "6635d362bc07d52b32390bfe27a21ff8707473ff8e00168c71b44c86cf2aaca1",
+  "cases_sha256": "51d05a87f594dee4456cd7b057129a5d23751ed5fc4865f1ad48b3cde862821c",
+  "folds_sha256": "6775239b8cd275a995807376328d451f6a82a268011f332f89104b881e3ec5d9",
+  "script_sha256": "4441cafc11b89b96dce319921d54505cc7a2e7ad497765fc945d16854677e117",
+  "shared_script_sha256": "b9b19670c90809f4b064ef2713a70616e32b142a8f488115b2fcd84028531c6a",
+  "previous_predictions_sha256": "48701d98cf173eaef3f040c108c2fa61acc44f3abebd586d267ec1c32d44aa31",
+  "representations": [
+    "mean",
+    "multiscale_mean",
+    "pre_global_mean"
+  ],
+  "strategies": {
+    "balanced_ba": [
+      "balanced",
+      "balanced_accuracy"
+    ],
+    "uniform_ba": [
+      "uniform",
+      "balanced_accuracy"
+    ],
+    "uniform_accuracy": [
+      "uniform",
+      "accuracy"
+    ]
+  },
+  "C_grid": [
+    0.001,
+    0.01,
+    0.1,
+    1.0,
+    10.0
+  ],
+  "k_grid": [
+    32,
+    128,
+    "all"
+  ],
+  "inner_folds": 3,
+  "outer_folds": 5,
+  "seed": 42,
+  "solver": "lbfgs",
+  "penalty": "L2",
+  "tolerance": 0.0001,
+  "max_iter": 2000,
+  "retry_max_iter": 10000,
+  "selection": "pooled internal held-out confusion matrix; ties favor smaller C then fewer channels",
+  "primary": "mean/uniform_accuracy versus always neutral; mean/balanced_ba versus previous mean tuned",
+  "n_images": 8895,
+  "n_groups": 2122,
+  "bootstrap_repeats": 1000,
+  "versions": {
+    "numpy": "2.5.2",
+    "pandas": "3.0.5",
+    "scikit-learn": "1.9.0",
+    "scipy": "1.18.1"
+  }
+}

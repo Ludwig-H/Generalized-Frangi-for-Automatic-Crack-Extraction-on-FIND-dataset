@@ -8,6 +8,9 @@ avec grille visuelle complète, sondes groupées, trois graines et comparaison 3
 [**Modèles simples : logistique et réseaux à une couche cachée**](MODELES_SIMPLES.md),
 avec validation interne par scène, intervalles appariés et test sur des domaines inconnus.
 
+[**Régression logistique : classer les trois catégories**](REGRESSION_LOGISTIQUE.md),
+avec sélection de canaux, classes équilibrées ou non, accuracy et rappels par catégorie.
+
 L’analyse reprend **SAM 2 + LoRA baseline, époque 20**, contre **Frangi-similarité,
 époque 25**, choisis par validation : 8 895 observations, 2 122 groupes physiques.
 La neutralité est définie par **|ΔIoU| ≤ 0,01**, avec sensibilité à 0,005 et 0,02.
