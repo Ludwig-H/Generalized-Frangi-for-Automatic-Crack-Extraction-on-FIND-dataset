@@ -1,0 +1,15 @@
+{
+  "n_train": 5895,
+  "n_inner_train": 4716,
+  "n_validation": 1179,
+  "n_test": 3000,
+  "seed": 142,
+  "chosen_C": 1.0,
+  "best_epoch": null,
+  "validation_balanced_accuracy": null,
+  "hit_epoch_limit": false,
+  "warnings": [],
+  "n_parameters": 771,
+  "train_balanced_accuracy": 0.6152984742603641,
+  "elapsed_seconds": 1.2361951059992862
+}

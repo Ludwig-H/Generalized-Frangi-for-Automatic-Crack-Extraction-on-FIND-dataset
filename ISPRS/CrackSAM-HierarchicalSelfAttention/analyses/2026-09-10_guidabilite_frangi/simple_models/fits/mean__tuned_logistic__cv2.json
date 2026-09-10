@@ -1,0 +1,33 @@
+{
+  "n_train": 7203,
+  "n_inner_train": 5763,
+  "n_validation": 1440,
+  "n_test": 1692,
+  "seed": 44,
+  "chosen_C": 0.1,
+  "best_epoch": null,
+  "validation_balanced_accuracy": 0.5355755793792684,
+  "hit_epoch_limit": false,
+  "warnings": [],
+  "candidates": [
+    {
+      "C": 0.01,
+      "score": 0.5210784832836026
+    },
+    {
+      "C": 0.1,
+      "score": 0.5355755793792684
+    },
+    {
+      "C": 1.0,
+      "score": 0.5319628815202879
+    },
+    {
+      "C": 10.0,
+      "score": 0.5326291598922742
+    }
+  ],
+  "n_parameters": 771,
+  "train_balanced_accuracy": 0.5715453548290871,
+  "elapsed_seconds": 4.824345056000311
+}

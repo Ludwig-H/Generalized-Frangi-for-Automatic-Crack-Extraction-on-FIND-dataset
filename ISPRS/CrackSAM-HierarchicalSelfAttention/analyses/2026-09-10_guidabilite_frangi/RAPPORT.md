@@ -4,6 +4,8 @@ Analyse du 10 septembre 2026 — SAM 2 + LoRA historique, sans nouvel entraînem
 
 [Complément : comparaison de 14 représentations des features avec UMAP](COMPARAISON_FEATURES.md).
 
+[Tests complémentaires : logistique et réseaux à une couche cachée](MODELES_SIMPLES.md).
+
 **Oui, partiellement : H contient un signal prédictif, mais les trois catégories ne sont pas facilement séparables.** Les projections mélangent amélioration et détérioration ; leurs amas reflètent surtout les collections d’images. Le signal suffit à un petit gain de sélection dans les domaines représentés à l’entraînement de la sonde. Son transfert à un domaine entièrement nouveau échoue généralement.
 
 **Résultat de la sonde principale : balanced accuracy 53,6 % (IC 95 % [52,3 ; 55,0]), contre 47,2 % avec le seul domaine et la famille source.** Sélectionner le modèle Frangi lorsque cette sonde prédit « amélioration » donne +0,37 point d’IoU en moyenne hors fold (IC 95 % [0,22 ; 0,53]). Ces nombres évaluent une sélection entre deux modèles historiques ; ils ne valident pas encore le guidage hiérarchique.

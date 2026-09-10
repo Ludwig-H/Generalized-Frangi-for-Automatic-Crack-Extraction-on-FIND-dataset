@@ -1,0 +1,98 @@
+{
+  "n_train": 7127,
+  "n_inner_train": 5698,
+  "n_validation": 1429,
+  "n_test": 1768,
+  "seed": 46,
+  "chosen_C": null,
+  "best_epoch": 70,
+  "validation_balanced_accuracy": 0.5713949154809521,
+  "hit_epoch_limit": false,
+  "warnings": [],
+  "epochs_run": 100,
+  "validation_trace": [
+    {
+      "epoch": 5,
+      "balanced_accuracy": 0.5201942327461234
+    },
+    {
+      "epoch": 10,
+      "balanced_accuracy": 0.5349652020433714
+    },
+    {
+      "epoch": 15,
+      "balanced_accuracy": 0.5402335558338783
+    },
+    {
+      "epoch": 20,
+      "balanced_accuracy": 0.5669666520142925
+    },
+    {
+      "epoch": 25,
+      "balanced_accuracy": 0.5595387948416236
+    },
+    {
+      "epoch": 30,
+      "balanced_accuracy": 0.5410376846302056
+    },
+    {
+      "epoch": 35,
+      "balanced_accuracy": 0.562319875142962
+    },
+    {
+      "epoch": 40,
+      "balanced_accuracy": 0.5618956769874454
+    },
+    {
+      "epoch": 45,
+      "balanced_accuracy": 0.5702139932691264
+    },
+    {
+      "epoch": 50,
+      "balanced_accuracy": 0.5589790365808863
+    },
+    {
+      "epoch": 55,
+      "balanced_accuracy": 0.5515756910624634
+    },
+    {
+      "epoch": 60,
+      "balanced_accuracy": 0.5643948399610782
+    },
+    {
+      "epoch": 65,
+      "balanced_accuracy": 0.5691279471450937
+    },
+    {
+      "epoch": 70,
+      "balanced_accuracy": 0.5713949154809521
+    },
+    {
+      "epoch": 75,
+      "balanced_accuracy": 0.561423754374681
+    },
+    {
+      "epoch": 80,
+      "balanced_accuracy": 0.5681299431530777
+    },
+    {
+      "epoch": 85,
+      "balanced_accuracy": 0.5483863784847464
+    },
+    {
+      "epoch": 90,
+      "balanced_accuracy": 0.5650902049524652
+    },
+    {
+      "epoch": 95,
+      "balanced_accuracy": 0.5557789735113343
+    },
+    {
+      "epoch": 100,
+      "balanced_accuracy": 0.5599559059318909
+    }
+  ],
+  "n_parameters": 8323,
+  "train_balanced_accuracy": 0.658812126518224,
+  "elapsed_seconds": 3.9796564059997763
+}

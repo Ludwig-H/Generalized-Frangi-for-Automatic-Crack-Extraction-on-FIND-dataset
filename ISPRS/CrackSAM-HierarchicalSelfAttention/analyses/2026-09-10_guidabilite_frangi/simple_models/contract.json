@@ -1,0 +1,48 @@
+{
+  "features_sha256": "6635d362bc07d52b32390bfe27a21ff8707473ff8e00168c71b44c86cf2aaca1",
+  "cases_sha256": "51d05a87f594dee4456cd7b057129a5d23751ed5fc4865f1ad48b3cde862821c",
+  "folds_sha256": "6775239b8cd275a995807376328d451f6a82a268011f332f89104b881e3ec5d9",
+  "script_sha256": "f21f6a1da7e32b6540716cd938c951d35eabd54476e454c8588c8347f47315b1",
+  "shared_scores_script_sha256": "b9b19670c90809f4b064ef2713a70616e32b142a8f488115b2fcd84028531c6a",
+  "representations": [
+    "mean",
+    "multiscale_mean",
+    "pre_global_mean"
+  ],
+  "models": [
+    "fixed_logistic",
+    "tuned_logistic",
+    "mlp8",
+    "mlp32",
+    "mlp64"
+  ],
+  "seed": 42,
+  "n_images": 8895,
+  "n_groups": 2122,
+  "inner_validation": "first StratifiedGroupKFold(5) split of outer training, shared across representations/models",
+  "logistic_C_grid": [
+    0.01,
+    0.1,
+    1.0,
+    10.0
+  ],
+  "primary_comparison": "mean/mlp32 versus mean/tuned_logistic",
+  "mlp": {
+    "activation": "ReLU",
+    "optimizer": "Adam",
+    "learning_rate": 0.001,
+    "weight_decay": 0.001,
+    "batch_size": 256,
+    "max_epochs": 300,
+    "validation_every_epochs": 5,
+    "patience_epochs": 30,
+    "refit": "fresh model, full outer training, selected epoch count"
+  },
+  "bootstrap_repeats": 1000,
+  "versions": {
+    "numpy": "2.5.2",
+    "pandas": "3.0.5",
+    "scikit-learn": "1.9.0",
+    "torch": "2.14.0"
+  }
+}
