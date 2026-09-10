@@ -1,0 +1,44 @@
+% Citation layout retained from the 2026-09-08 thesis defence.
+% Load in the preamble, after the Inria theme and textpos/hyperref packages.
+% BibTeX supplies declarations only: no bibliography slide is added.
+\makeatletter
+\newcommand{\DeclareRef}[3]{%
+  \expandafter\gdef\csname ref@lab@#1\endcsname{#2}%
+  \expandafter\gdef\csname ref@full@#1\endcsname{#3}}
+\newcommand{\DeclareMyRef}[3]{\DeclareRef{#1}{#2}{#3}%
+  \expandafter\gdef\csname ref@mine@#1\endcsname{}}
+\newcommand{\refbracket}[1]{%
+  \ifcsname ref@mine@#1\endcsname
+    \textcolor{inria-rouge}{[\csname ref@lab@#1\endcsname]}%
+  \else
+    \textcolor{gris_fonce_inria}{[\csname ref@lab@#1\endcsname]}%
+  \fi}
+\newcommand{\citb}[1]{\mbox{{\footnotesize\bfseries\refbracket{#1}}}}
+\newcommand{\bibligne}[1]{\item {\bfseries\refbracket{#1}}\ \csname ref@full@#1\endcsname}
+\newcommand{\reffoot}[1]{%
+  \begin{textblock}{0.90}[0,1](0.05,0.925)%
+    \begingroup
+    \tiny\linespread{0.90}\selectfont\raggedright\color{gris_fonce_inria}%
+    \setlength{\parindent}{0pt}\setlength{\parskip}{0pt}%
+    \edef\rf@list{\zap@space#1 \@empty}%
+    \@for\rf@key:=\rf@list\do{%
+      \noindent{\bfseries\expandafter\refbracket\expandafter{\rf@key}}%
+      \space\csname ref@full@\rf@key\endcsname\par}%
+    \endgroup
+  \end{textblock}}
+\makeatother
+
+% Standard LaTeX \bibliography writes \bibdata and loads \jobname.bbl,
+% including with -output-directory=build. Its first pass tolerates absence
+% of the .bbl; running BibTeX and LaTeX twice supplies all labels and links.
+% Register the keys directly: our declarations are not numbered \bibitem
+% entries, so \nocite would incorrectly report undefined LaTeX citations.
+\makeatletter
+\AtBeginDocument{%
+  \bibliographystyle{references}%
+  \if@filesw
+    \immediate\write\@auxout{\string\citation{ying21,euvip26,hu22,turaga09,ravi24}}%
+  \fi
+  \bibliography{references}%
+}
+\makeatother

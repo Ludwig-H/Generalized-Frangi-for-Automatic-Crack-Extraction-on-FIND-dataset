@@ -1,0 +1,37 @@
+% Adapte de ISPRS/CrackSAM-HierarchicalSelfAttention/figures/03_sam_lora.tikz
+% (depot Generalized-Frangi-for-Automatic-Crack-Extraction-on-FIND-dataset,
+% etat du 6 septembre 2026) : memes boites, meme disposition. Couleurs de la
+% charte du deck : gris = SAM gele, rouge = ce que nous ajoutons. Le titre
+% interne et la formule de la figure d'origine sont retires, ils sont sur la
+% diapositive. « SAM » et non « SAM 2 », comme partout dans le deck.
+\begin{tikzpicture}[x=1cm, y=1cm]
+    \useasboundingbox (0.1,1.80) rectangle (13.9,6.35);
+
+    \tikzset{boite/.style={draw=gris_fonce_inria!60, rounded corners=4pt, line width=0.8pt,
+             minimum height=0.9cm, align=center, font=\small, inner sep=5pt}}
+    \tikzset{fl/.style={-{Latex[length=2.4mm]}, gris_fonce_inria, line width=0.9pt}}
+    \tikzset{guide/.style={-{Latex[length=2.4mm]}, inria-rouge, line width=1.15pt}}
+
+    % ---- SAM, gele ----
+    \draw[gris_fonce_inria!30, rounded corners=6pt] (2.6,3.65) rectangle (11.45,6.1);
+    \node[font=\small\bfseries, text=gris_fonce_inria] at (7,5.78) {SAM : poids pré-entraînés gelés};
+    \node[boite, minimum width=1.4cm]  (input)     at (1,4.75)     {Image};
+    \node[boite, minimum width=2cm]    (features)  at (4,4.75)     {Caractéristiques\\visuelles};
+    \node[boite, draw=inria-rouge, fill=inria-rouge!6, line width=1.15pt, minimum width=2.25cm]
+                                       (attention) at (7.25,4.75)  {Attention globale\\de l'encodeur};
+    \node[boite, minimum width=1.65cm] (decoder)   at (10.2,4.75)  {Décodeur};
+    \node[boite, minimum width=1.4cm]  (mask)      at (12.7,4.75)  {Masque};
+    \draw[fl] (input) -- (features);
+    \draw[fl] (features) -- (attention);
+    \draw[fl] (attention) -- (decoder);
+    \draw[fl] (decoder) -- (mask);
+
+    % ---- ce que nous ajoutons ----
+    \node[boite, draw=inria-rouge, minimum width=2.15cm] (frangi)    at (3.1,2.45)  {Graphe de \textsc{Frangi}};
+    \node[boite, draw=inria-rouge, minimum width=2.45cm] (hierarchy) at (7.25,2.45) {Hiérarchie\\$\longrightarrow$ proximité $B_H$};
+    \draw[guide] (input.south) |- (frangi.west);
+    \draw[guide] (frangi) -- (hierarchy);
+    \draw[guide] (hierarchy.north) -- node[right, font=\footnotesize, text=inria-rouge] {$\beta\,B_H$} (attention.south);
+    \node[align=left, anchor=west, font=\small, text=inria-rouge] at (9.35,2.45)
+        {Appris ensemble :\\LoRA sur $Q$, $V$ et $\beta$};
+\end{tikzpicture}

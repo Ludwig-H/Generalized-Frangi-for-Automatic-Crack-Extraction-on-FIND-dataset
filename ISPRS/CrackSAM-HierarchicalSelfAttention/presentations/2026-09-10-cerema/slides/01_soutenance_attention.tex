@@ -1,0 +1,28 @@
+% Source: soutenance du 8 septembre 2026, reprise sans modification du contenu.
+\begin{frame}[t]{Comment guider l'attention \emph{via} la hiérarchie ? Une idée à explorer}
+    \vspace{0.02cm}
+    \begin{center}
+        \resizebox{0.64\textwidth}{!}{\input{figs/attention_biais}}
+    \end{center}
+
+    \vspace{0.06cm}
+    \small
+    \begin{itemize}
+        \setlength{\itemsep}{3pt}
+        \item L'\textbf{attention} : chaque jeton pose une \textbf{requête}, la compare aux
+        \textbf{clefs} de tous les autres, et repart avec la moyenne de leurs \textbf{valeurs},
+        pondérée par un \textbf{score visuel} que SAM sait déjà calculer
+        \item On y \textbf{ajoute un bonus} avant le \emph{softmax} : un échange \textbf{favorisé},
+        jamais imposé \citb{ying21}
+        \item Le bonus vient de la \textbf{hiérarchie} du graphe de \textsc{Frangi} : plus deux jetons
+        \textbf{fusionnent tôt} dans l'arbre, plus il est fort, même loin dans l'image \citb{euvip26} ;
+        LoRA l'apprend avec un \textbf{seul} coefficient $\beta$ \citb{hu22}
+    \end{itemize}
+
+    \vspace{0.06cm}
+    \begin{center}
+        \formulebox{\parbox{0.80\textwidth}{\centering\small
+        $\mathrm{attention} \;=\; \mathrm{softmax}\bigl(\text{scores visuels} \;+\; \beta\, B_H\bigr)$}}
+    \end{center}
+    \reffoot{ying21,euvip26,hu22}
+\end{frame}

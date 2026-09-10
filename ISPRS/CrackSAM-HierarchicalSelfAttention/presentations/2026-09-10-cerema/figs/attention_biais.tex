@@ -1,0 +1,32 @@
+% L'attention d'un transformer lue comme une chaine, et l'endroit ou on peut
+% la guider : un bonus ajoute au score AVANT le softmax (principe Graphormer,
+% Ying et al. 2021). Charte : bleu canard = les donnees (requete, clefs,
+% valeurs), gris = ce que SAM fait deja, rouge = ce que nous ajoutons.
+\begin{tikzpicture}[x=1cm, y=1cm]
+    \useasboundingbox (-0.25,-1.85) rectangle (13.45,1.30);
+
+    \tikzset{etape/.style={draw=gris_fonce_inria!70, fill=gray!4, rounded corners=3pt,
+             line width=0.8pt, minimum height=0.95cm, align=center, font=\small, inner sep=5pt}}
+    \tikzset{donnee/.style={etape, draw=inria-2024-bleu-canard, fill=inria-2024-bleu-canard!6}}
+    \tikzset{notre/.style={etape, draw=inria-rouge, fill=inria-rouge!6, line width=1.15pt}}
+    \tikzset{fl/.style={-{Latex[length=2.4mm]}, gris_fonce_inria, line width=0.9pt}}
+    \tikzset{note/.style={font=\scriptsize, align=center}}
+
+    \node[donnee, minimum width=2.1cm] (q) at (0.9,0.58)  {requête $q_i$};
+    \node[donnee, minimum width=2.1cm] (k) at (0.9,-0.58) {clefs $k_j$};
+    \node[etape,  minimum width=2.1cm] (score) at (3.85,0) {score\\$q_i \cdot k_j$};
+    \node[notre,  minimum width=1.9cm] (biais) at (6.45,0) {$+\;\beta\,B_{ij}$};
+    \node[etape,  minimum width=1.7cm] (soft)  at (8.85,0) {softmax};
+    \node[etape,  minimum width=2.7cm] (out)   at (11.75,0) {moyenne pondérée\\des valeurs};
+    \node[donnee, minimum width=1.9cm] (v) at (8.85,-1.25) {valeurs $v_j$};
+
+    \draw[fl] (q.east) -- ([yshift=0.18cm]score.west);
+    \draw[fl] (k.east) -- ([yshift=-0.18cm]score.west);
+    \draw[fl] (score) -- (biais);
+    \draw[fl] (biais) -- (soft);
+    \draw[fl] (soft) -- (out);
+    \draw[fl] (v.east) to[out=0, in=270] (out.south);
+
+    \node[note, text=gris_fonce_inria] at (3.85,-0.95) {ce que SAM\\sait déjà faire};
+    \node[note, text=inria-rouge]      at (6.45,-0.95) {\textbf{notre ajout} :\\la hiérarchie entre ici};
+\end{tikzpicture}

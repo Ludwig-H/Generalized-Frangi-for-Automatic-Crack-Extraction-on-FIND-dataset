@@ -1,0 +1,47 @@
+\begin{frame}[t]{Graphormer : ajouter une relation avant le softmax}
+  \vspace{0.12cm}
+  \begin{center}
+    \formulebox{\parbox{0.78\textwidth}{\centering
+      $A=\mathrm{softmax}\!\left(\underbrace{QK^\top/\sqrt{d_h}}_{\text{scores de contenu}}
+      +\underbrace{B}_{\text{biais relationnel}}\right)$}}
+  \end{center}
+  \vspace{0.15cm}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.47\textwidth}
+      \textbf{Dans Graphormer} \citb{ying21}\par\medskip
+      \small Distance de \textbf{plus court chemin} dans le graphe :
+      \[B_{ij}=b_{\phi(i,j)}.\]
+      Un nombre appris pour chaque distance.\par\medskip
+      \centering
+      \begin{tikzpicture}[every node/.style={circle,draw=gris_fonce_inria,
+        minimum size=5mm,inner sep=1pt,font=\scriptsize},
+        every path/.style={draw=gris_fonce_inria,line width=.8pt}]
+        \node (a) at (0,0) {$i$}; \node (b) at (1,0) {};
+        \node (c) at (2,0) {$j$};
+        \draw (a)--(b)--(c);
+        \node[draw=none,rectangle] at (1,-.55) {$\phi(i,j)=2$ arêtes};
+      \end{tikzpicture}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \textcolor{inria-rouge}{\textbf{Notre transposition vers SAM}}\par\medskip
+      \small Proximité issue des \textbf{hauteurs de fusion} du graphe de Frangi :
+      \[B=\beta B_H.\]
+      Une hiérarchie calculée ; un poids appris.\par\medskip
+      \centering
+      \begin{tikzpicture}[x=1cm,y=1cm,every node/.style={font=\scriptsize},
+        every path/.style={draw=gris_fonce_inria,line width=.8pt}]
+        \draw[inria-rouge] (0,0)--(0,.32)--(.7,.32)--(.7,0);
+        \draw (1.45,0)--(1.45,.65)--(2.15,.65)--(2.15,0);
+        \draw (.35,.32)--(.35,1.08)--(1.8,1.08)--(1.8,.65);
+        \node[below,text=inria-rouge] at (0,0) {$i$};
+        \node[below,text=inria-rouge] at (.7,0) {$j$};
+        \node[below] at (1.45,0) {$k$}; \node[below] at (2.15,0) {$l$};
+        \node[anchor=west,text=inria-rouge] at (2.6,.40) {fusion précoce};
+      \end{tikzpicture}
+    \end{column}
+  \end{columns}
+  \vspace{0.13cm}
+  {\small \textbf{Principe repris :} déplacer les scores \emph{avant} leur normalisation.
+  La hiérarchie Frangi et son insertion dans SAM sont \textbf{notre proposition}.}
+  \reffoot{ying21}
+\end{frame}

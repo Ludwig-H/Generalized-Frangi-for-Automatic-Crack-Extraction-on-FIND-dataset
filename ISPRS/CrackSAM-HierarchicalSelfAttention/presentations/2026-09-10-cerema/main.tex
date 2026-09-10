@@ -1,0 +1,42 @@
+% !TEX program = lualatex
+% Cerema, 10 septembre 2026. Deux slides reprises de la soutenance, deux ajouts.
+\pdfvariable objcompresslevel = 0
+\documentclass[A4,svgnames,9pt,aspectratio=169]{beamer}
+\usepackage[french]{babel}
+\usepackage{amsmath,amssymb,amsfonts,mathtools}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{positioning,shapes,arrows.meta,calc,fit,backgrounds,babel}
+\usetheme{inria}
+% Même substitution que dans la soutenance : petites capitales Latin Modern Roman.
+\DeclareFontShape{TU}{lmss}{m}{sc}{<->ssub*lmr/m/sc}{}
+\colorlet{inria-bleu}{inria-2024-bleu-azur}
+\graphicspath{{figs/}}
+\title{SAM gelé, LoRA et guidage hiérarchique}
+\author{Louis Hauseux}
+\institute{Inria, équipe \textsc{Ayana} ; Cerema, équipe \textsc{Endsum}}
+\date[L.~Hauseux --- Cerema, 10 septembre 2026]{10 septembre 2026}
+\hypersetup{allcolors=rouge_inria,pdfauthor={Louis Hauseux},
+  pdftitle={SAM gelé, LoRA et guidage hiérarchique},
+  pdfsubject={Présentation Cerema du 10 septembre 2026},
+  pdfkeywords={SAM 2, LoRA, Frangi, hiérarchie, Graphormer, biais d'attention}}
+
+% Même pied de page que le thème de soutenance ; les quatre pages sont du contenu.
+\setbeamertemplate{footline}{%
+  \leavevmode\hspace*{\hmargin}%
+  \raisebox{0.4\footerheight}{%
+    \parbox{\dimexpr\paperwidth-2\hmargin}{%
+      \textcolor{inria-noir}{\insertshortdate\hfill
+      \smash{\raisebox{-0.1\footerheight}{\footerlogo}}\kern2em
+      \insertframenumber/\inserttotalframenumber}}}}
+\newcommand{\formulebox}[1]{%
+  {\setlength{\fboxsep}{8pt}\setlength{\fboxrule}{0.8pt}%
+   \fcolorbox{inria-rouge}{gray!4}{#1}}}
+\input{citations}
+
+\begin{document}
+\input{slides/01_soutenance_attention}
+\input{slides/02_soutenance_montage}
+\input{slides/03_graphormer}
+\input{slides/04_confiance_image}
+\end{document}

@@ -1,0 +1,41 @@
+\begin{frame}[t]{Perspective : adapter le poids de la hiérarchie à l'image}
+  \vspace{0.06cm}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.35\textwidth}
+      \small\textbf{Une motivation : les ombres}\par\medskip
+      \begin{minipage}[t]{0.48\linewidth}\centering
+        \includegraphics[width=\linewidth]{ombre_image.jpg}\par
+        {\scriptsize Image}
+      \end{minipage}\hfill
+      \begin{minipage}[t]{0.48\linewidth}\centering
+        \includegraphics[width=\linewidth]{ombre_frangi.jpg}\par
+        {\scriptsize Réponse Frangi}
+      \end{minipage}\par\smallskip
+      {\scriptsize Exemple de nos essais : l'ombre attire Frangi.}
+    \end{column}
+    \begin{column}{0.60\textwidth}
+      \small\textbf{Faire prédire un poids par les caractéristiques SAM}\par\medskip
+      \centering
+      \resizebox{0.96\linewidth}{!}{\input{figs/confiance_image}}
+      \[\beta(I)=\mathrm{sigmoid}\!\left(w^\top\bar h(I)+b\right).\]
+      {\scriptsize $\bar h(I)$ : moyenne des caractéristiques \textbf{avant} l'attention guidée.}
+    \end{column}
+  \end{columns}
+  \vspace{0.16cm}
+  \begin{center}
+    \formulebox{\parbox{0.81\textwidth}{\centering\small
+      $A_H(I)=\mathrm{softmax}\!\left(\text{scores visuels}+\beta(I)B_H(I)\right)$}}
+  \end{center}
+  \vspace{0.08cm}
+  \small
+  \begin{itemize}
+    \setlength{\itemsep}{3pt}
+    \item \textbf{Hypothèse :} moins de guidage quand Frangi gêne, notamment dans les ombres
+      ou la granularité. Poids appris avec LoRA par la perte de segmentation.
+    \item \textbf{Test :} sans biais / $\beta$ constant / $\beta(I)$.
+      Comparer IoU, ruptures et faux raccords sur les mêmes images.
+  \end{itemize}
+  \vspace{0.06cm}
+  {\footnotesize $B_H(I)$ dépend déjà de l'image ; on adapte ici \textbf{son poids}.
+  Un poids global peut aussi réduire le guidage dans des zones utiles.}
+\end{frame}

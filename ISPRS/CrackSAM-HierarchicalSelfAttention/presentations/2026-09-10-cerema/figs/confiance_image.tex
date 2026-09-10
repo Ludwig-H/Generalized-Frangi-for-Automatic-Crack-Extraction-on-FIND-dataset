@@ -1,0 +1,10 @@
+% Proposition nouvelle : coefficient global appris, aucune mesure de performance.
+\begin{tikzpicture}[every node/.style={font=\small,align=center},
+  confidencebox/.style={draw=gris_fonce_inria,rounded corners=3pt,fill=gray!4,
+    minimum height=.85cm,inner sep=5pt},
+  flow/.style={-{Latex[length=2.4mm]},draw=gris_fonce_inria,line width=.9pt}]
+  \node[confidencebox] (features) at (0,0) {Caractéristiques\\SAM : $\bar h(I)$};
+  \node[confidencebox,draw=inria-rouge] (head) at (3.5,0) {Petite couche\\apprise};
+  \node[confidencebox,draw=inria-rouge,fill=inria-rouge!5] (beta) at (6.65,0) {$\beta(I)$\\entre 0 et 1};
+  \draw[flow] (features)--(head); \draw[flow] (head)--(beta);
+\end{tikzpicture}
