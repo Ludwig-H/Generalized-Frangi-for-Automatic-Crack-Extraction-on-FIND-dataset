@@ -9,18 +9,23 @@
   \begin{columns}[T,onlytextwidth]
     \begin{column}{0.47\textwidth}
       \textbf{Dans Graphormer} \citb{ying21}\par\medskip
-      \small Distance de \textbf{plus court chemin} dans le graphe :
-      \[B_{ij}=b_{\phi(i,j)}.\]
-      Un nombre appris pour chaque distance.\par\medskip
+      \small $\phi_{ij}$ : \textbf{nombre minimal d'arêtes} pour aller de $i$ à $j$.
+      \[\phi_{ij}=\min_{\pi:i\leadsto j}|\pi|,\qquad B_{ij}=b_{\phi_{ij}}.\]
+      {\scriptsize $|\pi|$ : nombre d'arêtes du chemin $\pi$.\\
+      $\phi_{ii}=0$ ; $\phi_{ij}=-1$ si aucun chemin.}\par\medskip
       \centering
-      \begin{tikzpicture}[every node/.style={circle,draw=gris_fonce_inria,
-        minimum size=5mm,inner sep=1pt,font=\scriptsize},
+      \begin{tikzpicture}[sommet/.style={circle,draw=gris_fonce_inria,
+        fill=white,minimum size=4mm,inner sep=1pt,font=\scriptsize},
         every path/.style={draw=gris_fonce_inria,line width=.8pt}]
-        \node (a) at (0,0) {$i$}; \node (b) at (1,0) {};
-        \node (c) at (2,0) {$j$};
-        \draw (a)--(b)--(c);
-        \node[draw=none,rectangle] at (1,-.55) {$\phi(i,j)=2$ arêtes};
-      \end{tikzpicture}
+        \node[sommet] (a) at (0,0) {$i$};
+        \node[sommet] (b) at (1.1,.45) {};
+        \node[sommet] (c) at (2.2,0) {$j$};
+        \node[sommet] (d) at (.55,-.50) {};
+        \node[sommet] (e) at (1.65,-.50) {};
+        \draw[inria-bleu,line width=1.2pt] (a)--(b)--(c);
+        \draw (a)--(d)--(e)--(c);
+      \end{tikzpicture}\par\smallskip
+      {\scriptsize Chemins de 2 ou 3 arêtes : $\phi_{ij}=2$, biais \textbf{appris} $b_2$.}
     \end{column}
     \begin{column}{0.48\textwidth}
       \textcolor{inria-rouge}{\textbf{Notre transposition vers SAM}}\par\medskip
@@ -40,8 +45,5 @@
       \end{tikzpicture}
     \end{column}
   \end{columns}
-  \vspace{0.13cm}
-  {\small \textbf{Principe repris :} déplacer les scores \emph{avant} leur normalisation.
-  La hiérarchie Frangi et son insertion dans SAM sont \textbf{notre proposition}.}
   \reffoot{ying21}
 \end{frame}

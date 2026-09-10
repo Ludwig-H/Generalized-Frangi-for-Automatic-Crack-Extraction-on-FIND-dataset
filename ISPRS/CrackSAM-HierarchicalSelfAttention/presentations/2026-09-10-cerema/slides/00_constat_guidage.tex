@@ -1,0 +1,25 @@
+% Adaptation de la slide 55 (page PDF 64) de la soutenance du 8 septembre 2026.
+% Le constat vient de nos essais ; la redondance est une explication envisagée.
+\begin{frame}[t]{Hessienne, gradient : le guidage n'a pas aidé}
+  \begin{center}
+    \resizebox{0.48\textwidth}{!}{\input{figs/lora_adaptation}}\par\smallskip
+    {\small \textbf{Base : SAM gelé + LoRA} \citb{hu22}, comme dans CrackSAM \citb{ge24}.}
+  \end{center}
+  \vspace{0.10cm}
+  \small
+  \begin{itemize}
+    \setlength{\itemsep}{7pt}
+    \item \textbf{Nos essais :} ajouter la hessienne, le gradient ou Frangi
+      \textbf{n'améliore pas} SAM + LoRA.
+    \item \textbf{Explication possible :} ces informations locales semblent
+      \textbf{déjà représentées par SAM}.
+    \item \textbf{Limite de Frangi :} les ombres et la granularité
+      provoquent des \textbf{sur-détections}.
+  \end{itemize}
+  \vspace{0.16cm}
+  \begin{center}
+    \formulebox{\parbox{0.83\textwidth}{\centering\small
+      \textbf{Piste :} relier les zones d'une même fissure par une \textbf{hiérarchie}.}}
+  \end{center}
+  \reffoot{hu22,ge24}
+\end{frame}

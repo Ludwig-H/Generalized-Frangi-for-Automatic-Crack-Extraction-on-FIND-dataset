@@ -1,19 +1,22 @@
 # Cerema — 10 septembre 2026
 
-[**Présentation : 4 slides**](Cerema_2026-09-10_Hauseux_SAM_Hierarchie.pdf) · [Source LaTeX](main.tex) · [Article Graphormer](articles/Graphormer_NeurIPS_2021.pdf)
+[**Présentation : page de titre + 5 slides**](Cerema_2026-09-10_Hauseux_SAM_Hierarchie.pdf) · [Source LaTeX](main.tex) · [Article Graphormer](articles/Graphormer_NeurIPS_2021.pdf)
 
-[![Aperçu des quatre slides](apercu.png)](Cerema_2026-09-10_Hauseux_SAM_Hierarchie.pdf)
+[![Aperçu des six pages](apercu.png)](Cerema_2026-09-10_Hauseux_SAM_Hierarchie.pdf)
 
 ## Contenu et provenance
 
-1. **Guider l’attention** : slide 56 de la soutenance.
-2. **SAM gelé + LoRA + hiérarchie** : slide 90 de la soutenance, dans les compléments.
-3. **Graphormer** : le principe repris est le biais avant softmax ; la hiérarchie Frangi dans SAM reste notre proposition.
-4. **Poids dépendant de l’image** : hypothèse d’un petit module prédisant le poids du guidage.
+La page de titre reprend celle des [réunions Inria–Cerema](../../../CrackSAM/reference/presentations/2026-07-10-inria-cerema/source/main.tex), avec les équipes et auteurs habituels. Elle précède cinq slides :
 
-Les deux premières slides reprennent les textes et TikZ de la [soutenance du 8 septembre](https://github.com/Ludwig-H/Manuscrit-de-th-se/blob/3593fbf25434c4715b37537eae1287bf49239fa7/Soutenance/soutenance/main.tex), au commit `3593fbf`. Ce sont les pages PDF **65 et 101**, conservées dans [l’extrait original](sources/Soutenance_extraits_56_90.pdf). Le thème Inria vient de la même source ; seules la date et la numérotation du pied de page changent. Les images d’ombres proviennent de [nos essais du 9 août](../../../CrackSAM-GeoLoRA/presentations/2026-08-09-cracksam-geolora/README.md).
+1. **Constat : le guidage local n’a pas aidé** — slide 55 simplifiée ; redondance envisagée des descripteurs, sensibilité de Frangi aux ombres et textures.
+2. **Guider l’attention** — slide 56, texte raccourci.
+3. **SAM gelé + LoRA + hiérarchie** — slide 90, dans les compléments, texte raccourci.
+4. **Graphormer** — le biais avant softmax ; la hiérarchie Frangi dans SAM reste notre proposition.
+5. **Poids dépendant de l’image** — hypothèse d’un petit module prédisant le poids du guidage.
 
-Graphormer : Ying et al., NeurIPS 2021, §3.1.2, équation (6), page 4. Le [PDF officiel complet](https://proceedings.neurips.cc/paper_files/paper/2021/file/f1c1592588411002af340cbaedd6fc33-Paper.pdf) est fourni dans `articles/`, sans modification. Il utilise une distance de plus court chemin, pas notre hiérarchie ni SAM. Les références sont générées par **BibTeX**, avec les libellés et pieds de slide habituels ; aucune citation dans les titres.
+Les trois premières slides adaptent les textes et TikZ de la [soutenance du 8 septembre](https://github.com/Ludwig-H/Manuscrit-de-th-se/blob/3593fbf25434c4715b37537eae1287bf49239fa7/Soutenance/soutenance/main.tex), au commit `3593fbf`. Les pages originales **64**, **65 et 101** sont conservées : [slide 55](sources/Soutenance_extrait_55.pdf), [slides 56 et 90](sources/Soutenance_extraits_56_90.pdf). Les formulations et annotations sont allégées. Le thème Inria vient de la même source. Les images d’ombres proviennent de [nos essais du 9 août](../../../CrackSAM-GeoLoRA/presentations/2026-08-09-cracksam-geolora/README.md).
+
+Graphormer : Ying et al., NeurIPS 2021, §3.1.2, équation (6), page 4. Le [PDF officiel complet](https://proceedings.neurips.cc/paper_files/paper/2021/file/f1c1592588411002af340cbaedd6fc33-Paper.pdf) est fourni dans `articles/`, sans modification. Sa distance $\phi_{ij}$ compte le minimum d’arêtes entre deux nœuds : zéro pour un même nœud, valeur spéciale −1 sans chemin. La distance est calculée ; le biais associé est appris et partagé entre les couches. Ce n’est ni une hiérarchie ni SAM. Les références sont générées par **BibTeX**, avec les libellés et pieds de slide habituels ; aucune citation dans les titres.
 
 ## Variante à étudier
 

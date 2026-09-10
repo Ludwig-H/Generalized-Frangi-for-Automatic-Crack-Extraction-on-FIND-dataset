@@ -1,5 +1,5 @@
-% Source: soutenance du 8 septembre 2026, reprise sans modification du contenu.
-\begin{frame}[t]{SAM gelé, LoRA et la hiérarchie : le montage}
+% Source : slide 90 de la soutenance du 8 septembre 2026, texte raccourci.
+\begin{frame}[t]{Perspective : SAM gelé + LoRA + hiérarchie}
     \vspace{-0.08cm}
     \begin{center}
         \resizebox{0.61\textwidth}{!}{\input{figs/sam_lora_hierarchie}}
@@ -9,18 +9,13 @@
     \small
     \begin{itemize}
         \setlength{\itemsep}{5pt}
-        \item \textbf{SAM reconnaît} les fissures et le fond : ses poids restent \textbf{gelés} \citb{ravi24}
-        \item \textbf{L'arbre rapproche} deux morceaux d'une même fissure reliés par une chaîne de
-        raccords compatibles, même loin dans l'image : le bonus $B_H$ est d'autant plus fort que leur
-        \textbf{fusion} dans le graphe de \textsc{Frangi} est \textbf{précoce} \citb{euvip26} \citb{turaga09}
-        \item \textbf{LoRA apprend avec ce guidage}, pondéré par un \textbf{seul} coefficient $\beta$,
-        parti de zéro \citb{hu22}
+        \item \textbf{SAM fournit les caractéristiques visuelles} ; ses poids pré-entraînés
+        restent \textbf{gelés} \citb{ravi24}.
+        \item \textbf{L'arbre définit $B_H$} : il rapproche les zones reliées par une chaîne
+        de raccords compatibles \citb{euvip26}.
+        \item \textbf{LoRA et le poids $\beta$ sont appris ensemble}, avec $\beta$ initialisé
+        à zéro \citb{hu22}.
     \end{itemize}
 
-    \vspace{0.04cm}
-    \begin{center}
-        {\footnotesize Objectif : moins de \textbf{ruptures}, pas plus de \textbf{faux raccords} ---
-        témoin : la simple proximité spatiale. {\color{inria-rouge}Rien n'est encore mesuré}}
-    \end{center}
-    \reffoot{ravi24,euvip26,turaga09,hu22}
+    \reffoot{ravi24,euvip26,hu22}
 \end{frame}

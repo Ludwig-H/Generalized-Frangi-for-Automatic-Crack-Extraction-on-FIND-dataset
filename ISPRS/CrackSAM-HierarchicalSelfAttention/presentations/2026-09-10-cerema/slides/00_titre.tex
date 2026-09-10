@@ -1,0 +1,19 @@
+% Page de titre habituelle du thème Inria, ancrée à la page pour éviter
+% les débordements de sa boîte pleine page dans la zone de contenu Beamer.
+\begingroup
+\setbeamertemplate{title page}{%
+  \begin{tikzpicture}[remember picture,overlay]
+    \node[anchor=north west,inner sep=0pt,outer sep=0pt]
+      at ([xshift=\hmargin,yshift=-\vmargin+\titlelogovoffset]current page.north west)
+      {\titlelogo};
+    \node[anchor=north west,align=left,text=inria-noir,
+      text width=.74\paperwidth,inner sep=0pt,outer sep=0pt]
+      at ([xshift=\fullpageinnerhmargin+0.15\textwidth,yshift=-.34\paperheight]current page.north west)
+      {{\Huge\textbf{\inserttitle}}\\
+       {\barrecouleur}\\[2ex]
+       {\Large\insertsubtitle}\\[3ex]
+       {\insertauthor}};
+  \end{tikzpicture}%
+}
+\frame{\titlepage}
+\endgroup

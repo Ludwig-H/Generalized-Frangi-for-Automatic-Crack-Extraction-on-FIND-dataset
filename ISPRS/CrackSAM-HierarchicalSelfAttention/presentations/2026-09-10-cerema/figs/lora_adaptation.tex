@@ -1,0 +1,38 @@
+% LoRA : le poids pré-entraîné reste gelé ; on n'apprend qu'une correction
+% de petit rang W = W_0 + B A.
+                \begin{tikzpicture}[xscale=1.0, yscale=1.0]
+                    \useasboundingbox (-0.55, -0.80) rectangle (9.95, 2.65);
+
+                    \tikzset{gele/.style={draw=gris_fonce_inria, line width=1.0pt, fill=gray!14}}
+                    \tikzset{appris/.style={draw=inria-rouge, line width=1.0pt, fill=inria-rouge!14}}
+
+                    % --- W_0 gelé ---
+                    \draw[gele] (0.00,0.00) rectangle (2.20,2.20);
+                    \node[font=\small, text=gris_fonce_inria] at (1.10,1.10) {$W_0$};
+                    \node[font=\scriptsize, text=gris_fonce_inria, anchor=north, align=center] at (1.10,-0.15)
+                        {\textbf{gelé}};
+
+                    \node[font=\Large] at (2.85,1.10) {$+$};
+
+                    % --- B A ---
+                    \draw[appris] (3.50,0.00) rectangle (4.05,2.20);
+                    \node[font=\scriptsize, text=inria-rouge] at (3.78,1.10) {$B$};
+                    \draw[appris] (4.35,1.65) rectangle (6.55,2.20);
+                    \node[font=\scriptsize, text=inria-rouge] at (5.45,1.93) {$A$};
+                    \node[font=\scriptsize, text=inria-rouge, anchor=north, align=center] at (5.00,-0.15)
+                        {\textbf{appris}, rang $r$};
+
+                    \draw[decorate, decoration={brace, amplitude=3.5pt}, inria-rouge, line width=0.7pt]
+                        (3.50,2.42) -- (6.55,2.42);
+                    \node[font=\scriptsize, text=inria-rouge, anchor=south] at (5.03,2.50) {$\Delta W = BA$};
+
+                    \node[font=\Large] at (7.20,1.10) {$=$};
+
+                    % --- W adapté ---
+                    \draw[gele] (7.75,0.00) rectangle (9.95,2.20);
+                    \draw[appris, fill=inria-rouge!10, draw=inria-rouge, line width=0.9pt]
+                        (7.75,0.00) rectangle (9.95,2.20);
+                    \node[font=\small, text=inria-rouge] at (8.85,1.10) {$W$};
+                    \node[font=\scriptsize, text=gris_fonce_inria, anchor=north, align=center] at (8.85,-0.15)
+                        {adapté aux fissures};
+                \end{tikzpicture}

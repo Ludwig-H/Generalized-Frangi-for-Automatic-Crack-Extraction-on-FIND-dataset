@@ -3,7 +3,7 @@
 % Requires \DeclareRef, \DeclareMyRef and hyperref (see citations.tex).
 
 ENTRY
-  { author title booktitle shortbooktitle year url reflabel ownwork }
+  { author title booktitle shortbooktitle journal year url reflabel ownwork }
   {} {}
 
 STRINGS { names result venue }
@@ -40,7 +40,7 @@ FUNCTION {format.title}
 
 FUNCTION {format.venue}
 { shortbooktitle empty$
-    { booktitle field.or.null }
+    { booktitle empty$ { journal field.or.null } { booktitle } if$ }
     { shortbooktitle }
   if$
   'venue :=
@@ -70,6 +70,7 @@ FUNCTION {output.entry}
 }
 
 FUNCTION {inproceedings} { output.entry }
+FUNCTION {article} { output.entry }
 FUNCTION {misc} { output.entry }
 FUNCTION {default.type} { output.entry }
 
