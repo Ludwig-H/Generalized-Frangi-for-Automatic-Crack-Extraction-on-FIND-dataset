@@ -1,0 +1,33 @@
+{
+  "source": "ISPRS/CrackSAM/results/frangi_milestone_report/tables/per_image_all_milestones.csv",
+  "source_sha256": "2c8629e0f0cbe3dc5321fbc56c70a29e9a0e2d37615c9036b354556d56290faf",
+  "selected_milestone": "epoch25_best",
+  "checkpoint_selection": "best validation Dice, independently for baseline (epoch 20) and Frangi (epoch 25)",
+  "comparison": "joint difference between two separately trained LoRA checkpoints, with/without a Frangi-similarity dense mask prompt",
+  "tolerance_iou": 0.01,
+  "category_rule": "improved if delta > tolerance; degraded if delta < -tolerance; neutral otherwise",
+  "threshold_status": "practical analysis tolerance, not a significance threshold",
+  "sensitivity_tolerances": [
+    0.005,
+    0.01,
+    0.02
+  ],
+  "observations": 8895,
+  "physical_groups": 2122,
+  "historical_source_group_parser": "ISPRS/CrackSAM/protocol/build_next_protocol.py:physical_source_group",
+  "oracle_definition": "mean(max(baseline_iou, frangi_iou)); upper bound for selecting these two fixed outputs using ground truth, not deployable performance",
+  "oracle_tolerance_definition": "baseline plus observed delta only when delta > 0.01",
+  "summary_weighting": "all means weight observations equally; each domain row pools its observations, including the three Khanhha conditions",
+  "representative_selection": "two domains per category; prefer clean Khanhha then Road420; archived maximum gains/losses or neutral median; no H or UMAP information used",
+  "representatives": 6,
+  "representative_copies_sha256_verified": true,
+  "source_unchanged": true,
+  "historical_lists_sha256": {
+    "ISPRS/CrackSAM/protocol/cracksam_paper/lists/lists_concrete3k/test_vol.txt": "0869210c77d8e7e144db470cb43095e216381f6259311b3d5142b2bc91658517",
+    "ISPRS/CrackSAM/protocol/cracksam_paper/lists/lists_facade390/test_vol.txt": "63c4161905c24d9e963844a41e34ddfd4e507bf0bef9d20b39d5a507e4cd4bbe",
+    "ISPRS/CrackSAM/protocol/cracksam_paper/lists/lists_khanhha/test_vol.txt": "9d7020c84d520073c4fdd7fc9eefc8e73c36f069b438835db53e253ab175a56e",
+    "ISPRS/CrackSAM/protocol/cracksam_paper/lists/lists_khanhha/train.txt": "dd656e58f192a69837184c5044e36dc5c4121fe4414272b8e223cb34e7da11be",
+    "ISPRS/CrackSAM/protocol/cracksam_paper/lists/lists_khanhha/val_vol.txt": "9843faccdb754bf66c53e6c1150ab2e65ec81a481c95a8c6b84e33957b013d8e",
+    "ISPRS/CrackSAM/protocol/cracksam_paper/lists/lists_road420/test_vol.txt": "c095c0eee77add2e8a1d2c24b21a44f9fe8925859898cff091128c8a2e6feb2c"
+  }
+}

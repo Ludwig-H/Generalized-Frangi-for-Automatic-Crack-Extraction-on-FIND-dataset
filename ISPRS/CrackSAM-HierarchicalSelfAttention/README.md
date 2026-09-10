@@ -40,6 +40,7 @@ Point de départ technique : bloc global 43 de Hiera-L. À 4096 tokens, le biais
 
 ## Pour la soutenance
 
+- [Analyse du 10 septembre : catégories Frangi, UMAP 2D/3D et séparabilité des features SAM](analyses/2026-09-10_guidabilite_frangi/RAPPORT.md). Signal partiel, gain de sélection modeste et transfert entre domaines insuffisant.
 - [Présentation Cerema du 10 septembre 2026 et article Graphormer](presentations/2026-09-10-cerema/README.md).
 - [Une slide et son texte oral](SOUTENANCE.md).
 - [Trois figures TikZ réutilisables et leur PDF](figures/README.md).

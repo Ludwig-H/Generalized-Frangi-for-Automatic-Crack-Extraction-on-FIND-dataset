@@ -1,0 +1,18 @@
+{
+  "project": "devpod-gpu-exploration",
+  "region": "europe-west8",
+  "zone": "europe-west8-c",
+  "instance": "cracksam-frangigraph-g4-spot-ew8c",
+  "lastStartTimestamp": "2026-09-10T06:26:52.631-07:00",
+  "guest_shutdown_utc": "2026-09-10T17:36:24Z",
+  "state": "TERMINATED",
+  "termination_verified_utc": "2026-09-10T14:05:01.376941+00:00",
+  "termination_verification": "gcp-migration/stop_and_verify.sh --yes --expected-last-start-timestamp; exit 0; exact target certified TERMINATED",
+  "device": "NVIDIA RTX PRO 6000 Blackwell Server Edition, 97887 MiB",
+  "job": "Baseline feature extraction and linear separability analysis; no SAM training",
+  "baseline_verification": {
+    "images": 8895,
+    "max_absolute_iou_error": 0.0
+  },
+  "features_sha256": "6635d362bc07d52b32390bfe27a21ff8707473ff8e00168c71b44c86cf2aaca1"
+}

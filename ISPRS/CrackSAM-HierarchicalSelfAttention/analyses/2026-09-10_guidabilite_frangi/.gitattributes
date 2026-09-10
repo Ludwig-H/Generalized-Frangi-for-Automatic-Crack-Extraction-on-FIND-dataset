@@ -1,0 +1,4 @@
+# Preserve the exact CSV bytes used by the SHA-256 extraction contracts.
+*.csv -text whitespace=cr-at-eol
+# Standalone Plotly export embeds its minified library; review the generator.
+results/umap_3d.html -diff linguist-generated=true

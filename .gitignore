@@ -30,3 +30,6 @@ ISPRS/CrackSAM/prompt_cache_v2/
 ISPRS/CrackSAM/**/*.pid
 ISPRS/CrackSAM/**/*.start
 .pytest_cache/
+
+# Compact SAM feature caches and resumable extraction shards (never raw datasets)
+ISPRS/CrackSAM-HierarchicalSelfAttention/analyses/*/cache/
