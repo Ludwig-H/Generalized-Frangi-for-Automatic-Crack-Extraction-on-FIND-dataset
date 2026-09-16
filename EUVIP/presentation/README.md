@@ -4,7 +4,7 @@
 
 [![Slide overview](apercu.png)](Presentation_EUVIP_2026_Hauseux.pdf)
 
-English, 16:9, **10 content slides**, plus the title, three section dividers and two bibliography pages: **16 PDF pages in total**. Prepared for the 10-minute oral presentation of paper 81, with 2 minutes of questions, on 29 September 2026.
+English, 16:9, **10 content slides**, plus the title, three section dividers and two bibliography pages: **16 PDF pages in total**. Shortened version, with 10 pt body text. Prepared for the 10-minute oral presentation of paper 81, with 2 minutes of questions, on 29 September 2026.
 
 ## Content
 
@@ -19,7 +19,7 @@ English, 16:9, **10 content slides**, plus the title, three section dividers and
 9. Granular backgrounds and higher-order connectivity, K=2.
 10. Conclusion and perspectives, including the open question of hierarchy-guided SAM/CrackSAM.
 
-The scientific baseline is [the EUVIP camera-ready source](../LaTeX/main.tex). The Hessian, alignment and granular-background explanations follow slides 47–49 of the [thesis defense](https://github.com/Ludwig-H/Manuscrit-de-th-se/tree/3593fbf25434c4715b37537eae1287bf49239fa7/Soutenance/soutenance). The K=2 illustration is identified as an exploratory extension beyond the EUVIP experiments. Foundation-model guidance is a research question, not a measured improvement.
+The scientific baseline is [the EUVIP camera-ready source](../LaTeX/main.tex). The Hessian, alignment and granular-background explanations follow slides 47–49 of the [thesis defense](https://github.com/Ludwig-H/Manuscrit-de-th-se/tree/3593fbf25434c4715b37537eae1287bf49239fa7/Soutenance/soutenance). The K=2 illustration comes from the thesis, beyond the EUVIP experiments. Foundation-model guidance is a research question, not a measured improvement.
 
 The main FIND comparison uses intensity + range for both methods. The result with intensity + range + filtered range is shown separately, not substituted into that comparison. Figures and numerical results are taken from the paper and poster, not regenerated experiments.
 
@@ -48,7 +48,7 @@ sudo apt-get install python3-fitz python3-pil
 make check PYTHON=/usr/bin/python3
 ```
 
-`verify.py` checks the page/slide counts, aspect ratio, missing glyphs and unresolved references. It reports box-overflow warnings and renders every page for visual inspection. The complete editable archive is written to `build/Presentation_EUVIP_2026_sources.zip`.
+`verify.py` checks the page/slide counts, aspect ratio, missing glyphs and unresolved references. It rejects box-overflow warnings and renders every page for visual inspection. The complete editable archive is written to `build/Presentation_EUVIP_2026_sources.zip`.
 
 ## GitHub build
 

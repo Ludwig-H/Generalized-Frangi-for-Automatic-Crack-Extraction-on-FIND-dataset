@@ -20,7 +20,7 @@ def main() -> None:
     if content_count != 10:
         raise RuntimeError(f"Expected 10 content frames, found {content_count}")
     log = (ROOT / "build/main.log").read_text(errors="replace")
-    for error in ("Missing character:", "There were undefined references", "Undefined control sequence"):
+    for error in ("Missing character:", "There were undefined references", "Undefined control sequence", "Overfull \\hbox", "Overfull \\vbox"):
         if error in log:
             raise RuntimeError(f"LaTeX log contains: {error}")
     document = fitz.open(PDF)

@@ -1,7 +1,4 @@
-% EUVIP 2026 oral presentation -- Louis Hauseux et al.
-% Scientific baseline: EUVIP/LaTeX/main.tex; defense slides 46--49.
-% LuaLaTeX. Ten content slides; title, transitions and references are not counted.
-\documentclass[9pt,aspectratio=169]{beamer}
+\documentclass[10pt,aspectratio=169]{beamer}
 \usepackage[english]{babel}
 \usepackage{lmodern,amsmath,amssymb,mathtools,booktabs,graphicx,tikz}
 \usetikzlibrary{arrows.meta,positioning,calc,fit}
@@ -9,10 +6,8 @@
 \providecommand{\draftmode}{0}
 \usetheme{inria}
 \graphicspath{{assets/}}
-\colorlet{inria-bleu}{inria-2024-bleu-azur}
 \setbeamercolor{normal text}{fg=inria-noir,bg=white}
 \setbeamercolor{alerted text}{fg=inria-rouge}
-\setbeamercolor{block title}{fg=inria-noir}
 \setbeamertemplate{navigation symbols}{}
 \hypersetup{pdftitle={Multi-Modal, Training-Free Crack Extraction via Generalized Frangi Graph},
  pdfauthor={Louis Hauseux; Raphaël Antoine; Philippe Foucher; Pierre Charbonnier; Josiane Zerubia},
@@ -20,21 +15,16 @@
  colorlinks=true,urlcolor=inria-2024-bleu-canard,linkcolor=inria-noir}
 \newcommand{\Frangi}{{\rmfamily\mdseries\textsc{Frangi}}}
 \newcommand{\Hess}{\mathcal H}
-\newcommand{\cit}[1]{{\scriptsize\textcolor{gris_fonce_inria}{\textbf{[#1]}}}}
-\newcommand{\owncit}[1]{{\scriptsize\textcolor{inria-rouge}{\textbf{[#1]}}}}
-\newcommand{\source}[1]{\begin{textblock*}{.90\paperwidth}(.05\paperwidth,.892\paperheight)
- {\fontsize{5.7}{6.5}\selectfont\color{gris_fonce_inria}\raggedright #1\par}\end{textblock*}}
+\newcommand{\refnote}[1]{\begin{textblock*}{.88\paperwidth}(.06\paperwidth,.905\paperheight)
+ {\fontsize{5.5}{6.0}\selectfont\color{gris_fonce_inria}#1\par}\end{textblock*}}
 \newcommand{\panel}[3]{\begin{minipage}[t]{#1\linewidth}\centering
- \includegraphics[width=\linewidth]{#2}\par\vspace{1mm}{\scriptsize #3\par}\end{minipage}}
-\newcommand{\takeaway}[1]{\par\vspace{2mm}\begin{beamercolorbox}[sep=2.1mm,wd=\linewidth]{normal text}
- \centering\textcolor{inria-rouge}{\rule{.8pt}{2.7mm}}\quad #1\end{beamercolorbox}}
+ \includegraphics[width=\linewidth]{#2}\par\vspace{.8mm}{\scriptsize #3\par}\end{minipage}}
 \newcommand{\divider}[2]{\section{#2}\begin{frame}[plain,noframenumbering]
  \vfill\centering{\Huge\bfseries #1\par}\vspace{3mm}
  {\LARGE\bfseries #2\par}\vspace{3mm}\barrecouleur\vfill\end{frame}}
-\newcommand{\bibentry}[3]{\par\vspace{3mm}
- \begin{minipage}[t]{.19\linewidth}\small\textcolor{inria-2024-bleu-canard}{\textbf{[#1]}}\end{minipage}\hfill
- \begin{minipage}[t]{.79\linewidth}\raggedright\small #2\par{\footnotesize #3}\end{minipage}\par}
-% Same Inria footer geometry, counting only the ten scientific slides.
+\newcommand{\bibentry}[3]{\par\vspace{2.3mm}
+ \begin{minipage}[t]{.23\linewidth}\footnotesize\textcolor{inria-2024-bleu-canard}{\textbf{[#1]}}\end{minipage}\hfill
+ \begin{minipage}[t]{.75\linewidth}\raggedright\footnotesize #2\par{\scriptsize #3}\end{minipage}\par}
 \makeatletter
 \setbeamertemplate{footline}{\leavevmode\hspace*{\hmargin}%
  \raisebox{.4\footerheight}{\parbox{\dimexpr\paperwidth-2\hmargin}{%
@@ -48,7 +38,6 @@
 
 \begin{document}
 
-% Title -- Inria theme and the official Cerema color logo on white.
 \begin{frame}[plain,noframenumbering]
 \begin{tikzpicture}[remember picture,overlay]
  \node[anchor=north west,inner sep=0] at ([xshift=.05\paperwidth,yshift=-.07\paperheight]current page.north west){\titlelogo};
@@ -70,38 +59,36 @@
 \end{tikzpicture}
 \end{frame}
 
-% 1. Introduction.
-\begin{frame}[t]{Crack networks: a geometric problem}
+\begin{frame}[t]{Problem setting}
 \vspace{1mm}
 \begin{columns}[T,onlytextwidth]
  \begin{column}{.56\textwidth}
   \panel{.48}{Intensity_1FIND.png}{Intensity}\hfill
   \panel{.48}{Range_1FIND.png}{Range / depth}
-  \par\vspace{2mm}{\scriptsize Two aligned views of the same crack. \cit{FIND 22}}
  \end{column}
  \begin{column}{.40\textwidth}
-  \textbf{Thin, weak and discontinuous.}\par\vspace{2mm}
-  Texture, illumination and sensors change the appearance.\par\vspace{3mm}
-  \textbf{Annotations are expensive.}\par\vspace{2mm}
-  Can we extract a useful network \emph{without training}?\par\vspace{3mm}
-  \alert{Our output: an editable crack skeleton.}
+  \begin{itemize}\setlength\itemsep{5mm}
+   \item Cracks are \textbf{thin}, \textbf{weak} and often \textbf{discontinuous}.
+   \item Several modalities may observe the same geometry.
+   \item Goal: extract an \textbf{editable crack skeleton} \textbf{without training}.
+  \end{itemize}
  \end{column}
 \end{columns}
-\takeaway{One or several scalar modalities; a shared \textbf{dark-ridge prior}.}
-\source{\cit{FIND 22} S. Zhou, C. Canchila, W. Song, FIND dataset, 2022.\quad\owncit{EUVIP 26} L. Hauseux et al., this paper.}
+\vspace{2mm}
+{\small FIND dataset, aligned intensity and range views.}
+\refnote{[FIND 22; EUVIP 26]}
 \end{frame}
 
 \divider{01}{From pixels to a \Frangi{} graph}
 
-% 2. Translated defense slide 47.
-\begin{frame}[t]{The Hessian describes local ridge geometry}
+\begin{frame}[t]{Classical \Frangi{} filter}
 \vspace{-1mm}
 \[
- \Hess_\sigma(x)=\nabla^2(G_\sigma*I)(x),\qquad |\lambda_1|\leq|\lambda_2|.
+ \Hess_\sigma(x)=\nabla^2(G_\sigma*I)(x), \qquad |\lambda_1|\le |\lambda_2|.
 \]
-\vspace{-2mm}
+\vspace{-1mm}
 \begin{columns}[c,onlytextwidth]
-\begin{column}{.43\textwidth}\centering
+\begin{column}{.42\textwidth}\centering
 \resizebox{.86\linewidth}{!}{%
 \begin{tikzpicture}[x=1cm,y=1cm,
  ridge/.style={line width=9pt,gris_fonce_inria!55,line cap=round},
@@ -114,40 +101,33 @@
   \node[font=\small,inria-rouge,fill=white,inner sep=1pt]at(.95,0){$e_1$};
   \node[font=\small,inria-rouge!62,fill=white,inner sep=1pt]at(0,.4){$e_2$};
  \end{scope}
- \draw[gray!65,dashed](0,0)--(2.2,0);
- \draw[gris_fonce_inria!80](1.98,0)arc(0:27:1.98);
- \node[font=\small]at(1.82,.45){$\theta$};
  \fill[inria-2024-bleu-canard](0,0)circle(2.1pt);
  \node[below left,font=\small]at(0,0){$x$};
- \draw[inria-rouge](1.559,.795)--(1.66,1.04);
- \node[font=\small,inria-rouge,anchor=south]at(1.66,1.03){$\dfrac1{\sqrt{|\lambda_1|}}$};
- \draw[inria-rouge!62](-.282,.552)--(-.62,.9);
- \node[font=\small,inria-rouge!62,anchor=south east]at(-.58,.88){$\dfrac1{\sqrt{|\lambda_2|}}$};
 \end{tikzpicture}}
 \end{column}
-\begin{column}{.53\textwidth}
- \textbf{Shape}\quad $R_B=|\lambda_1|/|\lambda_2|$\par
- {\small Near 0: elongated ridge. Near 1: blob.}\par\vspace{3mm}
- \textbf{Contrast}\quad $S=\sqrt{\lambda_1^2+\lambda_2^2}$\par
- {\small Strength of the local curvature.}\par\vspace{3mm}
- \textbf{Direction}\quad $e_1$ runs along the ridge.
+\begin{column}{.54\textwidth}
+\begin{itemize}\setlength\itemsep{3.5mm}
+ \item \textbf{Shape}: $R_B=|\lambda_1|/|\lambda_2|$
+ \item \textbf{Contrast}: $S=\sqrt{\lambda_1^2+\lambda_2^2}$
+ \item \textbf{Direction}: $e_1$ follows the ridge
+\end{itemize}
+\vspace{2mm}
+\[
+F_\sigma(x)=\exp\!\left(-\frac{R_B^2}{2\beta^2}\right)
+\left(1-\exp\!\left(-\frac{S^2}{2c^2}\right)\right)
+\]
+\vspace{-1mm}
+{\small For $\lambda_2>0$; otherwise $F_\sigma=0$.}
 \end{column}
 \end{columns}
-\vspace{2mm}
-\begin{beamercolorbox}[sep=1.5mm,center]{normal text}
-$F_\sigma(x)=\exp\!\left(-\dfrac{R_B^2}{2\beta^2}\right)
- \left(1-\exp\!\left(-\dfrac{S^2}{2c^2}\right)\right)$ if $\lambda_2>0$; otherwise $0$.
-\par\vspace{1mm}{\small Classical \Frangi{}: one score per pixel; retain the best scale.}
-\end{beamercolorbox}
-\source{\cit{Frangi 98} A. F. Frangi et al., ``Multiscale vessel enhancement filtering,'' MICCAI, 1998. Diagram adapted from the thesis defense.}
+\refnote{[Frangi 98]}
 \end{frame}
 
-% 3. Translated defense slide 48.
-\begin{frame}[t]{What the graph adds: orientation alignment}
+\begin{frame}[t]{Generalized \Frangi{} graph}
 \vspace{1mm}
-The filter scores pixels separately; the graph checks \textbf{compatibility between pixels}.
-\par\vspace{2mm}\centering
-\resizebox{.71\linewidth}{!}{%
+\begin{columns}[c,onlytextwidth]
+\begin{column}{.56\textwidth}\centering
+\resizebox{\linewidth}{!}{%
 \begin{tikzpicture}[x=1cm,y=1cm,
  ridge/.style={line width=7pt,gris_fonce_inria!45,line cap=round},
  dir/.style={-{Latex[length=1.9mm]},line width=1pt},
@@ -156,122 +136,128 @@ The filter scores pixels separately; the graph checks \textbf{compatibility betw
  \node[pix](i1)at(.72,-.02){};\node[pix](j1)at(1.88,.35){};
  \draw[dir,inria-rouge](i1)--++(.62,.2);\draw[dir,inria-rouge](j1)--++(.62,.2);
  \draw[inria-rouge,line width=1.6pt](i1)--(j1);
- \node[font=\scriptsize]at(.6,-.36){$\theta(x_i)$};\node[font=\scriptsize]at(2.16,.02){$\theta(x_j)$};
- \node[font=\footnotesize,align=center]at(1.3,1.15){Aligned axes\\\textbf{strong link}};
+ \node[font=\footnotesize,align=center]at(1.3,1.05){aligned axes\\strong edge};
  \begin{scope}[shift={(4.35,0)}]
   \draw[ridge](-.15,-.3)--(2,.4);\draw[ridge](1.3,.92)--(2.32,-.48);
   \node[pix](i2)at(.72,-.02){};\node[pix](j2)at(1.66,.43){};
   \draw[dir,inria-rouge](i2)--++(.59,.19);\draw[dir,inria-rouge](j2)--++(.36,-.5);
   \draw[gris_fonce_inria!45,line width=.8pt](i2)--(j2);
-  \node[font=\scriptsize]at(.6,-.36){$\theta(x_i)$};\node[font=\scriptsize,anchor=west]at(2.1,-.14){$\theta(x_j)$};
-  \node[font=\footnotesize,align=center]at(1.2,1.15){Incompatible axes\\\textbf{weak link}};
+  \node[font=\footnotesize,align=center]at(1.2,1.05){misaligned axes\\weak edge};
  \end{scope}
 \end{tikzpicture}}
-\par\vspace{2mm}
-$\displaystyle S^\sigma_{\mathrm{align}}(i,j)=\exp\!\left[-\frac12
- \left(\frac{\sin(\theta^\sigma(x_i)-\theta^\sigma(x_j))}{s_{\mathrm a}}\right)^2\right]$
-\par\vspace{2mm}{\small The sine respects unoriented axes: $\theta$ and $\theta+\pi$ are equivalent.}
-\par\vspace{2mm}
-$\displaystyle S^{(0)}_{ij}=\max_{\sigma\in\Sigma}
- \underbrace{S^\sigma_{\mathrm{int}}S^\sigma_{\mathrm{shape}}}_{\text{curvature and elongation}}
- \underbrace{S^\sigma_{\mathrm{align}}}_{\text{pairwise refinement}}$
-\source{\owncit{GRETSI 25; EUVIP 26} L. Hauseux et al. Curvature and elongation are refined by orientation compatibility. Diagram adapted from the defense.}
-\end{frame}
-
-% 4. Operator-level fusion.
-\begin{frame}[t]{Fuse modalities before measuring ridge geometry}
-\vspace{1mm}
-\begin{columns}[T,onlytextwidth]
-\begin{column}{.55\textwidth}
- \textbf{1. Normalize each Hessian}\par\vspace{-2mm}
- \[
- \widehat\Hess_\sigma^{(m)}(x)=
- \frac{\Hess_\sigma^{(m)}(x)}{\max_{y\in\Omega}\|\Hess_\sigma^{(m)}(y)\|_2}.
- \]
- \textbf{2. Fuse the normalized operators}\par\vspace{-2mm}
- \[
- \Hess_\sigma^{\mathrm{fused}}(x)=\sum_m w_m\widehat\Hess_\sigma^{(m)}(x).
- \]
- {\small $w_m\geq0$, $\sum_m w_m=1$. Normalization is per modality and per scale.}
 \end{column}
 \begin{column}{.40\textwidth}
- \panel{.475}{PalaisDesPapes.png}{Intensity}\hfill
- \panel{.475}{PalaisDesPapes_IntDepth.png}{Depth overlay}
- \par\vspace{3mm}
- {\small Aligned modalities share the crack geometry; sensor-specific artifacts may differ.}
- \par\vspace{2mm}{\scriptsize Palais des Papes, France. \textcopyright\ Cerema.}
+\begin{itemize}\setlength\itemsep{4mm}
+ \item Pixels become \textbf{nodes}.
+ \item Ridge compatibility becomes \textbf{edge similarity}.
+ \item Alignment refines intensity and shape information.
+\end{itemize}
+\vspace{2mm}
+\[
+S^{(0)}_{ij}=\max_{\sigma\in\Sigma} 
+S^\sigma_{\mathrm{int}}S^\sigma_{\mathrm{shape}}S^\sigma_{\mathrm{align}}
+\]
 \end{column}
 \end{columns}
-\vspace{2mm}
-\takeaway{Compute \textbf{eigenvalues and directions after fusion} --- do not average \Frangi{} response maps.}
-\source{\owncit{EUVIP 26} Section III-B. $\|\cdot\|_2$: spectral norm. Aligned modalities and consistent ridge polarity are required.}
+\refnote{[GRETSI 25; EUVIP 26]}
 \end{frame}
 
-% 5. Extraction chain.
-\begin{frame}[t]{From pairwise similarities to an editable skeleton}
+\begin{frame}[t]{Multimodal fusion}
+\vspace{1mm}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{.52\textwidth}
+\begin{enumerate}\setlength\itemsep{4mm}
+ \item Normalize each Hessian
+ \[
+ \widehat\Hess_\sigma^{(m)}(x)=
+ \frac{\Hess_\sigma^{(m)}(x)}{\max_{y\in\Omega}\|\Hess_\sigma^{(m)}(y)\|_2}
+ \]
+ \item Fuse operators before eigendecomposition
+ \[
+ \Hess_\sigma^{\mathrm{fused}}(x)=\sum_m w_m\widehat\Hess_\sigma^{(m)}(x)
+ \]
+\end{enumerate}
+\vspace{1mm}
+{\small $w_m\geq 0$, $\sum_m w_m=1$.}
+\end{column}
+\begin{column}{.44\textwidth}
+ \panel{.475}{PalaisDesPapes.png}{Intensity}\hfill
+ \panel{.475}{PalaisDesPapes_IntDepth.png}{Depth overlay}
+ \vspace{2mm}
+ {\small Aligned modalities. \textcopyright\ Cerema.}
+\end{column}
+\end{columns}
+\refnote{[EUVIP 26]}
+\end{frame}
+
+\begin{frame}[t]{Extraction pipeline}
 \vspace{1mm}
 \centering
-\panel{.205}{FrangiSim_1FIND.png}{Edge similarity}\hfill
-\panel{.205}{Cluster_1FIND.png}{Retained component}\hfill
-\panel{.205}{Betweenness_1FIND.png}{Tree centrality}\hfill
-\panel{.205}{Resultat_1FIND.png}{Extracted skeleton}
-\par\vspace{1mm}
-\raggedright
-\begin{tikzpicture}[node distance=2.5mm,
+\panel{.21}{FrangiSim_1FIND.png}{Similarity}\hfill
+\panel{.21}{Cluster_1FIND.png}{Component}\hfill
+\panel{.21}{Betweenness_1FIND.png}{Centrality}\hfill
+\panel{.21}{Resultat_1FIND.png}{Skeleton}
+\par\vspace{3mm}
+\resizebox{.95\linewidth}{!}{%
+\begin{tikzpicture}[node distance=3mm,
  stage/.style={draw=gris_fonce_inria!45,rounded corners=1pt,align=center,font=\small,
- text width=2.6cm,minimum height=9mm,inner sep=2pt},
+ text width=3cm,minimum height=10mm,inner sep=2pt},
  flow/.style={-{Latex[length=1.6mm]},draw=inria-rouge,thick}]
- \node[stage](a){Rank and threshold\\edges and nodes};
- \node[stage,right=of a](b){Retain connected\\components};
- \node[stage,right=of b](c){Minimum\\spanning tree};
- \node[stage,right=of c](d){Prune using\\weighted centrality};
+ \node[stage](a){rank and threshold};
+ \node[stage,right=of a](b){keep connected components};
+ \node[stage,right=of b](c){minimum spanning tree};
+ \node[stage,right=of c](d){prune by weighted centrality};
  \draw[flow](a)--(b);\draw[flow](b)--(c);\draw[flow](c)--(d);
-\end{tikzpicture}
-\par\vspace{1mm}{\small For $0<\rho_{ij}=\|x_i-x_j\|_2\leq R$:}
+\end{tikzpicture}}
+\vspace{2mm}
 \[
- d_{ij}=\min\{1,\rho_{ij}(1-S^{(0)}_{ij})\},\qquad S_{ij}=1-d_{ij}.
+ d_{ij}=\min\{1,\rho_{ij}(1-S^{(0)}_{ij})\}, \qquad S_{ij}=1-d_{ij}
 \]
-\vspace{-2mm}{\small\textbf{Similarity} $S_{ij}$ for selection and centrality; \textbf{cost} $d_{ij}$ for the tree.}
-\source{\owncit{EUVIP 26} Sections III-C--D. FIND: retain the largest component (one target crack). Parameters are fixed per dataset.}
+\refnote{$\rho_{ij}=\|x_i-x_j\|_2\leq R$. [EUVIP 26]}
 \end{frame}
 
 \divider{02}{Experimental results}
 
-% 6. Strict I+R comparison; keep the three-modality ablation separate.
-\begin{frame}[t]{FIND: supervised learning wins on clean data}
+\begin{frame}[t]{FIND: clean data}
 \vspace{1mm}
 \begin{columns}[T,onlytextwidth]
-\begin{column}{.43\textwidth}
+\begin{column}{.41\textwidth}
  \panel{.475}{GroundTruth_1FIND.png}{Ground truth}\hfill
- \panel{.475}{Resultat_1FIND.png}{Our skeleton}
- \par\vspace{3mm}{\small An interpretable network is recovered without training annotations.}
+ \panel{.475}{Resultat_1FIND.png}{Our result}
 \end{column}
-\begin{column}{.53\textwidth}
- {\small\textbf{Clean FIND, intensity + range}}\par\vspace{2mm}
- {\small\setlength{\tabcolsep}{3pt}
- \begin{tabular}{@{}lccc@{}}\toprule
- Method & IoU $\uparrow$ & Tversky $\uparrow$ & $W$ $\downarrow$\\\midrule
- Our graph & 60\% & 68\% & 18 px\\
- CrackSegDiff & \textbf{87\%} & \textbf{90\%} & \textbf{5 px}\\\bottomrule
- \end{tabular}}
- \par\vspace{4mm}{\small\textbf{Our modality ablation: IoU}}\par\vspace{1mm}
- {\small\setlength{\tabcolsep}{6pt}
- \begin{tabular}{@{}cccc@{}}$I$ & $R$ & $I+R$ & $I+R+F$\\
- 41\% & 54\% & 60\% & \textbf{63\%}\end{tabular}}
- \par\vspace{2mm}{\scriptsize $F$ is filtered range, not an independent sensor.}
+\begin{column}{.55\textwidth}
+{\small\textbf{Intensity + range}}
+\vspace{2mm}
+
+{\small\setlength{\tabcolsep}{5pt}
+\begin{tabular}{@{}lccc@{}}\toprule
+Method & IoU $\uparrow$ & Tversky $\uparrow$ & $W$ $\downarrow$\\\midrule
+Our graph & 60\% & 68\% & 18 px\\
+CrackSegDiff & \textbf{87\%} & \textbf{90\%} & \textbf{5 px}\\\bottomrule
+\end{tabular}}
+
+\vspace{4mm}
+{\small\textbf{Our ablation (IoU)}}
+\vspace{1mm}
+
+{\small\setlength{\tabcolsep}{8pt}
+\begin{tabular}{@{}cccc@{}}
+$I$ & $R$ & $I+R$ & $I+R+F$\\
+41\% & 54\% & 60\% & \textbf{63\%}
+\end{tabular}}
+\vspace{2mm}
+
+{\small $F$: filtered range.}
 \end{column}
 \end{columns}
-\takeaway{A complementary, training-free method --- \textbf{not a new clean-data winner}.}
-\par\vspace{1mm}{\scriptsize Evaluation: both skeletons dilated by 3 px for overlap; Tversky $(\alpha,\beta)=(1,0.5)$.}
-\source{\cit{FIND 22; CrackSegDiff 24}\quad\owncit{EUVIP 26} Tables II--III. IoU = Jaccard; $W$: Wasserstein skeleton distance.}
+\refnote{Overlap: skeletons dilated by 3 px; Tversky $(\alpha,\beta)=(1,0.5)$; $W$: Wasserstein. [FIND 22; EUVIP 26; CrackSegDiff 24]}
 \end{frame}
 
-% 7. Preserve the original measured plot, rather than inventing point samples.
-\begin{frame}[t]{FIND: slower degradation under synthetic noise}
+\begin{frame}[t]{FIND: synthetic noise}
 \vspace{1mm}
 \begin{columns}[T,onlytextwidth]
-\begin{column}{.56\textwidth}\centering
- \vspace{3mm}
+\begin{column}{.57\textwidth}\centering
+ \vspace{2mm}
  \begin{tikzpicture}
   \node[anchor=south west,inner sep=0](plot)at(0,0){\includegraphics[width=.87\linewidth]{Jaccard_noisy.png}};
   \draw[-{Latex[length=1.6mm]}](plot.south west)--(plot.north west);
@@ -280,72 +266,89 @@ $\displaystyle S^{(0)}_{ij}=\max_{\sigma\in\Sigma}
   \node[anchor=north east,font=\scriptsize]at(plot.south west){0};
   \node[anchor=north,font=\scriptsize]at(plot.south east){0.5};
   \node[anchor=south west,font=\small]at(plot.north west){Jaccard (\%)};
-  \node[anchor=north,font=\small,yshift=-4mm]at(plot.south){Noise level $s$};
+  \node[anchor=north,font=\small,yshift=-3mm]at(plot.south){Noise level $s$};
  \end{tikzpicture}
- \par\vspace{2mm}{\small\textcolor{red}{\rule[.4ex]{7mm}{.7pt}} Our graph\quad
+ \par\vspace{2mm}
+ \vspace{2mm}
+ 
+ {\small \textcolor{red}{\rule[.4ex]{7mm}{.7pt}} Our graph\qquad
  \textcolor{green!50!black}{\rule[.4ex]{7mm}{.7pt}} CrackSegDiff}
- \par\vspace{2mm}{\scriptsize Shaded bands: standard deviation. Original paper figure.}
 \end{column}
-\begin{column}{.40\textwidth}
- {\small\textbf{Controlled sensor perturbations}}\par\vspace{-2mm}
- \[
- I_s=I(1+N),\qquad R_s=R+N',
- \]
- \vspace{-3mm}{\small $N,N'\sim\mathcal N(0,s^2)$, independent.}
- \par\vspace{3mm}
- \panel{.43}{IntensityNoisy_1FIND.png}{Noisy intensity}\hfill
- \panel{.43}{ResultatNoisy_1FIND.png}{Our result, $s=0.5$}
+\begin{column}{.39\textwidth}
+\[
+I_s=I(1+N), \qquad R_s=R+N'
+\]
+{\small $N,N'\sim\mathcal N(0,s^2)$, independent.}
+\vspace{2mm}
+
+\panel{.46}{IntensityNoisy_1FIND.png}{Noisy intensity}\hfill
+\panel{.46}{ResultatNoisy_1FIND.png}{Our result, $s=0.5$}
+\vspace{1mm}
+
+\begin{itemize}\setlength\itemsep{2mm}
+ \item Lower initial accuracy
+ \item Slower degradation in this test
+\end{itemize}
 \end{column}
 \end{columns}
-\vspace{-2mm}\takeaway{Lower initial accuracy, but a \textbf{more gradual decline} in this experiment.}
-\source{\owncit{EUVIP 26} Section IV-C. Original noise-degradation figure. Results apply to the tested synthetic perturbations.}
+\refnote{Bands: standard deviation. [EUVIP 26; CrackSegDiff 24]}
 \end{frame}
 
-% 8. Both geological cases from the article/poster.
-\begin{frame}[t]{Geological images: transfer without retraining}
+\begin{frame}[t]{Transfer to geological images}
 \vspace{1mm}
 \begin{columns}[T,onlytextwidth]
 \begin{column}{.48\textwidth}
- \textbf{Vaches Noires: visible UAV images}\par\vspace{2mm}
- \panel{.475}{Test1_512_512_result.png}{Test1}\hfill
- \panel{.475}{Test2_512_512_result.png}{Test2}
- \par\vspace{2mm}{\scriptsize\textcolor{red}{Ours}\quad\textcolor{green!50!black}{Ground truth}\quad\textcolor{blue}{Adapted U-Net}}
- \par\vspace{2mm}{\small IoU, ours / U-Net:\quad 47 / 50\%;\quad 29 / 34\%.}
- \par\vspace{2mm}{\small U-Net was adapted on a separate annotated image from the same area.}
+ \textbf{Vaches Noires}
+ \vspace{2mm}
+ 
+ \panel{.475}{Test1_512_512_result.png}{Test 1}\hfill
+ \panel{.475}{Test2_512_512_result.png}{Test 2}
+ \vspace{2mm}
+ 
+ {\scriptsize\textcolor{red}{Ours}\quad\textcolor{green!50!black}{Ground truth}\quad\textcolor{blue}{U-Net}}\par\vspace{2mm}
+ {\small IoU: 47 / 50\% and 29 / 34\% (ours / adapted U-Net).}
 \end{column}
 \begin{column}{.48\textwidth}
- \textbf{Palais des Papes: intensity + depth}\par\vspace{2mm}
+ \textbf{Palais des Papes}
+ \vspace{2mm}
+ 
  \panel{.315}{PalaisDesPapes.png}{Intensity}\hfill
  \panel{.315}{PalaisDesPapes_IntDepth.png}{Depth overlay}\hfill
- \panel{.315}{PalaisDesPapes_Result.png}{Our skeleton}
- \par\vspace{4mm}{\small The main fracture is recovered.}\par\vspace{2mm}
- {\small Minor cracks are missed where contrast or depth resolution is insufficient.}\par\vspace{3mm}
- {\small No learned weights; parameters are chosen for the dataset.}
+ \panel{.315}{PalaisDesPapes_Result.png}{Our result}
+ \vspace{3mm}
+ 
+ \begin{itemize}\setlength\itemsep{2mm}
+  \item Main fracture recovered
+  \item No retraining
+ \end{itemize}
 \end{column}
 \end{columns}
-\source{\owncit{EUVIP 26} Section IV-D. Images: \textcopyright\ Cerema. Two annotated patches and one qualitative case: exploratory transfer evidence.}
+\refnote{\textcopyright\ Cerema. [EUVIP 26]}
 \end{frame}
 
 \divider{03}{Beyond pairwise connectivity}
 
-% 9. Translated defense slide 49, with an explicit connectivity schematic.
-\begin{frame}[t]{A granular background motivates order $K=2$}
+\begin{frame}[t]{Toward order $K=2$}
 \vspace{1mm}\centering
 \includegraphics[width=.95\linewidth]{VTGraF_granularite.png}
-\par\vspace{.5mm}
+\par\vspace{1mm}
 \begin{minipage}{.95\linewidth}\scriptsize\centering
- \makebox[.245\linewidth]{Granular image}\hfill
- \makebox[.245\linewidth]{Pixel-wise \Frangi}\hfill
- \makebox[.245\linewidth]{Graph similarity}\hfill
- \makebox[.245\linewidth]{Retained component}
+ \makebox[.245\linewidth]{granular image}\hfill
+ \makebox[.245\linewidth]{pixel-wise \Frangi}\hfill
+ \makebox[.245\linewidth]{graph similarity}\hfill
+ \makebox[.245\linewidth]{retained component}
 \end{minipage}
-\par\vspace{3mm}
+\vspace{3mm}
+
 \begin{columns}[c,onlytextwidth]
-\begin{column}{.45\textwidth}\raggedright
- {\small Pebbles also produce ridge responses: a chain of links can connect the background.}\par\vspace{3mm}
- \textbf{$K=2$: connect edges through triangles}, not just through shared vertices.
+\begin{column}{.46\textwidth}
+\begin{itemize}\setlength\itemsep{3mm}
+ \item Granular background can create spurious chains.
+ \item $K=1$: connectivity through vertices.
+ \item $K=2$: connectivity through triangles.
+\end{itemize}
 \end{column}
-\begin{column}{.51\textwidth}\centering
+\begin{column}{.50\textwidth}\centering
 \resizebox{\linewidth}{!}{%
 \begin{tikzpicture}[x=1cm,y=1cm,every node/.style={font=\small}]
  \foreach \off/\k in {0/1,3.7/2}{\begin{scope}[xshift=\off cm]
@@ -364,40 +367,39 @@ $\displaystyle S^{(0)}_{ij}=\max_{\sigma\in\Sigma}
   \node[align=center]at(1.55,-.55){$K=\k$};
  \end{scope}}
 \end{tikzpicture}}
-\par{\scriptsize The bare bridge no longer merges the two triangle-connected groups.}
 \end{column}
 \end{columns}
-\par\vspace{5mm}{\small\textcolor{inria-rouge}{An exploratory extension, beyond the EUVIP evaluation.}}
-\source{\owncit{ANS 26; Thesis 26} Higher-order connectivity and the granular example from the defense. VT-GraF images: \textcopyright\ Cerema.}
+\refnote{\textcopyright\ Cerema. [ANS 26; Thesis 26]}
 \end{frame}
 
-% 10. Brief, non-technical conclusions and an explicit open question.
-\begin{frame}[t]{Conclusion and perspectives}
+\begin{frame}[t]{Conclusion}
 \vspace{2mm}
 \begin{columns}[T,onlytextwidth]
-\begin{column}{.45\textwidth}
- \textbf{What we contribute}\par\vspace{3mm}
- A \Frangi{} graph combining local ridge geometry with pairwise alignment.\par\vspace{3mm}
- Operator-level multimodal fusion and an editable, training-free skeleton.\par\vspace{3mm}
- A complementary tool when annotations are scarce or inputs are degraded.
+\begin{column}{.47\textwidth}
+\textbf{Main points}
+\begin{itemize}\setlength\itemsep{4mm}
+ \item \Frangi{} filter $\rightarrow$ \Frangi{} graph
+ \item Multimodal fusion at the Hessian level
+ \item Training-free extraction of crack skeletons
+\end{itemize}
 \end{column}
-\begin{column}{.51\textwidth}
- \textbf{Where to go next}\par\vspace{3mm}
- Validate higher-order connectivity and sensitivity on broader datasets.\par\vspace{3mm}
- Compare with SAM and its crack-specific adaptation, CrackSAM. \cit{SAM 23; CrackSAM 24}\par\vspace{4mm}
- \centering
- \begin{tikzpicture}[node distance=2mm,box/.style={draw=gris_fonce_inria!50,align=center,font=\scriptsize,text width=1.65cm,minimum height=8mm,inner sep=1pt}]
-  \node[box](g){\Frangi{}\\graph};\node[box,right=of g](h){Hierarchy};\node[box,right=of h](s){Foundation\\model};
-  \draw[-{Latex[length=1.3mm]},inria-rouge](g)--(h);\draw[-{Latex[length=1.3mm]},inria-rouge](h)--(s);
- \end{tikzpicture}
+\begin{column}{.49\textwidth}
+\textbf{Next steps}
+\begin{itemize}\setlength\itemsep{4mm}
+ \item Evaluate higher-order connectivity
+ \item Broader benchmarks
+ \item Can a \Frangi{} graph hierarchy help guide SAM / CrackSAM?
+\end{itemize}
 \end{column}
 \end{columns}
-\vspace{4mm}
-\begin{beamercolorbox}[sep=2mm,center]{normal text}
- \textbf{Can the \Frangi{} graph and its hierarchy guide a foundation model more effectively?}
- \par\vspace{1mm}{\small\textcolor{inria-rouge}{A research question --- not a demonstrated gain.}}
-\end{beamercolorbox}
-\source{\owncit{EUVIP 26}\quad\cit{SAM 23; CrackSAM 24}\quad Code: \href{https://github.com/Ayana-Inria/Frangi-EUVIP}{Ayana-Inria/Frangi-EUVIP}.}
+\vspace{5mm}
+\centering
+\resizebox{.48\linewidth}{!}{%
+\begin{tikzpicture}[node distance=2mm,box/.style={draw=gris_fonce_inria!50,align=center,font=\scriptsize,text width=1.8cm,minimum height=8mm,inner sep=1pt}]
+ \node[box](g){\Frangi{}\\graph};\node[box,right=of g](h){hierarchy};\node[box,right=of h](s){foundation\\model};
+ \draw[-{Latex[length=1.3mm]},inria-rouge](g)--(h);\draw[-{Latex[length=1.3mm]},inria-rouge](h)--(s);
+\end{tikzpicture}}
+\refnote{[EUVIP 26; SAM 23; CrackSAM 24]}
 \end{frame}
 
 \begin{frame}[t,noframenumbering]{Bibliography: method and experiments}
