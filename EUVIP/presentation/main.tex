@@ -40,15 +40,15 @@
  \node[anchor=north east,fill=white,inner xsep=3mm,inner ysep=2mm]
   at ([xshift=-.05\paperwidth,yshift=-.07\paperheight]current page.north east)
   {\includegraphics[width=2.7cm]{cerema-official.pdf}};
- \node[anchor=north west,align=left,text width=.84\paperwidth,inner sep=0]
- at ([xshift=.085\paperwidth,yshift=-.285\paperheight]current page.north west){%
+ \node[anchor=north west,align=left,text width=.895\paperwidth,inner sep=0]
+ at ([xshift=.055\paperwidth,yshift=-.285\paperheight]current page.north west){%
   {\fontsize{18}{21}\selectfont\bfseries Multi-Modal, Training-Free Crack Extraction\\via Generalized \Frangi{} Graph}\par
   \vspace{2mm}\barrecouleur\par\vspace{4mm}
-  {\large EUVIP 2026\enspace --\enspace Luxembourg}\par\vspace{1mm}
+  {\large European Workshop on Visual Information Processing\enspace --\enspace Luxembourg}\par\vspace{1mm}
   {\small 29 September 2026\enspace |\enspace Paper 81}\par\vspace{5mm}
   {\small Louis {\rmfamily\textsc{Hauseux}}\textsuperscript{1}, Raphaël {\rmfamily\textsc{Antoine}}\textsuperscript{2},
-  Philippe {\rmfamily\textsc{Foucher}}\textsuperscript{2},\\[1mm]
-  Pierre {\rmfamily\textsc{Charbonnier}}\textsuperscript{2}, Josiane {\rmfamily\textsc{Zerubia}}\textsuperscript{1}}\par\vspace{3mm}
+  Philippe {\rmfamily\textsc{Foucher}}\textsuperscript{2}, Pierre {\rmfamily\textsc{Charbonnier}}\textsuperscript{2},
+  Josiane {\rmfamily\textsc{Zerubia}}\textsuperscript{1}}\par\vspace{3mm}
   {\footnotesize\textsuperscript{1}Inria, Université Côte d'Azur, Ayana research team, France\\
   \textsuperscript{2}Cerema, ENDSUM research team, France}\par\vspace{2mm}
   {\footnotesize\href{mailto:louis.hauseux@inria.fr}{louis.hauseux@inria.fr}}};
@@ -101,13 +101,11 @@
 \par\vspace{1.5mm}{\scriptsize Local ridge geometry \citb{frangi98}}
 \end{column}
 \begin{column}{.54\textwidth}
-\begin{itemize}\setlength\itemsep{2.6mm}
+\begin{itemize}\setlength\itemsep{4mm}
  \item \textbf{Shape}: $R_B=|\lambda_1|/|\lambda_2|$
  \item \textbf{Contrast}: $S=\sqrt{\lambda_1^2+\lambda_2^2}$
- \item \textbf{Direction}: $e_1$ follows the ridge
- \item \textbf{Polarity}: $F_\sigma=0$ when $\lambda_2\le 0$
 \end{itemize}
-\vspace{1mm}
+\vspace{3mm}
 \[
 F_\sigma(x)=\exp\!\left(-\frac{R_B^2}{2\beta^2}\right)
 \left(1-\exp\!\left(-\frac{S^2}{2c^2}\right)\right)
@@ -145,7 +143,7 @@ F_\sigma(x)=\exp\!\left(-\frac{R_B^2}{2\beta^2}\right)
 \begin{itemize}\setlength\itemsep{4mm}
  \item Pixels become \textbf{nodes}.
  \item Ridge compatibility becomes \textbf{edge similarity}.
- \item Alignment refines intensity and shape information.
+ \item \textcolor{inria-rouge}{\textbf{Alignment}} refines intensity and shape information.
 \end{itemize}
 \vspace{2mm}
 \[
@@ -201,11 +199,6 @@ S^\sigma_{\mathrm{int}}S^\sigma_{\mathrm{shape}}S^\sigma_{\mathrm{align}}
  \node[stage,right=of c](d){prune by weighted centrality};
  \draw[flow](a)--(b);\draw[flow](b)--(c);\draw[flow](c)--(d);
 \end{tikzpicture}}
-\vspace{-2mm}
-\[
- d_{ij}=\min\{1,\rho_{ij}(1-S^{(0)}_{ij})\},\qquad S_{ij}=1-d_{ij},\qquad
- 0<\rho_{ij}=\|x_i-x_j\|_2\le R
-\]
 \reffoot{euvip26}
 \end{frame}
 
@@ -225,6 +218,11 @@ Method & IoU $\uparrow$ & Tversky $\uparrow$ & Wasserstein $\downarrow$\\\midrul
 Our graph \citb{euvip26} & 63\% & 71\% & 11 px\\
 CrackSegDiff \citb{cracksegdiff24} & \textbf{87\%} & \textbf{90\%} & \textbf{5 px}\\\bottomrule
 \end{tabular}}
+\par\vspace{4mm}
+\begin{minipage}{\linewidth}\raggedright
+On clean data a trained model scores higher --- at the price of supervision,
+and possibly of overfitting to FIND.
+\end{minipage}
 \end{column}
 \end{columns}
 \reffoot{find22,euvip26,cracksegdiff24}

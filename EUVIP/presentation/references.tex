@@ -4,6 +4,8 @@
  \expandafter\gdef\csname ref@label@#1\endcsname{#2}%
  \expandafter\gdef\csname ref@authors@#1\endcsname{#3}%
  \expandafter\gdef\csname ref@details@#1\endcsname{#4}}
+\newcommand{\DeclareShort}[2]{%
+ \expandafter\gdef\csname ref@short@#1\endcsname{#2}}
 \newcommand{\DeclareMyRef}[4]{%
  \DeclareRef{#1}{#2}{#3}{#4}%
  \expandafter\gdef\csname ref@mine@#1\endcsname{}}
@@ -27,8 +29,12 @@
    \refcheck{\rf@key}%
    {\refcolor{\rf@key}%
     \noindent\refbracket{\rf@key}\space
-    \csname ref@authors@\rf@key\endcsname\space
-    \csname ref@details@\rf@key\endcsname\par}}%
+    \ifcsname ref@short@\rf@key\endcsname
+     \csname ref@short@\rf@key\endcsname
+    \else
+     \csname ref@authors@\rf@key\endcsname\space
+     \csname ref@details@\rf@key\endcsname
+    \fi\par}}%
   \endgroup
  \end{textblock}}
 \newcommand{\bibentry}[1]{%
@@ -64,3 +70,21 @@
 \DeclareRef{cracksam24}{CrackSAM 24}
  {K.~Ge, C.~Wang, Y.~Guo, Y.~Tang, Z.~Hu, H.~Chen.}
  {``Fine-tuning vision foundation model for crack segmentation in civil infrastructures.'' Construction and Building Materials, 431, 136573, 2024. \href{https://doi.org/10.1016/j.conbuildmat.2024.136573}{DOI}.}
+
+% One-line page notes. The bibliography slides keep the complete records above.
+\DeclareShort{frangi98}
+ {A.~F.~Frangi et al., ``Multiscale vessel enhancement filtering.'' MICCAI,~1998.}
+\DeclareShort{gretsi25}
+ {L.~Hauseux et al., ``Généralisation du filtre de Frangi pour l'extraction des réseaux de fissures.'' GRETSI,~2025.}
+\DeclareShort{euvip26}
+ {L.~Hauseux et al., ``Multi-Modal, Training-Free Crack Extraction via Generalized Frangi Graph.'' EUVIP,~2026.}
+\DeclareShort{find22}
+ {S.~Zhou, C.~Canchila, W.~Song. ``Fused Image dataset for crack Detection (FIND).'' Zenodo,~2022.}
+\DeclareShort{cracksegdiff24}
+ {X.~Jiang et al., ``CrackSegDiff: Diffusion Probability Model-based Multi-modal Crack Segmentation.'' 2024.}
+\DeclareShort{ans26}
+ {L.~Hauseux, K.~Avrachenkov, J.~Zerubia. ``Generalization of Single-Linkage with higher-order interactions.'' Appl.~Netw.~Sci.,~2026.}
+\DeclareShort{sam23}
+ {A.~Kirillov et al., ``Segment Anything.'' ICCV,~2023.}
+\DeclareShort{cracksam24}
+ {K.~Ge et al., ``Fine-tuning vision foundation model for crack segmentation in civil infrastructures.'' Constr.~Build.~Mater.,~2024.}

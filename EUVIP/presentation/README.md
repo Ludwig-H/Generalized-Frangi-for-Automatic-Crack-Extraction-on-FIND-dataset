@@ -9,25 +9,25 @@ English, 16:9, **10 content slides**, plus the title, three section dividers and
 ## Content
 
 1. Crack networks and the training-free extraction problem.
-2. Hessian geometry and the classical Frangi filter.
+2. Hessian geometry and the classical Frangi filter, reduced to shape and contrast.
 3. Pairwise orientation alignment: the Frangi graph.
 4. Multimodal fusion of normalized Hessians.
-5. Graph reduction, minimum spanning trees and weighted centrality.
+5. Graph reduction, minimum spanning trees and weighted centrality, as a picture rather than as formulas.
 6. Clean FIND results.
 7. FIND under controlled synthetic noise.
 8. Geological transfer: Vaches Noires and Palais des Papes.
 9. Granular backgrounds and higher-order connectivity, K=2.
 10. Conclusion & perspective: hierarchy-guided SAM/CrackSAM.
 
-The scientific baseline is [the EUVIP camera-ready source](../LaTeX/main.tex). The clean-FIND table reports the best published graph results (63% IoU, 71% Tversky, 11 px Wasserstein; Table III), together with the published CrackSegDiff results (Table II). The separate modality-ablation panel is removed, and no slide mentions the filtered range, which is only a post-processing of the range modality. Experimental figures are unchanged.
+The scientific baseline is [the EUVIP camera-ready source](../LaTeX/main.tex). The clean-FIND table reports the best published graph results (63% IoU, 71% Tversky, 11 px Wasserstein; Table III), together with the published CrackSegDiff results (Table II), and a short sentence attributes the gap to supervision and possible overfitting. The separate modality-ablation panel is removed and the slides name only our best configuration. Experimental figures are unchanged.
 
-Citations use bracketed labels in the slide body, in the table rows or in the image captions, and the complete reference at the bottom left. [references.tex](references.tex) supplies both the page notes and the bibliography. GRETSI 25, EUVIP 26 and ANS 26 are red.
+Citations use bracketed labels in the slide body, in the table rows or in the image captions, and the reference itself at the bottom left, one reference per line. [references.tex](references.tex) supplies both the page notes and the bibliography: `\DeclareRef` holds the complete record used by the bibliography slides, and `\DeclareShort` the shortened form used by the page notes, so that every note fits on a single line. GRETSI 25, EUVIP 26 and ANS 26 are red.
 
 No slide carries a small explanatory note at the bottom: copyright credits and dataset citations sit in the image captions, side conditions belong to the equation or to the bullet that introduces them, and the bottom-left block holds references only. The final slide uses blue for “Main steps” and the graph/hierarchy boxes, red for “Next steps” and the foundation-model box.
 
 ## Template and assets
 
-The `theme/` folder contains the Inria 2024 Beamer theme. The title slide uses the **official Cerema horizontal logo in its original colors, on white**, downloaded from [Cerema's website](https://www.cerema.fr/themes/custom/uas_base/images/LogoCerema_horizontal.svg). `assets/cerema-official.svg` preserves the original file unchanged; `assets/cerema-official.pdf` is its vector conversion with an explicit white background. CairoSVG preserves the embedded CSS colors. The source URL and SVG SHA-256 are recorded in `assets/cerema-official.source.txt`. The former white recoloring and dark cartouche have been removed from this presentation. The poster is unchanged.
+The title slide names the conference in full, European Workshop on Visual Information Processing, and keeps the five authors on one line; its text block is slightly wider than the theme default to allow it. The `theme/` folder contains the Inria 2024 Beamer theme. The title slide uses the **official Cerema horizontal logo in its original colors, on white**, downloaded from [Cerema's website](https://www.cerema.fr/themes/custom/uas_base/images/LogoCerema_horizontal.svg). `assets/cerema-official.svg` preserves the original file unchanged; `assets/cerema-official.pdf` is its vector conversion with an explicit white background. CairoSVG preserves the embedded CSS colors. The source URL and SVG SHA-256 are recorded in `assets/cerema-official.source.txt`. The former white recoloring and dark cartouche have been removed from this presentation. The poster is unchanged.
 
 Experimental images are copied unchanged from `EUVIP/LaTeX/`; the VT-GraF illustration is credited to Cerema. `bootstrap_assets.py` can restore missing assets from its pinned source commit, checking their Git blob hashes, and restore the official Cerema artwork if missing. The build workflow commits those assets locally alongside the PDF, so the completed folder is self-contained. No font files are distributed; standard Latin Modern fonts are used.
 
