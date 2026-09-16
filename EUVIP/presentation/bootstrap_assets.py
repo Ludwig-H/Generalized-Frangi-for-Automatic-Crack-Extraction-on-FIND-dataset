@@ -1,6 +1,6 @@
 """Restore missing presentation assets.
 
-Defense assets are pinned by Git blob hashes. The official Cerema SVG is
+Theme assets are pinned by Git blob hashes. The official Cerema SVG is
 preserved unchanged and converted to a vector PDF on an explicit white ground.
 The build workflow commits restored assets; subsequent builds need no network.
 Existing assets are not overwritten.
@@ -13,6 +13,7 @@ from urllib.request import Request, urlopen
 from xml.etree import ElementTree
 
 ROOT = Path(__file__).resolve().parent
+# Pinned upstream copy of the Inria 2024 Beamer theme, by commit and blob hash.
 BASE = (
     "https://raw.githubusercontent.com/Ludwig-H/Manuscrit-de-th-se/"
     "3593fbf25434c4715b37537eae1287bf49239fa7/Soutenance/soutenance/"
