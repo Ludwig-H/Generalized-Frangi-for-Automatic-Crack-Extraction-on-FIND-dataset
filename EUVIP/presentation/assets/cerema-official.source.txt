@@ -1,0 +1,6 @@
+Official Cerema horizontal color logo
+Source: https://www.cerema.fr/themes/custom/uas_base/images/LogoCerema_horizontal.svg
+Retrieved for this presentation: 2026-09-16
+Original SVG SHA-256: cb0a3690f990236397b63e8bfbbda6138c8ff06521ea197e2941b7890d70896c
+SVG preserved byte-for-byte, with original colors and paths.
+PDF: vector conversion with an explicit white background; no recoloring.
