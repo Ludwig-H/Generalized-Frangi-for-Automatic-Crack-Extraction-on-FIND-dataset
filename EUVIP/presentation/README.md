@@ -25,9 +25,9 @@ The main FIND comparison uses intensity + range for both methods. The result wit
 
 ## Template and assets
 
-The `theme/` folder is the Inria 2024 Beamer theme used for the defense. The Cerema mark is the vector artwork already used in [the poster](../poster/README.md): a local white adaptation of the Cerema website's SVG, not an official white variant. Its original paths are preserved in `assets/cerema-white.svg` and its vector PDF is used on the title slide. It replaces the provisional text-only cartouche of the earlier local draft.
+The `theme/` folder is the Inria 2024 Beamer theme used for the defense. The title slide uses the **official Cerema horizontal logo in its original colors, on white**, downloaded from [Cerema's website](https://www.cerema.fr/themes/custom/uas_base/images/LogoCerema_horizontal.svg). `assets/cerema-official.svg` preserves the original file unchanged; `assets/cerema-official.pdf` is its vector conversion with an explicit white background. The source URL and SVG SHA-256 are recorded in `assets/cerema-official.source.txt`. The former white recoloring and dark cartouche have been removed from this presentation. The poster is unchanged.
 
-Experimental images are copied unchanged from `EUVIP/LaTeX/`; the VT-GraF illustration comes from the defense and is credited to Cerema. `bootstrap_assets.py` can restore missing defense assets from the pinned commit above, checking their Git blob hashes. The build workflow commits those assets locally alongside the PDF, so the completed folder is self-contained. No font files are distributed; standard Latin Modern fonts are used.
+Experimental images are copied unchanged from `EUVIP/LaTeX/`; the VT-GraF illustration comes from the defense and is credited to Cerema. `bootstrap_assets.py` can restore missing defense assets from the pinned commit above, checking their Git blob hashes, and restore the official Cerema artwork if missing. The build workflow commits those assets locally alongside the PDF, so the completed folder is self-contained. No font files are distributed; standard Latin Modern fonts are used.
 
 ## Build locally
 
@@ -39,7 +39,7 @@ cd EUVIP/presentation
 make
 ```
 
-The output is `Presentation_EUVIP_2026_Hauseux.pdf`. Auxiliary files stay in ignored `build/`. No shell escape is enabled.
+The output is `Presentation_EUVIP_2026_Hauseux.pdf`. Auxiliary files stay in ignored `build/`. No shell escape is enabled. Restoring a missing Cerema vector PDF additionally requires PyMuPDF (`python3-fitz`); the committed PDF needs no conversion or network access.
 
 Optional checks, page renders, overview and a complete source archive:
 

@@ -62,11 +62,11 @@ jobs:
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add EUVIP/presentation/theme EUVIP/presentation/assets/VTGraF_granularite.png EUVIP/presentation/Presentation_EUVIP_2026_Hauseux.pdf EUVIP/presentation/apercu.png
+          git add EUVIP/presentation/theme EUVIP/presentation/assets/VTGraF_granularite.png EUVIP/presentation/assets/cerema-official.svg EUVIP/presentation/assets/cerema-official.pdf EUVIP/presentation/assets/cerema-official.source.txt EUVIP/presentation/Presentation_EUVIP_2026_Hauseux.pdf EUVIP/presentation/apercu.png
           if git diff --cached --quiet; then
             echo 'Generated files are already up to date.'
             exit 0
           fi
-          git commit -m 'Build EUVIP oral presentation PDF and vendor defense assets'
+          git commit -m 'Build EUVIP oral presentation PDF and vendor presentation assets'
           git rebase origin/main
           git push origin HEAD:main
