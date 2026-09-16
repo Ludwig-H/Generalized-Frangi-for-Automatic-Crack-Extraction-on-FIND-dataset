@@ -23,7 +23,7 @@ The scientific baseline is [the EUVIP camera-ready source](../LaTeX/main.tex). T
 
 Citations use bracketed labels in the slide body, in the table rows or in the image captions, and the reference itself at the bottom left, one reference per line. [references.tex](references.tex) supplies both the page notes and the bibliography: `\DeclareRef` holds the complete record used by the bibliography slides, and `\DeclareShort` the shortened form used by the page notes, so that every note fits on a single line. GRETSI 25, EUVIP 26 and ANS 26 are red.
 
-No slide carries a small explanatory note at the bottom: copyright credits and dataset citations sit in the image captions, side conditions belong to the equation or to the bullet that introduces them, and the bottom-left block holds references only. The final slide uses blue for “Main steps” and the graph/hierarchy boxes, red for “Next steps” and the foundation-model box.
+No slide carries a note in small print at the bottom: copyright credits and dataset citations sit in the image captions, side conditions belong to the equation or to the bullet that introduces them, and the bottom-left block holds references only. Where a slide needs a comment, as under the clean-FIND table, it is body text placed next to what it comments on. The page notes shorten a reference to keep it on one line, and mark any shortened title with an ellipsis. The final slide uses blue for “Main steps” and the graph/hierarchy boxes, red for “Next steps” and the foundation-model box.
 
 ## Template and assets
 
