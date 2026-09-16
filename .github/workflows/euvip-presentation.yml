@@ -32,7 +32,7 @@ jobs:
       - name: Install TeX and PDF tools
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends latexmk texlive-luatex texlive-latex-extra texlive-fonts-recommended lmodern python3-fitz python3-pil
+          sudo apt-get install -y --no-install-recommends latexmk texlive-luatex texlive-latex-extra texlive-fonts-recommended lmodern python3-fitz python3-pil python3-cairosvg
       - name: Compile, validate and render
         run: |
           export SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)"

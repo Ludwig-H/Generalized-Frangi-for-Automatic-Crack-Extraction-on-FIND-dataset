@@ -51,18 +51,14 @@ def restore_cerema_logo() -> None:
         temporary.replace(svg_path)
     data = svg_path.read_bytes()
     if not pdf_path.is_file():
-        # Only needed when the committed PDF is missing (Debian: python3-fitz).
-        import fitz
+        # CairoSVG applies the official SVG's embedded CSS class colors.
+        # Only needed when the committed PDF is missing (python3-cairosvg).
+        import cairosvg
 
-        with fitz.open(stream=data, filetype="svg") as artwork:
-            vector_data = artwork.convert_to_pdf()
-        with fitz.open(stream=vector_data, filetype="pdf") as vector:
-            with fitz.open() as output:
-                rect = vector[0].rect
-                page = output.new_page(width=rect.width, height=rect.height)
-                page.draw_rect(page.rect, color=None, fill=(1, 1, 1))
-                page.show_pdf_page(page.rect, vector, 0)
-                output.save(str(pdf_path), garbage=4, deflate=True, no_new_id=True)
+        vector_data = cairosvg.svg2pdf(bytestring=data, background_color="white")
+        temporary = pdf_path.with_suffix(".pdf.tmp")
+        temporary.write_bytes(vector_data)
+        temporary.replace(pdf_path)
     if not source_path.is_file():
         source_path.write_text(
             "Official Cerema horizontal color logo\n"
