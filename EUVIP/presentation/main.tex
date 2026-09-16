@@ -15,16 +15,12 @@
  colorlinks=true,urlcolor=inria-2024-bleu-canard,linkcolor=inria-noir}
 \newcommand{\Frangi}{{\rmfamily\mdseries\textsc{Frangi}}}
 \newcommand{\Hess}{\mathcal H}
-\newcommand{\refnote}[1]{\begin{textblock*}{.88\paperwidth}(.06\paperwidth,.905\paperheight)
- {\fontsize{5.5}{6.0}\selectfont\color{gris_fonce_inria}#1\par}\end{textblock*}}
+\input{references.tex}
 \newcommand{\panel}[3]{\begin{minipage}[t]{#1\linewidth}\centering
  \includegraphics[width=\linewidth]{#2}\par\vspace{.8mm}{\scriptsize #3\par}\end{minipage}}
 \newcommand{\divider}[2]{\section{#2}\begin{frame}[plain,noframenumbering]
  \vfill\centering{\Huge\bfseries #1\par}\vspace{3mm}
  {\LARGE\bfseries #2\par}\vspace{3mm}\barrecouleur\vfill\end{frame}}
-\newcommand{\bibentry}[3]{\par\vspace{2.3mm}
- \begin{minipage}[t]{.23\linewidth}\footnotesize\textcolor{inria-2024-bleu-canard}{\textbf{[#1]}}\end{minipage}\hfill
- \begin{minipage}[t]{.75\linewidth}\raggedright\footnotesize #2\par{\scriptsize #3}\end{minipage}\par}
 \makeatletter
 \setbeamertemplate{footline}{\leavevmode\hspace*{\hmargin}%
  \raisebox{.4\footerheight}{\parbox{\dimexpr\paperwidth-2\hmargin}{%
@@ -70,13 +66,13 @@
   \begin{itemize}\setlength\itemsep{5mm}
    \item Cracks are \textbf{thin}, \textbf{weak} and often \textbf{discontinuous}.
    \item Several modalities may observe the same geometry.
-   \item Goal: extract an \textbf{editable crack skeleton} \textbf{without training}.
+   \item Goal: extract an \textbf{editable crack skeleton} \textbf{without training}. \citb{euvip26}
   \end{itemize}
  \end{column}
 \end{columns}
 \vspace{2mm}
-{\small FIND dataset, aligned intensity and range views.}
-\refnote{[FIND 22; EUVIP 26]}
+{\scriptsize FIND \citb{find22}}
+\reffoot{find22,euvip26}
 \end{frame}
 
 \divider{01}{From pixels to a \Frangi{} graph}
@@ -104,6 +100,7 @@
  \fill[inria-2024-bleu-canard](0,0)circle(2.1pt);
  \node[below left,font=\small]at(0,0){$x$};
 \end{tikzpicture}}
+\par\vspace{1.5mm}{\scriptsize Local ridge geometry \citb{frangi98}}
 \end{column}
 \begin{column}{.54\textwidth}
 \begin{itemize}\setlength\itemsep{3.5mm}
@@ -120,7 +117,7 @@ F_\sigma(x)=\exp\!\left(-\frac{R_B^2}{2\beta^2}\right)
 {\small For $\lambda_2>0$; otherwise $F_\sigma=0$.}
 \end{column}
 \end{columns}
-\refnote{[Frangi 98]}
+\reffoot{frangi98}
 \end{frame}
 
 \begin{frame}[t]{Generalized \Frangi{} graph}
@@ -145,6 +142,7 @@ F_\sigma(x)=\exp\!\left(-\frac{R_B^2}{2\beta^2}\right)
   \node[font=\footnotesize,align=center]at(1.2,1.05){misaligned axes\\weak edge};
  \end{scope}
 \end{tikzpicture}}
+\par\vspace{2mm}\citb{gretsi25}\quad\citb{euvip26}
 \end{column}
 \begin{column}{.40\textwidth}
 \begin{itemize}\setlength\itemsep{4mm}
@@ -159,7 +157,7 @@ S^\sigma_{\mathrm{int}}S^\sigma_{\mathrm{shape}}S^\sigma_{\mathrm{align}}
 \]
 \end{column}
 \end{columns}
-\refnote{[GRETSI 25; EUVIP 26]}
+\reffoot{gretsi25,euvip26}
 \end{frame}
 
 \begin{frame}[t]{Multimodal fusion}
@@ -181,22 +179,22 @@ S^\sigma_{\mathrm{int}}S^\sigma_{\mathrm{shape}}S^\sigma_{\mathrm{align}}
 {\small $w_m\geq 0$, $\sum_m w_m=1$.}
 \end{column}
 \begin{column}{.44\textwidth}
- \panel{.475}{PalaisDesPapes.png}{Intensity}\hfill
- \panel{.475}{PalaisDesPapes_IntDepth.png}{Depth overlay}
+ \panel{.475}{PalaisDesPapes.png}{Intensity\\\textcopyright\ Cerema}\hfill
+ \panel{.475}{PalaisDesPapes_IntDepth.png}{Depth overlay\\\textcopyright\ Cerema}
  \vspace{2mm}
- {\small Aligned modalities. \textcopyright\ Cerema.}
+ {\scriptsize Palais des Papes \citb{euvip26}}
 \end{column}
 \end{columns}
-\refnote{[EUVIP 26]}
+\reffoot{euvip26}
 \end{frame}
 
 \begin{frame}[t]{Extraction pipeline}
-\vspace{1mm}
+\vspace{0mm}
 \centering
 \panel{.21}{FrangiSim_1FIND.png}{Similarity}\hfill
 \panel{.21}{Cluster_1FIND.png}{Component}\hfill
 \panel{.21}{Betweenness_1FIND.png}{Centrality}\hfill
-\panel{.21}{Resultat_1FIND.png}{Skeleton}
+\panel{.21}{Resultat_1FIND.png}{Skeleton \citb{euvip26}}
 \par\vspace{3mm}
 \resizebox{.95\linewidth}{!}{%
 \begin{tikzpicture}[node distance=3mm,
@@ -209,52 +207,39 @@ S^\sigma_{\mathrm{int}}S^\sigma_{\mathrm{shape}}S^\sigma_{\mathrm{align}}
  \node[stage,right=of c](d){prune by weighted centrality};
  \draw[flow](a)--(b);\draw[flow](b)--(c);\draw[flow](c)--(d);
 \end{tikzpicture}}
-\vspace{2mm}
+\vspace{-2mm}
 \[
- d_{ij}=\min\{1,\rho_{ij}(1-S^{(0)}_{ij})\}, \qquad S_{ij}=1-d_{ij}
+ d_{ij}=\min\{1,\rho_{ij}(1-S^{(0)}_{ij})\},\qquad S_{ij}=1-d_{ij}
 \]
-\refnote{$\rho_{ij}=\|x_i-x_j\|_2\leq R$. [EUVIP 26]}
+\vspace{-3mm}
+{\small $0<\rho_{ij}=\|x_i-x_j\|_2\le R$.}
+\reffoot{euvip26}
 \end{frame}
 
 \divider{02}{Experimental results}
 
 \begin{frame}[t]{FIND: clean data}
 \vspace{1mm}
-\begin{columns}[T,onlytextwidth]
-\begin{column}{.41\textwidth}
- \panel{.475}{GroundTruth_1FIND.png}{Ground truth}\hfill
- \panel{.475}{Resultat_1FIND.png}{Our result}
+\begin{columns}[c,onlytextwidth]
+\begin{column}{.40\textwidth}\centering
+ \panel{.475}{GroundTruth_1FIND.png}{Ground truth\\\citb{find22}}\hfill
+ \panel{.475}{Resultat_1FIND.png}{Our result\\\citb{euvip26}}
 \end{column}
-\begin{column}{.55\textwidth}
-{\small\textbf{Intensity + range}}
-\vspace{2mm}
-
-{\small\setlength{\tabcolsep}{5pt}
+\begin{column}{.56\textwidth}\centering
+{\small\setlength{\tabcolsep}{4pt}\renewcommand{\arraystretch}{1.3}
 \begin{tabular}{@{}lccc@{}}\toprule
-Method & IoU $\uparrow$ & Tversky $\uparrow$ & $W$ $\downarrow$\\\midrule
-Our graph & 60\% & 68\% & 18 px\\
+Method & IoU $\uparrow$ & Tversky $\uparrow$ & Wasserstein $\downarrow$\\\midrule
+Our graph & 63\% & 71\% & 11 px\\
 CrackSegDiff & \textbf{87\%} & \textbf{90\%} & \textbf{5 px}\\\bottomrule
 \end{tabular}}
-
-\vspace{4mm}
-{\small\textbf{Our ablation (IoU)}}
-\vspace{1mm}
-
-{\small\setlength{\tabcolsep}{8pt}
-\begin{tabular}{@{}cccc@{}}
-$I$ & $R$ & $I+R$ & $I+R+F$\\
-41\% & 54\% & 60\% & \textbf{63\%}
-\end{tabular}}
-\vspace{2mm}
-
-{\small $F$: filtered range.}
+\par\vspace{2mm}\citb{euvip26}\quad\citb{cracksegdiff24}
 \end{column}
 \end{columns}
-\refnote{Overlap: skeletons dilated by 3 px; Tversky $(\alpha,\beta)=(1,0.5)$; $W$: Wasserstein. [FIND 22; EUVIP 26; CrackSegDiff 24]}
+\reffoot{find22,euvip26,cracksegdiff24}
 \end{frame}
 
 \begin{frame}[t]{FIND: synthetic noise}
-\vspace{1mm}
+\vspace{-1mm}
 \begin{columns}[T,onlytextwidth]
 \begin{column}{.57\textwidth}\centering
  \vspace{2mm}
@@ -265,14 +250,14 @@ $I$ & $R$ & $I+R$ & $I+R+F$\\
   \node[anchor=east,font=\scriptsize]at(plot.north west){100};
   \node[anchor=north east,font=\scriptsize]at(plot.south west){0};
   \node[anchor=north,font=\scriptsize]at(plot.south east){0.5};
-  \node[anchor=south west,font=\small]at(plot.north west){Jaccard (\%)};
+  \node[anchor=south west,font=\small]at(plot.north west){Jaccard (\%) \citb{euvip26}};
   \node[anchor=north,font=\small,yshift=-3mm]at(plot.south){Noise level $s$};
  \end{tikzpicture}
- \par\vspace{2mm}
- \vspace{2mm}
+ \par\vspace{1mm}
  
- {\small \textcolor{red}{\rule[.4ex]{7mm}{.7pt}} Our graph\qquad
- \textcolor{green!50!black}{\rule[.4ex]{7mm}{.7pt}} CrackSegDiff}
+ {\scriptsize \textcolor{red}{\rule[.4ex]{7mm}{.7pt}} Our graph\quad
+ \textcolor{green!50!black}{\rule[.4ex]{7mm}{.7pt}} CrackSegDiff \citb{cracksegdiff24}}
+\par\vspace{.5mm}{\scriptsize Shading: standard deviation.}
 \end{column}
 \begin{column}{.39\textwidth}
 \[
@@ -281,40 +266,37 @@ I_s=I(1+N), \qquad R_s=R+N'
 {\small $N,N'\sim\mathcal N(0,s^2)$, independent.}
 \vspace{2mm}
 
-\panel{.46}{IntensityNoisy_1FIND.png}{Noisy intensity}\hfill
-\panel{.46}{ResultatNoisy_1FIND.png}{Our result, $s=0.5$}
+\panel{.42}{IntensityNoisy_1FIND.png}{Noisy intensity}\hfill
+\panel{.42}{ResultatNoisy_1FIND.png}{Our result, $s=0.5$}
 \vspace{1mm}
 
-\begin{itemize}\setlength\itemsep{2mm}
- \item Lower initial accuracy
- \item Slower degradation in this test
-\end{itemize}
+{\small Slower degradation under added noise.}
 \end{column}
 \end{columns}
-\refnote{Bands: standard deviation. [EUVIP 26; CrackSegDiff 24]}
+\reffoot{euvip26,cracksegdiff24}
 \end{frame}
 
 \begin{frame}[t]{Transfer to geological images}
-\vspace{1mm}
+\vspace{-1mm}
 \begin{columns}[T,onlytextwidth]
 \begin{column}{.48\textwidth}
- \textbf{Vaches Noires}
+ \textbf{Vaches Noires} \citb{euvip26}
  \vspace{2mm}
  
- \panel{.475}{Test1_512_512_result.png}{Test 1}\hfill
- \panel{.475}{Test2_512_512_result.png}{Test 2}
+ \panel{.475}{Test1_512_512_result.png}{Test 1\\\textcopyright\ Cerema}\hfill
+ \panel{.475}{Test2_512_512_result.png}{Test 2\\\textcopyright\ Cerema}
  \vspace{2mm}
  
  {\scriptsize\textcolor{red}{Ours}\quad\textcolor{green!50!black}{Ground truth}\quad\textcolor{blue}{U-Net}}\par\vspace{2mm}
  {\small IoU: 47 / 50\% and 29 / 34\% (ours / adapted U-Net).}
 \end{column}
 \begin{column}{.48\textwidth}
- \textbf{Palais des Papes}
+ \textbf{Palais des Papes} \citb{euvip26}
  \vspace{2mm}
  
- \panel{.315}{PalaisDesPapes.png}{Intensity}\hfill
- \panel{.315}{PalaisDesPapes_IntDepth.png}{Depth overlay}\hfill
- \panel{.315}{PalaisDesPapes_Result.png}{Our result}
+ \panel{.315}{PalaisDesPapes.png}{Intensity\\\textcopyright\ Cerema}\hfill
+ \panel{.315}{PalaisDesPapes_IntDepth.png}{Depth overlay\\\textcopyright\ Cerema}\hfill
+ \panel{.315}{PalaisDesPapes_Result.png}{Our result\\\textcopyright\ Cerema}
  \vspace{3mm}
  
  \begin{itemize}\setlength\itemsep{2mm}
@@ -323,7 +305,7 @@ I_s=I(1+N), \qquad R_s=R+N'
  \end{itemize}
 \end{column}
 \end{columns}
-\refnote{\textcopyright\ Cerema. [EUVIP 26]}
+\reffoot{euvip26}
 \end{frame}
 
 \divider{03}{Beyond pairwise connectivity}
@@ -338,14 +320,15 @@ I_s=I(1+N), \qquad R_s=R+N'
  \makebox[.245\linewidth]{graph similarity}\hfill
  \makebox[.245\linewidth]{retained component}
 \end{minipage}
-\vspace{3mm}
+\par\vspace{.5mm}{\scriptsize VT-GraF \textcopyright\ Cerema}
+\vspace{2mm}
 
 \begin{columns}[c,onlytextwidth]
 \begin{column}{.46\textwidth}
 \begin{itemize}\setlength\itemsep{3mm}
  \item Granular background can create spurious chains.
  \item $K=1$: connectivity through vertices.
- \item $K=2$: connectivity through triangles.
+ \item $K=2$: connectivity through triangles. \citb{ans26}
 \end{itemize}
 \end{column}
 \begin{column}{.50\textwidth}\centering
@@ -369,54 +352,54 @@ I_s=I(1+N), \qquad R_s=R+N'
 \end{tikzpicture}}
 \end{column}
 \end{columns}
-\refnote{\textcopyright\ Cerema. [ANS 26; Thesis 26]}
+\reffoot{ans26}
 \end{frame}
 
-\begin{frame}[t]{Conclusion}
+\begin{frame}[t]{Conclusion \& perspective}
 \vspace{2mm}
 \begin{columns}[T,onlytextwidth]
 \begin{column}{.47\textwidth}
-\textbf{Main points}
+\textcolor{inria-2024-bleu-canard}{\textbf{Main steps}}
 \begin{itemize}\setlength\itemsep{4mm}
- \item \Frangi{} filter $\rightarrow$ \Frangi{} graph
+ \item \Frangi{} filter $\rightarrow$ \Frangi{} graph \citb{euvip26}
  \item Multimodal fusion at the Hessian level
  \item Training-free extraction of crack skeletons
 \end{itemize}
 \end{column}
 \begin{column}{.49\textwidth}
-\textbf{Next steps}
+\textcolor{inria-rouge}{\textbf{Next steps}}
 \begin{itemize}\setlength\itemsep{4mm}
  \item Evaluate higher-order connectivity
  \item Broader benchmarks
- \item Can a \Frangi{} graph hierarchy help guide SAM / CrackSAM?
+ \item Can a \Frangi{} graph hierarchy help guide SAM / CrackSAM?\par\citb{sam23}\ \citb{cracksam24}
 \end{itemize}
 \end{column}
 \end{columns}
-\vspace{5mm}
+\vspace{2mm}
 \centering
 \resizebox{.48\linewidth}{!}{%
 \begin{tikzpicture}[node distance=2mm,box/.style={draw=gris_fonce_inria!50,align=center,font=\scriptsize,text width=1.8cm,minimum height=8mm,inner sep=1pt}]
- \node[box](g){\Frangi{}\\graph};\node[box,right=of g](h){hierarchy};\node[box,right=of h](s){foundation\\model};
- \draw[-{Latex[length=1.3mm]},inria-rouge](g)--(h);\draw[-{Latex[length=1.3mm]},inria-rouge](h)--(s);
+ \node[box,draw=inria-2024-bleu-canard,fill=inria-2024-bleu-canard!12,text=inria-2024-bleu-canard](g){\Frangi{}\\graph};
+ \node[box,draw=inria-2024-bleu-canard,fill=inria-2024-bleu-canard!12,text=inria-2024-bleu-canard,right=of g](h){hierarchy};
+ \node[box,draw=inria-rouge,fill=inria-rouge!12,text=inria-rouge,right=of h](s){foundation\\model};
+ \draw[-{Latex[length=1.3mm]},inria-2024-bleu-canard](g)--(h);\draw[-{Latex[length=1.3mm]},inria-rouge](h)--(s);
 \end{tikzpicture}}
-\refnote{[EUVIP 26; SAM 23; CrackSAM 24]}
+\reffoot{euvip26,sam23,cracksam24}
 \end{frame}
 
 \begin{frame}[t,noframenumbering]{Bibliography: method and experiments}
 \vspace{1mm}
-\bibentry{Frangi 98}{A. F. Frangi, W. J. Niessen, K. L. Vincken, M. A. Viergever.}{``Multiscale vessel enhancement filtering.'' MICCAI, 1998.}
-\bibentry{GRETSI 25}{L. Hauseux, R. Antoine, P. Foucher, P. Charbonnier, J. Zerubia.}{``Généralisation du filtre de Frangi pour l'extraction des réseaux de fissures au sein d'images d'un glissement de terrain. Comparaison avec une méthode d'apprentissage profond.'' GRETSI, 2025.}
-\bibentry{EUVIP 26}{L. Hauseux, R. Antoine, P. Foucher, P. Charbonnier, J. Zerubia.}{``Multi-Modal, Training-Free Crack Extraction via Generalized Frangi Graph.'' EUVIP, 2026.}
-\bibentry{FIND 22}{S. Zhou, C. Canchila, W. Song.}{``Fused Image dataset for convolutional neural Network-based crack Detection (FIND).'' Zenodo, 2022. \href{https://zenodo.org/records/6383044}{Dataset record}.}
-\bibentry{CrackSegDiff 24}{X. Jiang, L. Jiang, A. Wang, K. Zhu, Y. Gao.}{``CrackSegDiff: Diffusion Probability Model-based Multi-modal Crack Segmentation.'' \href{https://arxiv.org/abs/2410.08100}{arXiv:2410.08100}, 2024.}
+\bibentry{frangi98}
+\bibentry{gretsi25}
+\bibentry{euvip26}
+\bibentry{find22}
+\bibentry{cracksegdiff24}
 \end{frame}
 
 \begin{frame}[t,noframenumbering]{Bibliography: higher order and perspectives}
 \vspace{1mm}
-\bibentry{ANS 26}{L. Hauseux, K. Avrachenkov, J. Zerubia.}{``Generalization of Single-Linkage with higher-order interactions.'' Applied Network Science, 11, article 9, 2026.}
-\bibentry{Thesis 26}{L. Hauseux.}{``Utilisation de graphes pour la classification et l'extraction de structures. Généralisation à des interactions d'ordre supérieur.'' PhD thesis and defense, Université Côte d'Azur, 8 September 2026.}
-\bibentry{SAM 23}{A. Kirillov et al.}{``Segment Anything.'' ICCV, pp. 4015--4026, 2023. \href{https://openaccess.thecvf.com/content/ICCV2023/html/Kirillov_Segment_Anything_ICCV_2023_paper.html}{Paper}.}
-\bibentry{CrackSAM 24}{K. Ge, C. Wang, Y. Guo, Y. Tang, Z. Hu, H. Chen.}{``Fine-tuning vision foundation model for crack segmentation in civil infrastructures.'' Construction and Building Materials, 431, 136573, 2024. \href{https://doi.org/10.1016/j.conbuildmat.2024.136573}{DOI}.}
-\vfill{\scriptsize\color{gris_fonce_inria}Acknowledgments: Bpifrance / LiChIE (2020--2025); Université Côte d'Azur / DS4H (ANR-17-EURE-0004) and 3IA (ANR-19-P3IA-0002).}
+\bibentry{ans26}
+\bibentry{sam23}
+\bibentry{cracksam24}
 \end{frame}
 \end{document}

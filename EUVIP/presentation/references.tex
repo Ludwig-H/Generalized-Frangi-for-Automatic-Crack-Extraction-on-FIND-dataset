@@ -1,0 +1,66 @@
+% Shared bibliographic records for inline citations, page notes and bibliography.
+\makeatletter
+\newcommand{\DeclareRef}[4]{%
+ \expandafter\gdef\csname ref@label@#1\endcsname{#2}%
+ \expandafter\gdef\csname ref@authors@#1\endcsname{#3}%
+ \expandafter\gdef\csname ref@details@#1\endcsname{#4}}
+\newcommand{\DeclareMyRef}[4]{%
+ \DeclareRef{#1}{#2}{#3}{#4}%
+ \expandafter\gdef\csname ref@mine@#1\endcsname{}}
+\newcommand{\refcheck}[1]{%
+ \ifcsname ref@label@#1\endcsname\else
+  \PackageError{euvip-citations}{Unknown reference #1}{Declare it in references.tex.}%
+ \fi}
+\newcommand{\refcolor}[1]{%
+ \ifcsname ref@mine@#1\endcsname\color{inria-rouge}%
+ \else\color{gris_fonce_inria}\fi}
+\newcommand{\refbracket}[1]{%
+ \refcheck{#1}{\refcolor{#1}\bfseries[\csname ref@label@#1\endcsname]}}
+\newcommand{\citb}[1]{\mbox{{\scriptsize\refbracket{#1}}}}
+\newcommand{\reffoot}[1]{%
+ \begin{textblock}{.90}[0,1](.05,.917)
+  \begingroup
+  \fontsize{5.5}{6.4}\selectfont\raggedright
+  \setlength{\parindent}{0pt}\setlength{\parskip}{0pt}%
+  \edef\rf@list{\zap@space#1 \@empty}%
+  \@for\rf@key:=\rf@list\do{%
+   \refcheck{\rf@key}%
+   {\refcolor{\rf@key}%
+    \noindent\refbracket{\rf@key}\space
+    \csname ref@authors@\rf@key\endcsname\space
+    \csname ref@details@\rf@key\endcsname\par}}%
+  \endgroup
+ \end{textblock}}
+\newcommand{\bibentry}[1]{%
+ \refcheck{#1}\par\vspace{2.3mm}%
+ \begin{minipage}[t]{.23\linewidth}\footnotesize\refbracket{#1}\end{minipage}\hfill
+ \begin{minipage}[t]{.75\linewidth}\raggedright\refcolor{#1}%
+  {\footnotesize\csname ref@authors@#1\endcsname\par}%
+  {\scriptsize\csname ref@details@#1\endcsname\par}%
+ \end{minipage}\par}
+\makeatother
+
+\DeclareRef{frangi98}{Frangi 98}
+ {A.~F.~Frangi, W.~J.~Niessen, K.~L.~Vincken, M.~A.~Viergever.}
+ {``Multiscale vessel enhancement filtering.'' MICCAI,~1998.}
+\DeclareMyRef{gretsi25}{GRETSI 25}
+ {L.~Hauseux, R.~Antoine, P.~Foucher, P.~Charbonnier, J.~Zerubia.}
+ {``Généralisation du filtre de Frangi pour l'extraction des réseaux de fissures au sein d'images d'un glissement de terrain. Comparaison avec une méthode d'apprentissage profond.'' GRETSI,~2025.}
+\DeclareMyRef{euvip26}{EUVIP 26}
+ {L.~Hauseux, R.~Antoine, P.~Foucher, P.~Charbonnier, J.~Zerubia.}
+ {``Multi-Modal, Training-Free Crack Extraction via Generalized Frangi Graph.'' EUVIP,~2026.}
+\DeclareRef{find22}{FIND 22}
+ {S.~Zhou, C.~Canchila, W.~Song.}
+ {``Fused Image dataset for convolutional neural Network-based crack Detection (FIND).'' Zenodo,~2022. \href{https://zenodo.org/records/6383044}{Dataset record}.}
+\DeclareRef{cracksegdiff24}{CrackSegDiff 24}
+ {X.~Jiang, L.~Jiang, A.~Wang, K.~Zhu, Y.~Gao.}
+ {``CrackSegDiff: Diffusion Probability Model-based Multi-modal Crack Segmentation.'' \href{https://arxiv.org/abs/2410.08100}{arXiv:2410.08100}, 2024.}
+\DeclareMyRef{ans26}{ANS 26}
+ {L.~Hauseux, K.~Avrachenkov, J.~Zerubia.}
+ {``Generalization of Single-Linkage with higher-order interactions.'' Applied Network Science, 11, article~9, 2026.}
+\DeclareRef{sam23}{SAM 23}
+ {A.~Kirillov et al.}
+ {``Segment Anything.'' ICCV, pp.~4015--4026, 2023. \href{https://openaccess.thecvf.com/content/ICCV2023/html/Kirillov_Segment_Anything_ICCV_2023_paper.html}{Paper}.}
+\DeclareRef{cracksam24}{CrackSAM 24}
+ {K.~Ge, C.~Wang, Y.~Guo, Y.~Tang, Z.~Hu, H.~Chen.}
+ {``Fine-tuning vision foundation model for crack segmentation in civil infrastructures.'' Construction and Building Materials, 431, 136573, 2024. \href{https://doi.org/10.1016/j.conbuildmat.2024.136573}{DOI}.}

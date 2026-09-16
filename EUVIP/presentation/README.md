@@ -13,21 +13,21 @@ English, 16:9, **10 content slides**, plus the title, three section dividers and
 3. Pairwise orientation alignment: the Frangi graph.
 4. Multimodal fusion of normalized Hessians.
 5. Graph reduction, minimum spanning trees and weighted centrality.
-6. Clean FIND results and a separate modality ablation.
+6. Clean FIND results.
 7. FIND under controlled synthetic noise.
 8. Geological transfer: Vaches Noires and Palais des Papes.
 9. Granular backgrounds and higher-order connectivity, K=2.
-10. Conclusion and perspectives, including the open question of hierarchy-guided SAM/CrackSAM.
+10. Conclusion & perspective: hierarchy-guided SAM/CrackSAM.
 
-The scientific baseline is [the EUVIP camera-ready source](../LaTeX/main.tex). The Hessian, alignment and granular-background explanations follow slides 47–49 of the [thesis defense](https://github.com/Ludwig-H/Manuscrit-de-th-se/tree/3593fbf25434c4715b37537eae1287bf49239fa7/Soutenance/soutenance). The K=2 illustration comes from the thesis, beyond the EUVIP experiments. Foundation-model guidance is a research question, not a measured improvement.
+The scientific baseline is [the EUVIP camera-ready source](../LaTeX/main.tex). The clean-FIND table reports the best published graph results (63% IoU, 71% Tversky, 11 px Wasserstein; Table III), together with the published CrackSegDiff results (Table II). The separate modality-ablation panel is removed. Experimental figures are unchanged.
 
-The main FIND comparison uses intensity + range for both methods. The result with intensity + range + filtered range is shown separately, not substituted into that comparison. Figures and numerical results are taken from the paper and poster, not regenerated experiments.
+Citations use bracketed labels in the slide body or image captions and the complete reference at the bottom left. [references.tex](references.tex) supplies both the page notes and the bibliography. GRETSI 25, EUVIP 26 and ANS 26 are red. Page notes contain references only; image credits stay in the captions. The final slide uses blue for “Main steps” and the graph/hierarchy boxes, red for “Next steps” and the foundation-model box.
 
 ## Template and assets
 
-The `theme/` folder is the Inria 2024 Beamer theme used for the defense. The title slide uses the **official Cerema horizontal logo in its original colors, on white**, downloaded from [Cerema's website](https://www.cerema.fr/themes/custom/uas_base/images/LogoCerema_horizontal.svg). `assets/cerema-official.svg` preserves the original file unchanged; `assets/cerema-official.pdf` is its vector conversion with an explicit white background. CairoSVG preserves the embedded CSS colors. The source URL and SVG SHA-256 are recorded in `assets/cerema-official.source.txt`. The former white recoloring and dark cartouche have been removed from this presentation. The poster is unchanged.
+The `theme/` folder contains the Inria 2024 Beamer theme. The title slide uses the **official Cerema horizontal logo in its original colors, on white**, downloaded from [Cerema's website](https://www.cerema.fr/themes/custom/uas_base/images/LogoCerema_horizontal.svg). `assets/cerema-official.svg` preserves the original file unchanged; `assets/cerema-official.pdf` is its vector conversion with an explicit white background. CairoSVG preserves the embedded CSS colors. The source URL and SVG SHA-256 are recorded in `assets/cerema-official.source.txt`. The former white recoloring and dark cartouche have been removed from this presentation. The poster is unchanged.
 
-Experimental images are copied unchanged from `EUVIP/LaTeX/`; the VT-GraF illustration comes from the defense and is credited to Cerema. `bootstrap_assets.py` can restore missing defense assets from the pinned commit above, checking their Git blob hashes, and restore the official Cerema artwork if missing. The build workflow commits those assets locally alongside the PDF, so the completed folder is self-contained. No font files are distributed; standard Latin Modern fonts are used.
+Experimental images are copied unchanged from `EUVIP/LaTeX/`; the VT-GraF illustration is credited to Cerema. `bootstrap_assets.py` can restore missing assets from its pinned source commit, checking their Git blob hashes, and restore the official Cerema artwork if missing. The build workflow commits those assets locally alongside the PDF, so the completed folder is self-contained. No font files are distributed; standard Latin Modern fonts are used.
 
 ## Build locally
 
