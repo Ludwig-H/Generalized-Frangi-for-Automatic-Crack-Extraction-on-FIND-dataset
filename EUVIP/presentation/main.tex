@@ -58,15 +58,15 @@
 \begin{frame}[t]{Problem setting}
 \vspace{1mm}
 \begin{columns}[T,onlytextwidth]
- \begin{column}{.56\textwidth}
+ \begin{column}{.53\textwidth}
   \panel{.48}{Intensity_1FIND.png}{Intensity \citb{find22}}\hfill
   \panel{.48}{Range_1FIND.png}{Range / depth \citb{find22}}
  \end{column}
- \begin{column}{.40\textwidth}
+ \begin{column}{.43\textwidth}
   \begin{itemize}\setlength\itemsep{5mm}
    \item Cracks are \textbf{thin}, \textbf{weak} and often \textbf{discontinuous}.
    \item Several modalities may observe the same geometry.
-   \item Goal: extract an \textbf{editable crack skeleton} \textbf{without training}. \citb{euvip26}
+   \item Goal: an \textbf{editable crack skeleton}, \textbf{without training} \citb{euvip26}
   \end{itemize}
  \end{column}
 \end{columns}
@@ -93,7 +93,7 @@
   \draw[vec,inria-rouge](0,0)--(1.833,0);
   \draw[vec,inria-rouge!62](0,0)--(0,.703);
   \node[font=\small,inria-rouge,fill=white,inner sep=1pt]at(.95,0){$e_1$};
-  \node[font=\small,inria-rouge!62,fill=white,inner sep=1pt]at(0,.4){$e_2$};
+  \node[font=\small,inria-rouge!62,fill=white,inner sep=1pt]at(-.36,.40){$e_2$};
  \end{scope}
  \fill[inria-2024-bleu-canard](0,0)circle(2.1pt);
  \node[below left,font=\small]at(0,0){$x$};
@@ -128,13 +128,13 @@ F_\sigma(x)=\exp\!\left(-\frac{R_B^2}{2\beta^2}\right)
  \node[pix](i1)at(.72,-.02){};\node[pix](j1)at(1.88,.35){};
  \draw[dir,inria-rouge](i1)--++(.62,.2);\draw[dir,inria-rouge](j1)--++(.62,.2);
  \draw[inria-rouge,line width=1.6pt](i1)--(j1);
- \node[font=\footnotesize,align=center]at(1.3,1.05){aligned axes\\strong edge};
+ \node[font=\footnotesize,align=center]at(1.3,1.45){aligned axes\\strong edge};
  \begin{scope}[shift={(4.35,0)}]
   \draw[ridge](-.15,-.3)--(2,.4);\draw[ridge](1.3,.92)--(2.32,-.48);
   \node[pix](i2)at(.72,-.02){};\node[pix](j2)at(1.66,.43){};
   \draw[dir,inria-rouge](i2)--++(.59,.19);\draw[dir,inria-rouge](j2)--++(.36,-.5);
   \draw[gris_fonce_inria!45,line width=.8pt](i2)--(j2);
-  \node[font=\footnotesize,align=center]at(1.2,1.05){misaligned axes\\weak edge};
+  \node[font=\footnotesize,align=center]at(1.2,1.45){misaligned axes\\weak edge};
  \end{scope}
 \end{tikzpicture}}
 \par\vspace{2mm}{\scriptsize Pairwise orientation alignment \citb{gretsi25}\enspace\citb{euvip26}}
@@ -207,13 +207,13 @@ S^\sigma_{\mathrm{int}}S^\sigma_{\mathrm{shape}}S^\sigma_{\mathrm{align}}
 \begin{frame}[t]{FIND: clean data}
 \vspace{1mm}
 \begin{columns}[c,onlytextwidth]
-\begin{column}{.37\textwidth}\centering
+\begin{column}{.34\textwidth}\centering
  \panel{.475}{GroundTruth_1FIND.png}{Ground truth\\\citb{find22}}\hfill
  \panel{.475}{Resultat_1FIND.png}{Our result\\\citb{euvip26}}
 \end{column}
-\begin{column}{.59\textwidth}\centering
-{\small\setlength{\tabcolsep}{4pt}\renewcommand{\arraystretch}{1.3}
-\begin{tabular}{@{}>{\raggedright\arraybackslash}p{2.1cm}ccc@{}}\toprule
+\begin{column}{.62\textwidth}\centering
+{\footnotesize\setlength{\tabcolsep}{3pt}\renewcommand{\arraystretch}{1.35}
+\begin{tabular}{@{}lccc@{}}\toprule
 Method & IoU $\uparrow$ & Tversky $\uparrow$ & Wasserstein $\downarrow$\\\midrule
 Our graph \citb{euvip26} & 63\% & 71\% & 11 px\\
 CrackSegDiff \citb{cracksegdiff24} & \textbf{87\%} & \textbf{90\%} & \textbf{5 px}\\\bottomrule
@@ -256,8 +256,8 @@ N,N'\sim\mathcal N(0,s^2)\ \text{independent}
 \end{gather*}
 \vspace{-2mm}
 
-\panel{.38}{IntensityNoisy_1FIND.png}{Noisy intensity}\hfill
-\panel{.38}{ResultatNoisy_1FIND.png}{Our result, $s=0.5$}
+\panel{.46}{IntensityNoisy_1FIND.png}{Noisy intensity}\hfill
+\panel{.46}{ResultatNoisy_1FIND.png}{Our result, $s=0.5$}
 \par\vspace{.5mm}
 \begin{itemize}
  \item Slower degradation under added noise.
@@ -351,7 +351,7 @@ N,N'\sim\mathcal N(0,s^2)\ \text{independent}
 \begin{frame}[t]{Conclusion \& perspective}
 \vspace{2mm}
 \begin{columns}[T,onlytextwidth]
-\begin{column}{.47\textwidth}
+\begin{column}{.51\textwidth}
 \textcolor{inria-2024-bleu-canard}{\textbf{Main steps}}
 \begin{itemize}\setlength\itemsep{4mm}
  \item \Frangi{} filter $\rightarrow$ \Frangi{} graph \citb{euvip26}
@@ -359,7 +359,7 @@ N,N'\sim\mathcal N(0,s^2)\ \text{independent}
  \item Training-free extraction of crack skeletons
 \end{itemize}
 \end{column}
-\begin{column}{.49\textwidth}
+\begin{column}{.45\textwidth}
 \textcolor{inria-rouge}{\textbf{Next steps}}
 \begin{itemize}\setlength\itemsep{4mm}
  \item Evaluate higher-order connectivity
