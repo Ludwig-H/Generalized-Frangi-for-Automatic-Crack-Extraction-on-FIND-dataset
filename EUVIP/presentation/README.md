@@ -19,9 +19,11 @@ English, 16:9, **10 content slides**, plus the title, three section dividers and
 9. Granular backgrounds and higher-order connectivity, K=2.
 10. Conclusion & perspective: hierarchy-guided SAM/CrackSAM.
 
-The scientific baseline is [the EUVIP camera-ready source](../LaTeX/main.tex). The clean-FIND table reports the best published graph results (63% IoU, 71% Tversky, 11 px Wasserstein; Table III), together with the published CrackSegDiff results (Table II). The separate modality-ablation panel is removed. Experimental figures are unchanged.
+The scientific baseline is [the EUVIP camera-ready source](../LaTeX/main.tex). The clean-FIND table reports the best published graph results (63% IoU, 71% Tversky, 11 px Wasserstein; Table III), together with the published CrackSegDiff results (Table II). The separate modality-ablation panel is removed, and no slide mentions the filtered range, which is only a post-processing of the range modality. Experimental figures are unchanged.
 
-Citations use bracketed labels in the slide body or image captions and the complete reference at the bottom left. [references.tex](references.tex) supplies both the page notes and the bibliography. GRETSI 25, EUVIP 26 and ANS 26 are red. Page notes contain references only; image credits stay in the captions. The final slide uses blue for “Main steps” and the graph/hierarchy boxes, red for “Next steps” and the foundation-model box.
+Citations use bracketed labels in the slide body, in the table rows or in the image captions, and the complete reference at the bottom left. [references.tex](references.tex) supplies both the page notes and the bibliography. GRETSI 25, EUVIP 26 and ANS 26 are red.
+
+No slide carries a small explanatory note at the bottom: copyright credits and dataset citations sit in the image captions, side conditions belong to the equation or to the bullet that introduces them, and the bottom-left block holds references only. The final slide uses blue for “Main steps” and the graph/hierarchy boxes, red for “Next steps” and the foundation-model box.
 
 ## Template and assets
 

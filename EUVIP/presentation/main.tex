@@ -1,6 +1,6 @@
 \documentclass[10pt,aspectratio=169]{beamer}
 \usepackage[english]{babel}
-\usepackage{lmodern,amsmath,amssymb,mathtools,booktabs,graphicx,tikz}
+\usepackage{lmodern,amsmath,amssymb,mathtools,array,booktabs,graphicx,tikz}
 \usetikzlibrary{arrows.meta,positioning,calc,fit}
 \makeatletter\def\input@path{{theme/}}\makeatother
 \providecommand{\draftmode}{0}
@@ -59,8 +59,8 @@
 \vspace{1mm}
 \begin{columns}[T,onlytextwidth]
  \begin{column}{.56\textwidth}
-  \panel{.48}{Intensity_1FIND.png}{Intensity}\hfill
-  \panel{.48}{Range_1FIND.png}{Range / depth}
+  \panel{.48}{Intensity_1FIND.png}{Intensity \citb{find22}}\hfill
+  \panel{.48}{Range_1FIND.png}{Range / depth \citb{find22}}
  \end{column}
  \begin{column}{.40\textwidth}
   \begin{itemize}\setlength\itemsep{5mm}
@@ -70,8 +70,6 @@
   \end{itemize}
  \end{column}
 \end{columns}
-\vspace{2mm}
-{\scriptsize FIND \citb{find22}}
 \reffoot{find22,euvip26}
 \end{frame}
 
@@ -103,18 +101,17 @@
 \par\vspace{1.5mm}{\scriptsize Local ridge geometry \citb{frangi98}}
 \end{column}
 \begin{column}{.54\textwidth}
-\begin{itemize}\setlength\itemsep{3.5mm}
+\begin{itemize}\setlength\itemsep{2.6mm}
  \item \textbf{Shape}: $R_B=|\lambda_1|/|\lambda_2|$
  \item \textbf{Contrast}: $S=\sqrt{\lambda_1^2+\lambda_2^2}$
  \item \textbf{Direction}: $e_1$ follows the ridge
+ \item \textbf{Polarity}: $F_\sigma=0$ when $\lambda_2\le 0$
 \end{itemize}
-\vspace{2mm}
+\vspace{1mm}
 \[
 F_\sigma(x)=\exp\!\left(-\frac{R_B^2}{2\beta^2}\right)
 \left(1-\exp\!\left(-\frac{S^2}{2c^2}\right)\right)
 \]
-\vspace{-1mm}
-{\small For $\lambda_2>0$; otherwise $F_\sigma=0$.}
 \end{column}
 \end{columns}
 \reffoot{frangi98}
@@ -142,7 +139,7 @@ F_\sigma(x)=\exp\!\left(-\frac{R_B^2}{2\beta^2}\right)
   \node[font=\footnotesize,align=center]at(1.2,1.05){misaligned axes\\weak edge};
  \end{scope}
 \end{tikzpicture}}
-\par\vspace{2mm}\citb{gretsi25}\quad\citb{euvip26}
+\par\vspace{2mm}{\scriptsize Pairwise orientation alignment \citb{gretsi25}\enspace\citb{euvip26}}
 \end{column}
 \begin{column}{.40\textwidth}
 \begin{itemize}\setlength\itemsep{4mm}
@@ -170,19 +167,16 @@ S^\sigma_{\mathrm{int}}S^\sigma_{\mathrm{shape}}S^\sigma_{\mathrm{align}}
  \widehat\Hess_\sigma^{(m)}(x)=
  \frac{\Hess_\sigma^{(m)}(x)}{\max_{y\in\Omega}\|\Hess_\sigma^{(m)}(y)\|_2}
  \]
- \item Fuse operators before eigendecomposition
+ \item Fuse operators before eigendecomposition, with $w_m\geq 0$ and $\sum_m w_m=1$
  \[
  \Hess_\sigma^{\mathrm{fused}}(x)=\sum_m w_m\widehat\Hess_\sigma^{(m)}(x)
  \]
 \end{enumerate}
-\vspace{1mm}
-{\small $w_m\geq 0$, $\sum_m w_m=1$.}
 \end{column}
 \begin{column}{.44\textwidth}
+ \textbf{Palais des Papes} \citb{euvip26}\par\vspace{2.5mm}
  \panel{.475}{PalaisDesPapes.png}{Intensity\\\textcopyright\ Cerema}\hfill
  \panel{.475}{PalaisDesPapes_IntDepth.png}{Depth overlay\\\textcopyright\ Cerema}
- \vspace{2mm}
- {\scriptsize Palais des Papes \citb{euvip26}}
 \end{column}
 \end{columns}
 \reffoot{euvip26}
@@ -209,10 +203,9 @@ S^\sigma_{\mathrm{int}}S^\sigma_{\mathrm{shape}}S^\sigma_{\mathrm{align}}
 \end{tikzpicture}}
 \vspace{-2mm}
 \[
- d_{ij}=\min\{1,\rho_{ij}(1-S^{(0)}_{ij})\},\qquad S_{ij}=1-d_{ij}
+ d_{ij}=\min\{1,\rho_{ij}(1-S^{(0)}_{ij})\},\qquad S_{ij}=1-d_{ij},\qquad
+ 0<\rho_{ij}=\|x_i-x_j\|_2\le R
 \]
-\vspace{-3mm}
-{\small $0<\rho_{ij}=\|x_i-x_j\|_2\le R$.}
 \reffoot{euvip26}
 \end{frame}
 
@@ -221,18 +214,17 @@ S^\sigma_{\mathrm{int}}S^\sigma_{\mathrm{shape}}S^\sigma_{\mathrm{align}}
 \begin{frame}[t]{FIND: clean data}
 \vspace{1mm}
 \begin{columns}[c,onlytextwidth]
-\begin{column}{.40\textwidth}\centering
+\begin{column}{.37\textwidth}\centering
  \panel{.475}{GroundTruth_1FIND.png}{Ground truth\\\citb{find22}}\hfill
  \panel{.475}{Resultat_1FIND.png}{Our result\\\citb{euvip26}}
 \end{column}
-\begin{column}{.56\textwidth}\centering
+\begin{column}{.59\textwidth}\centering
 {\small\setlength{\tabcolsep}{4pt}\renewcommand{\arraystretch}{1.3}
-\begin{tabular}{@{}lccc@{}}\toprule
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{2.1cm}ccc@{}}\toprule
 Method & IoU $\uparrow$ & Tversky $\uparrow$ & Wasserstein $\downarrow$\\\midrule
-Our graph & 63\% & 71\% & 11 px\\
-CrackSegDiff & \textbf{87\%} & \textbf{90\%} & \textbf{5 px}\\\bottomrule
+Our graph \citb{euvip26} & 63\% & 71\% & 11 px\\
+CrackSegDiff \citb{cracksegdiff24} & \textbf{87\%} & \textbf{90\%} & \textbf{5 px}\\\bottomrule
 \end{tabular}}
-\par\vspace{2mm}\citb{euvip26}\quad\citb{cracksegdiff24}
 \end{column}
 \end{columns}
 \reffoot{find22,euvip26,cracksegdiff24}
@@ -257,20 +249,21 @@ CrackSegDiff & \textbf{87\%} & \textbf{90\%} & \textbf{5 px}\\\bottomrule
  
  {\scriptsize \textcolor{red}{\rule[.4ex]{7mm}{.7pt}} Our graph\quad
  \textcolor{green!50!black}{\rule[.4ex]{7mm}{.7pt}} CrackSegDiff \citb{cracksegdiff24}}
-\par\vspace{.5mm}{\scriptsize Shading: standard deviation.}
 \end{column}
 \begin{column}{.39\textwidth}
-\[
-I_s=I(1+N), \qquad R_s=R+N'
-\]
-{\small $N,N'\sim\mathcal N(0,s^2)$, independent.}
-\vspace{2mm}
+\vspace{-3mm}
+\begin{gather*}
+I_s=I(1+N), \qquad R_s=R+N'\\[.4mm]
+N,N'\sim\mathcal N(0,s^2)\ \text{independent}
+\end{gather*}
+\vspace{-2mm}
 
-\panel{.42}{IntensityNoisy_1FIND.png}{Noisy intensity}\hfill
-\panel{.42}{ResultatNoisy_1FIND.png}{Our result, $s=0.5$}
-\vspace{1mm}
-
-{\small Slower degradation under added noise.}
+\panel{.38}{IntensityNoisy_1FIND.png}{Noisy intensity}\hfill
+\panel{.38}{ResultatNoisy_1FIND.png}{Our result, $s=0.5$}
+\par\vspace{.5mm}
+\begin{itemize}
+ \item Slower degradation under added noise.
+\end{itemize}
 \end{column}
 \end{columns}
 \reffoot{euvip26,cracksegdiff24}
@@ -287,8 +280,10 @@ I_s=I(1+N), \qquad R_s=R+N'
  \panel{.475}{Test2_512_512_result.png}{Test 2\\\textcopyright\ Cerema}
  \vspace{2mm}
  
- {\scriptsize\textcolor{red}{Ours}\quad\textcolor{green!50!black}{Ground truth}\quad\textcolor{blue}{U-Net}}\par\vspace{2mm}
- {\small IoU: 47 / 50\% and 29 / 34\% (ours / adapted U-Net).}
+ {\scriptsize\textcolor{red}{Ours}\quad\textcolor{green!50!black}{Ground truth}\quad\textcolor{blue}{U-Net}}\par\vspace{1mm}
+ \begin{itemize}
+  \item IoU 47 / 50\% and 29 / 34\% (ours / adapted U-Net)
+ \end{itemize}
 \end{column}
 \begin{column}{.48\textwidth}
  \textbf{Palais des Papes} \citb{euvip26}
@@ -318,9 +313,9 @@ I_s=I(1+N), \qquad R_s=R+N'
  \makebox[.245\linewidth]{granular image}\hfill
  \makebox[.245\linewidth]{pixel-wise \Frangi}\hfill
  \makebox[.245\linewidth]{graph similarity}\hfill
- \makebox[.245\linewidth]{retained component}
+ \makebox[.245\linewidth]{retained component}\par
+ \vspace{.7mm}VT-GraF \textcopyright\ Cerema
 \end{minipage}
-\par\vspace{.5mm}{\scriptsize VT-GraF \textcopyright\ Cerema}
 \vspace{2mm}
 
 \begin{columns}[c,onlytextwidth]
