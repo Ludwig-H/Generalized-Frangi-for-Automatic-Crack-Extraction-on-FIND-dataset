@@ -1,6 +1,6 @@
 \documentclass[10pt,aspectratio=169]{beamer}
 \usepackage[english]{babel}
-\usepackage{lmodern,amsmath,amssymb,mathtools,array,booktabs,graphicx,tikz}
+\usepackage{lmodern,amsmath,amssymb,mathtools,array,booktabs,graphicx,qrcode,tikz}
 \usetikzlibrary{arrows.meta,positioning,calc,fit}
 \makeatletter\def\input@path{{theme/}}\makeatother
 \providecommand{\draftmode}{0}
@@ -64,8 +64,8 @@
  \end{column}
  \begin{column}{.43\textwidth}
   \begin{itemize}\setlength\itemsep{5mm}
-   \item Cracks are \textbf{thin}, \textbf{weak} and often \textbf{discontinuous}.
-   \item Several modalities may observe the same geometry.
+   \item Cracks are \textbf{thin}, \textbf{weak} and often \textbf{discontinuous}
+   \item Several \textbf{image modalities} may observe the same geometry
    \item Goal: an \textbf{editable crack skeleton}, \textbf{without training} \citb{euvip26}
   \end{itemize}
  \end{column}
@@ -78,7 +78,7 @@
 \begin{frame}[t]{Classical \Frangi{} filter}
 \vspace{-1mm}
 \[
- \Hess_\sigma(x)=\nabla^2(G_\sigma*I)(x), \qquad |\lambda_1|\le |\lambda_2|.
+ \Hess_\sigma(x)=\nabla^2(G_\sigma*I)(x), \qquad |\lambda_1|\le |\lambda_2|
 \]
 \vspace{-1mm}
 \begin{columns}[c,onlytextwidth]
@@ -115,7 +115,7 @@ F_\sigma(x)=\exp\!\left(-\frac{R_B^2}{2\beta^2}\right)
 \reffoot{frangi98}
 \end{frame}
 
-\begin{frame}[t]{Generalized \Frangi{} graph}
+\begin{frame}[t]{Our contribution: generalized \Frangi{} graph}
 \vspace{1mm}
 \begin{columns}[c,onlytextwidth]
 \begin{column}{.56\textwidth}\centering
@@ -128,22 +128,22 @@ F_\sigma(x)=\exp\!\left(-\frac{R_B^2}{2\beta^2}\right)
  \node[pix](i1)at(.72,-.02){};\node[pix](j1)at(1.88,.35){};
  \draw[dir,inria-rouge](i1)--++(.62,.2);\draw[dir,inria-rouge](j1)--++(.62,.2);
  \draw[inria-rouge,line width=1.6pt](i1)--(j1);
- \node[font=\footnotesize,align=center]at(1.3,1.45){aligned axes\\strong edge};
+ \node[font=\footnotesize,align=center]at(1.3,1.45){Aligned axes\\Strong edge};
  \begin{scope}[shift={(4.35,0)}]
   \draw[ridge](-.15,-.3)--(2,.4);\draw[ridge](1.3,.92)--(2.32,-.48);
   \node[pix](i2)at(.72,-.02){};\node[pix](j2)at(1.66,.43){};
   \draw[dir,inria-rouge](i2)--++(.59,.19);\draw[dir,inria-rouge](j2)--++(.36,-.5);
   \draw[gris_fonce_inria!45,line width=.8pt](i2)--(j2);
-  \node[font=\footnotesize,align=center]at(1.2,1.45){misaligned axes\\weak edge};
+  \node[font=\footnotesize,align=center]at(1.2,1.45){Misaligned axes\\Weak edge};
  \end{scope}
 \end{tikzpicture}}
 \par\vspace{2mm}{\scriptsize Pairwise orientation alignment \citb{gretsi25}\enspace\citb{euvip26}}
 \end{column}
 \begin{column}{.40\textwidth}
 \begin{itemize}\setlength\itemsep{4mm}
- \item Pixels become \textbf{nodes}.
- \item Ridge compatibility becomes \textbf{edge similarity}.
- \item \textcolor{inria-rouge}{\textbf{Alignment}} refines intensity and shape information.
+ \item Pixels become \textbf{nodes}
+ \item Ridge compatibility becomes \textbf{edge similarity}
+ \item \textcolor{inria-rouge}{\textbf{Alignment}} refines intensity and shape information:
 \end{itemize}
 \vspace{2mm}
 \[
@@ -160,7 +160,7 @@ S^\sigma_{\mathrm{int}}S^\sigma_{\mathrm{shape}}S^\sigma_{\mathrm{align}}
 \begin{columns}[T,onlytextwidth]
 \begin{column}{.52\textwidth}
 \begin{enumerate}\setlength\itemsep{4mm}
- \item Normalize each Hessian
+ \item Normalize each modality's Hessian
  \[
  \widehat\Hess_\sigma^{(m)}(x)=
  \frac{\Hess_\sigma^{(m)}(x)}{\max_{y\in\Omega}\|\Hess_\sigma^{(m)}(y)\|_2}
@@ -186,17 +186,17 @@ S^\sigma_{\mathrm{int}}S^\sigma_{\mathrm{shape}}S^\sigma_{\mathrm{align}}
 \panel{.21}{FrangiSim_1FIND.png}{Similarity}\hfill
 \panel{.21}{Cluster_1FIND.png}{Component}\hfill
 \panel{.21}{Betweenness_1FIND.png}{Centrality}\hfill
-\panel{.21}{Resultat_1FIND.png}{Skeleton \citb{euvip26}}
+\panel{.21}{Resultat_1FIND_red.png}{Skeleton \citb{euvip26}}
 \par\vspace{3mm}
 \resizebox{.95\linewidth}{!}{%
 \begin{tikzpicture}[node distance=3mm,
  stage/.style={draw=gris_fonce_inria!45,rounded corners=1pt,align=center,font=\small,
  text width=3cm,minimum height=10mm,inner sep=2pt},
  flow/.style={-{Latex[length=1.6mm]},draw=inria-rouge,thick}]
- \node[stage](a){rank and threshold};
- \node[stage,right=of a](b){keep connected components};
- \node[stage,right=of b](c){minimum spanning tree};
- \node[stage,right=of c](d){prune by weighted centrality};
+ \node[stage](a){Rank and threshold};
+ \node[stage,right=of a](b){Extract connected components};
+ \node[stage,right=of b](c){Build minimum spanning tree};
+ \node[stage,right=of c](d){Prune by weighted centrality};
  \draw[flow](a)--(b);\draw[flow](b)--(c);\draw[flow](c)--(d);
 \end{tikzpicture}}
 \reffoot{euvip26}
@@ -209,7 +209,7 @@ S^\sigma_{\mathrm{int}}S^\sigma_{\mathrm{shape}}S^\sigma_{\mathrm{align}}
 \begin{columns}[c,onlytextwidth]
 \begin{column}{.34\textwidth}\centering
  \panel{.475}{GroundTruth_1FIND.png}{Ground truth\\\citb{find22}}\hfill
- \panel{.475}{Resultat_1FIND.png}{Our result\\\citb{euvip26}}
+ \panel{.475}{Resultat_1FIND_red.png}{Our result\\\citb{euvip26}}
 \end{column}
 \begin{column}{.62\textwidth}\centering
 {\footnotesize\setlength{\tabcolsep}{3pt}\renewcommand{\arraystretch}{1.35}
@@ -221,7 +221,7 @@ CrackSegDiff \citb{cracksegdiff24} & \textbf{87\%} & \textbf{90\%} & \textbf{5 p
 \par\vspace{4mm}
 \begin{minipage}{\linewidth}\raggedright
 On clean data a trained model scores higher --- at the price of supervision,
-and possibly of overfitting to FIND.
+and possibly of overfitting to FIND
 \end{minipage}
 \end{column}
 \end{columns}
@@ -241,7 +241,7 @@ and possibly of overfitting to FIND.
   \node[anchor=north east,font=\scriptsize]at(plot.south west){0};
   \node[anchor=north,font=\scriptsize]at(plot.south east){0.5};
   \node[anchor=south west,font=\small]at(plot.north west){Jaccard (\%) \citb{euvip26}};
-  \node[anchor=north,font=\small,yshift=-3mm]at(plot.south){Noise level $s$};
+  \node[anchor=north,font=\small,yshift=-3mm]at(plot.south){Noise standard deviation $s$};
  \end{tikzpicture}
  \par\vspace{1mm}
  
@@ -260,7 +260,7 @@ N,N'\sim\mathcal N(0,s^2)\ \text{independent}
 \panel{.46}{ResultatNoisy_1FIND.png}{Our result, $s=0.5$}
 \par\vspace{.5mm}
 \begin{itemize}
- \item Slower degradation under added noise.
+ \item Slower degradation under added noise
 \end{itemize}
 \end{column}
 \end{columns}
@@ -308,10 +308,10 @@ N,N'\sim\mathcal N(0,s^2)\ \text{independent}
 \includegraphics[width=.95\linewidth]{VTGraF_granularite.png}
 \par\vspace{1mm}
 \begin{minipage}{.95\linewidth}\scriptsize\centering
- \makebox[.245\linewidth]{granular image}\hfill
- \makebox[.245\linewidth]{pixel-wise \Frangi}\hfill
- \makebox[.245\linewidth]{graph similarity}\hfill
- \makebox[.245\linewidth]{retained component}\par
+ \makebox[.245\linewidth]{Granular image}\hfill
+ \makebox[.245\linewidth]{Pixel-wise \Frangi}\hfill
+ \makebox[.245\linewidth]{Graph similarity}\hfill
+ \makebox[.245\linewidth]{Retained component}\par
  \vspace{.7mm}VT-GraF \textcopyright\ Cerema
 \end{minipage}
 \vspace{2mm}
@@ -319,9 +319,9 @@ N,N'\sim\mathcal N(0,s^2)\ \text{independent}
 \begin{columns}[c,onlytextwidth]
 \begin{column}{.46\textwidth}
 \begin{itemize}\setlength\itemsep{3mm}
- \item Granular background can create spurious chains.
- \item $K=1$: connectivity through vertices.
- \item $K=2$: connectivity through triangles. \citb{ans26}
+ \item Granular background can create spurious chains
+ \item $K=1$: connectivity through vertices
+ \item $K=2$: connectivity through triangles \citb{ans26}
 \end{itemize}
 \end{column}
 \begin{column}{.50\textwidth}\centering
@@ -368,15 +368,22 @@ N,N'\sim\mathcal N(0,s^2)\ \text{independent}
 \end{itemize}
 \end{column}
 \end{columns}
-\vspace{2mm}
-\centering
-\resizebox{.48\linewidth}{!}{%
+\vspace{4mm}
+
+\begin{minipage}[c]{.20\linewidth}\centering
+ \href{https://github.com/Ayana-Inria/Frangi-EUVIP}{\textcolor{black}{%
+  \qrcode[height=1.25cm,hyperlink=false]{https://github.com/Ayana-Inria/Frangi-EUVIP}}}\par\vspace{.8mm}
+ {\scriptsize Code \& data}
+\end{minipage}\hfill
+\begin{minipage}[c]{.76\linewidth}\centering
+\resizebox{.62\linewidth}{!}{%
 \begin{tikzpicture}[node distance=2mm,box/.style={draw=gris_fonce_inria!50,align=center,font=\scriptsize,text width=1.8cm,minimum height=8mm,inner sep=1pt}]
  \node[box,draw=inria-2024-bleu-canard,fill=inria-2024-bleu-canard!12,text=inria-2024-bleu-canard](g){\Frangi{}\\graph};
- \node[box,draw=inria-2024-bleu-canard,fill=inria-2024-bleu-canard!12,text=inria-2024-bleu-canard,right=of g](h){hierarchy};
- \node[box,draw=inria-rouge,fill=inria-rouge!12,text=inria-rouge,right=of h](s){foundation\\model};
+ \node[box,draw=inria-2024-bleu-canard,fill=inria-2024-bleu-canard!12,text=inria-2024-bleu-canard,right=of g](h){Hierarchy};
+ \node[box,draw=inria-rouge,fill=inria-rouge!12,text=inria-rouge,right=of h](s){Foundation\\model};
  \draw[-{Latex[length=1.3mm]},inria-2024-bleu-canard](g)--(h);\draw[-{Latex[length=1.3mm]},inria-rouge](h)--(s);
 \end{tikzpicture}}
+\end{minipage}
 \reffoot{euvip26,sam23,cracksam24}
 \end{frame}
 
