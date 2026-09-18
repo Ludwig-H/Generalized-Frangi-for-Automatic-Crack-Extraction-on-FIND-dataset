@@ -374,9 +374,13 @@ N,N'\sim\mathcal N(0,s^2)\ \text{independent}
  \href{https://github.com/Ayana-Inria/Frangi-EUVIP}{\textcolor{black}{%
   \qrcode[height=1.25cm,hyperlink=false]{https://github.com/Ayana-Inria/Frangi-EUVIP}}}\par\vspace{.8mm}
  {\scriptsize Code \& data}
-\end{minipage}\hfill
-\begin{minipage}[c]{.76\linewidth}\centering
-\resizebox{.62\linewidth}{!}{%
+\end{minipage}%
+% The "Foundation model" box starts at .55\linewidth, the left edge of the
+% "Next steps" column. The third box begins .690 of the way along the chain, so
+% the chain is .470\linewidth wide and starts at .55-.690*.470 = .2256.
+\hspace{.0256\linewidth}%
+\begin{minipage}[c]{.7744\linewidth}\raggedright
+\resizebox{.607\linewidth}{!}{%
 \begin{tikzpicture}[node distance=2mm,box/.style={draw=gris_fonce_inria!50,align=center,font=\scriptsize,text width=1.8cm,minimum height=8mm,inner sep=1pt}]
  \node[box,draw=inria-2024-bleu-canard,fill=inria-2024-bleu-canard!12,text=inria-2024-bleu-canard](g){\Frangi{}\\graph};
  \node[box,draw=inria-2024-bleu-canard,fill=inria-2024-bleu-canard!12,text=inria-2024-bleu-canard,right=of g](h){Hierarchy};
