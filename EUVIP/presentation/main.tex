@@ -44,7 +44,7 @@
  at ([xshift=.055\paperwidth,yshift=-.285\paperheight]current page.north west){%
   {\fontsize{18}{21}\selectfont\bfseries Multi-Modal, Training-Free Crack Extraction\\via Generalized \Frangi{} Graph}\par
   \vspace{2mm}\barrecouleur\par\vspace{4mm}
-  {\large European Workshop on Visual Information Processing\enspace --\enspace Luxembourg}\par\vspace{1mm}
+  {\large European Workshop on Visual Information Processing\enspace ---\enspace Luxembourg}\par\vspace{1mm}
   {\small 29 September 2026\enspace |\enspace Paper 81}\par\vspace{5mm}
   {\small Louis {\rmfamily\textsc{Hauseux}}\textsuperscript{1}, Raphaël {\rmfamily\textsc{Antoine}}\textsuperscript{2},
   Philippe {\rmfamily\textsc{Foucher}}\textsuperscript{2}, Pierre {\rmfamily\textsc{Charbonnier}}\textsuperscript{2},
@@ -160,12 +160,12 @@ S^\sigma_{\mathrm{int}}S^\sigma_{\mathrm{shape}}S^\sigma_{\mathrm{align}}
 \begin{columns}[T,onlytextwidth]
 \begin{column}{.52\textwidth}
 \begin{enumerate}\setlength\itemsep{4mm}
- \item Normalize each modality's Hessian
+ \item Normalize each modality's Hessian:
  \[
  \widehat\Hess_\sigma^{(m)}(x)=
  \frac{\Hess_\sigma^{(m)}(x)}{\max_{y\in\Omega}\|\Hess_\sigma^{(m)}(y)\|_2}
  \]
- \item Fuse operators before eigendecomposition, with $w_m\geq 0$ and $\sum_m w_m=1$
+ \item Fuse operators before eigendecomposition, with $w_m\geq 0$ and $\sum_m w_m=1$:
  \[
  \Hess_\sigma^{\mathrm{fused}}(x)=\sum_m w_m\widehat\Hess_\sigma^{(m)}(x)
  \]
@@ -257,7 +257,7 @@ N,N'\sim\mathcal N(0,s^2)\ \text{independent}
 \vspace{-2mm}
 
 \panel{.46}{IntensityNoisy_1FIND.png}{Noisy intensity}\hfill
-\panel{.46}{ResultatNoisy_1FIND.png}{Our result, $s=0.5$}
+\panel{.46}{ResultatNoisy_1FIND_red.png}{Our result, $s=0.5$}
 \par\vspace{.5mm}
 \begin{itemize}
  \item Slower degradation under added noise
@@ -278,7 +278,7 @@ N,N'\sim\mathcal N(0,s^2)\ \text{independent}
  \panel{.475}{Test2_512_512_result.png}{Test 2\\\textcopyright\ Cerema}
  \vspace{2mm}
  
- {\scriptsize\textcolor{red}{Ours}\quad\textcolor{green!50!black}{Ground truth}\quad\textcolor{blue}{U-Net}}\par\vspace{1mm}
+ {\scriptsize\textcolor{red}{Our graph}\quad\textcolor{green!50!black}{Ground truth}\quad\textcolor{blue}{U-Net}}\par\vspace{1mm}
  \begin{itemize}
   \item IoU 47 / 50\% and 29 / 34\% (ours / adapted U-Net)
  \end{itemize}
@@ -289,7 +289,7 @@ N,N'\sim\mathcal N(0,s^2)\ \text{independent}
  
  \panel{.315}{PalaisDesPapes.png}{Intensity\\\textcopyright\ Cerema}\hfill
  \panel{.315}{PalaisDesPapes_IntDepth.png}{Depth overlay\\\textcopyright\ Cerema}\hfill
- \panel{.315}{PalaisDesPapes_Result.png}{Our result\\\textcopyright\ Cerema}
+ \panel{.315}{PalaisDesPapes_Result_red.png}{Our result\\\textcopyright\ Cerema}
  \vspace{3mm}
  
  \begin{itemize}\setlength\itemsep{2mm}
@@ -317,14 +317,14 @@ N,N'\sim\mathcal N(0,s^2)\ \text{independent}
 \vspace{2mm}
 
 \begin{columns}[c,onlytextwidth]
-\begin{column}{.46\textwidth}
+\begin{column}{.60\textwidth}
 \begin{itemize}\setlength\itemsep{3mm}
  \item Granular background can create spurious chains
  \item $K=1$: connectivity through vertices
  \item $K=2$: connectivity through triangles \citb{ans26}
 \end{itemize}
 \end{column}
-\begin{column}{.50\textwidth}\centering
+\begin{column}{.36\textwidth}\centering
 \resizebox{\linewidth}{!}{%
 \begin{tikzpicture}[x=1cm,y=1cm,every node/.style={font=\small}]
  \foreach \off/\k in {0/1,3.7/2}{\begin{scope}[xshift=\off cm]
