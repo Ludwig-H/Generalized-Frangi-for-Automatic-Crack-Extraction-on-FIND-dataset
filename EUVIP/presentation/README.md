@@ -17,7 +17,7 @@ English, 16:9, **10 content slides**, plus the title, three section dividers and
 7. FIND under controlled synthetic noise.
 8. Geological transfer: Vaches Noires and Palais des Papes.
 9. Granular backgrounds and higher-order connectivity, K=2.
-10. Conclusion & perspective: hierarchy-guided SAM/CrackSAM.
+10. Conclusion & perspectives: hierarchy-guided SAM/CrackSAM.
 
 The scientific baseline is [the EUVIP camera-ready source](../LaTeX/main.tex). The clean-FIND table reports the best published graph results (63% IoU, 71% Tversky, 11 px Wasserstein; Table III), together with the published CrackSegDiff results (Table II), and a short sentence attributes the gap to supervision and possible overfitting. The separate modality-ablation panel is removed and the slides name only our best configuration. Experimental figures are unchanged.
 
